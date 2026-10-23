@@ -1,0 +1,22 @@
+{
+  "schema": "shinki.emu.metadata.index.v1",
+  "generated_at_unix_ms": 1792800000000,
+  "source_commit": "5e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e",
+  "files": [
+    {
+      "path": "compatibility.json",
+      "sha256": "ede4db1f42eda20246a162f99b8672779fe850639f933218e53b37b49219a707",
+      "size": 2473
+    },
+    {
+      "path": "cores.json",
+      "sha256": "e39cdb3f0872085ff2ae9e323e50bbe3598dbac5ab5a93711267e08ea28103f7",
+      "size": 1223
+    },
+    {
+      "path": "patches.json",
+      "sha256": "13396e6acff73d94531eb6e22d91cae40b55a94404e0774da71729af93a25adc",
+      "size": 2696
+    }
+  ]
+}

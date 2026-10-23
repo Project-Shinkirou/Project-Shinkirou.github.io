@@ -1,0 +1,36 @@
+---
+// Starlight Footer override: the default footer plus the exact source
+// revisions and generation time of the data and docs this page was built from.
+import Default from '@astrojs/starlight/components/Footer.astro';
+import { formatUtc, STRINGS, type Locale } from '../lib/i18n.ts';
+import { ROUKAKU_REPO, SHINKIEMU_REPO } from '../lib/site-data.ts';
+import { site } from '../lib/site.ts';
+
+const locale = (Astro.locals.starlightRoute.locale ?? 'zh-cn') as Locale;
+const t = STRINGS[locale].footer;
+const { sources, index } = site;
+const commits = [
+  { label: t.shinkiemu, repo: SHINKIEMU_REPO, commit: sources.shinkiemu_commit },
+  { label: t.metadata, repo: SHINKIEMU_REPO, commit: index.source_commit },
+  { label: t.roukaku, repo: ROUKAKU_REPO, commit: sources.roukaku_commit },
+];
+---
+
+<Default />
+<div class="source-footer" data-pagefind-ignore>
+  <span>{t.sources}:</span>
+  {
+    commits.map(({ label, repo, commit }) => (
+      <span>
+        {label}{' '}
+        <a href={`${repo}/tree/${commit}`}>
+          <code>{commit.slice(0, 12)}</code>
+        </a>
+      </span>
+    ))
+  }
+  <span>
+    {t.generated}: <time datetime={sources.generated_at}>{formatUtc(sources.generated_at, locale)} UTC</time>
+  </span>
+  {site.synthetic && <span class="chip chip-blocked">{t.synthetic}</span>}
+</div>

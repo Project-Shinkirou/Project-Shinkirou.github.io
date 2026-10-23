@@ -1,0 +1,121 @@
+name: Deploy portal
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  CARGO_TARGET_DIR: ${{ github.workspace }}/.work/target/portal-xtask
+
+jobs:
+  sources:
+    runs-on: ubuntu-24.04
+    outputs:
+      roukaku_commit: ${{ steps.compare.outputs.roukaku_commit }}
+      shinkiemu_commit: ${{ steps.compare.outputs.shinkiemu_commit }}
+      changed: ${{ steps.compare.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust from rust-toolchain.toml
+        run: rustup show active-toolchain
+      - name: Resolve current product revisions
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: cargo xtask site sources --out .work/sources.json
+      - name: Compare deployed product revisions
+        id: compare
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            const sources = JSON.parse(fs.readFileSync('.work/sources.json', 'utf8'));
+            core.setOutput('roukaku_commit', sources.roukaku_commit);
+            core.setOutput('shinkiemu_commit', sources.shinkiemu_commit);
+            if (context.eventName !== 'schedule') {
+              core.setOutput('changed', 'true');
+              return;
+            }
+            const response = await fetch('https://project-shinkirou.github.io/data/shinkiemu/site-sources.json', {
+              cache: 'no-store',
+              headers: { 'Cache-Control': 'no-cache' },
+              signal: AbortSignal.timeout(60000),
+            });
+            if (response.status === 404) {
+              core.setOutput('changed', 'true');
+            } else {
+              if (!response.ok) throw new Error(`Deployed sources returned HTTP ${response.status}`);
+              const deployed = await response.json();
+              core.setOutput('changed', String(
+                deployed.roukaku_commit !== sources.roukaku_commit ||
+                deployed.shinkiemu_commit !== sources.shinkiemu_commit
+              ));
+            }
+
+  build:
+    needs: sources
+    if: github.event_name != 'schedule' || needs.sources.outputs.changed == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout exact RoukakuEngine revision
+        uses: actions/checkout@v4
+        with:
+          repository: Project-Shinkirou/RoukakuEngine
+          ref: ${{ needs.sources.outputs.roukaku_commit }}
+          path: .work/roukaku
+          submodules: false
+          lfs: false
+          persist-credentials: false
+      - name: Checkout exact ShinkiEMU revision
+        uses: actions/checkout@v4
+        with:
+          repository: Project-Shinkirou/ShinkiEMU
+          ref: ${{ needs.sources.outputs.shinkiemu_commit }}
+          path: .work/shinkiemu
+          # Product workspace resolution needs its pinned cpal patch submodule.
+          submodules: true
+          lfs: false
+          persist-credentials: false
+      - name: Set up Rust from rust-toolchain.toml
+        run: rustup show active-toolchain
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Prepare exact product snapshot
+        run: cargo xtask site prepare --roukaku .work/roukaku --shinkiemu .work/shinkiemu --out .work/prepared
+      - name: Build production portal
+        run: cargo xtask site build --prepared .work/prepared
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy successful build
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+      - name: Set up Rust from rust-toolchain.toml
+        run: rustup show active-toolchain
+      - name: Verify published metadata bytes
+        run: cargo xtask site verify --base-url https://project-shinkirou.github.io

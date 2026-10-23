@@ -1,0 +1,94 @@
+{
+  "schema": "shinki.emu.patches.v1",
+  "entries": [
+    {
+      "id": "synthetic-recipe",
+      "title": {
+        "zh-CN": "合成配方补丁",
+        "en": "Synthetic recipe patch"
+      },
+      "version": "1.0.0",
+      "vn_ids": [
+        "v900001"
+      ],
+      "release_ids": [],
+      "emulators": [
+        "shinki.emu.musica"
+      ],
+      "kind": "recipe",
+      "source_url": "https://github.com/Project-Shinkirou/ShinkiEMU/blob/main/Metadata/patches/synthetic-recipe.luau",
+      "license": "MIT OR Apache-2.0",
+      "authorization_url": null,
+      "summary": {
+        "zh-CN": "合成测试数据：已审查 Luau 配方。",
+        "en": "Synthetic test data: reviewed Luau recipe."
+      },
+      "issue_url": null,
+      "artifact": null,
+      "recipe": {
+        "script": "synthetic-recipe.luau"
+      }
+    },
+    {
+      "id": "synthetic-external",
+      "title": {
+        "zh-CN": "合成外部补丁",
+        "en": "Synthetic external patch"
+      },
+      "version": "2.1.0",
+      "vn_ids": [
+        "v900002"
+      ],
+      "release_ids": [
+        "r900002"
+      ],
+      "emulators": [
+        "ReMinori"
+      ],
+      "kind": "external",
+      "source_url": "https://example.org/synthetic-external",
+      "license": "LicenseRef-Synthetic",
+      "authorization_url": null,
+      "summary": {
+        "zh-CN": "合成测试数据：仅展示外部来源链接。",
+        "en": "Synthetic test data: external source link only."
+      },
+      "issue_url": "https://github.com/Project-Shinkirou/ShinkiEMU/issues/5",
+      "artifact": null,
+      "recipe": null
+    },
+    {
+      "id": "synthetic-hosted",
+      "title": {
+        "zh-CN": "合成托管补丁",
+        "en": "Synthetic hosted patch"
+      },
+      "version": "1.0.0",
+      "vn_ids": [
+        "v900003"
+      ],
+      "release_ids": [
+        "r900003"
+      ],
+      "emulators": [
+        "renpy"
+      ],
+      "kind": "hosted",
+      "source_url": "https://example.org/synthetic-hosted-source",
+      "license": "CC0-1.0",
+      "authorization_url": "https://example.org/synthetic-authorization",
+      "summary": {
+        "zh-CN": "合成测试数据：公开自造附件。",
+        "en": "Synthetic test data: self-made public attachment."
+      },
+      "issue_url": "https://github.com/Project-Shinkirou/ShinkiEMU/issues/6",
+      "artifact": {
+        "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/patch-synthetic-hosted-v1.0.0/synthetic-hosted.bin",
+        "sha256": "dc2e38e5eaf204eddaa27eae4ce2c4877ea07ca056dab2ced8c2b3f756c4db2f",
+        "size": 16,
+        "file_name": "synthetic-hosted.bin"
+      },
+      "recipe": null
+    }
+  ]
+}

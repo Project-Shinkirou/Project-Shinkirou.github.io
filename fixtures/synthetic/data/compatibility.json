@@ -1,0 +1,76 @@
+{
+  "schema": "shinki.emu.compatibility.v4",
+  "generated_at_unix_ms": 1792800000000,
+  "entries": [
+    {
+      "vn_id": "v900001",
+      "release_id": "r900001",
+      "emulator": "shinki.emu.musica",
+      "status": "completable",
+      "notes": "合成测试记录，不是真实报告。\nSynthetic test record, not a real report.",
+      "emulator_version": "0.1.0-beta.1",
+      "manager_version": "0.1.0-beta.1",
+      "platform": "windows",
+      "architecture": "x86_64",
+      "variant": "desktop",
+      "issue": 1,
+      "updated_at_unix_ms": 1792800000000
+    },
+    {
+      "vn_id": "v900001",
+      "release_id": "r900001",
+      "emulator": "shinki.emu.musica",
+      "status": "boot_only",
+      "notes": "合成测试记录，不是真实报告。\nSynthetic test record, not a real report.",
+      "emulator_version": "0.1.0-beta.1",
+      "manager_version": "0.1.0-beta.1",
+      "platform": "linux",
+      "architecture": "x86_64",
+      "variant": "desktop",
+      "issue": 2,
+      "updated_at_unix_ms": 1792800000000
+    },
+    {
+      "vn_id": "v900002",
+      "release_id": "r900002",
+      "emulator": "ReMinori",
+      "status": "flawed",
+      "notes": "合成测试记录，不是真实报告。\nSynthetic test record, not a real report.",
+      "emulator_version": "0.1.0-beta.1",
+      "manager_version": "0.1.0-beta.1",
+      "platform": "windows",
+      "architecture": "x86_64",
+      "variant": "desktop",
+      "issue": null,
+      "updated_at_unix_ms": 1792800000000
+    },
+    {
+      "vn_id": "v900003",
+      "release_id": "r900003",
+      "emulator": "renpy",
+      "status": "unplayable",
+      "notes": "合成测试记录，不是真实报告。\nSynthetic test record, not a real report.",
+      "emulator_version": "0.1.0-beta.1",
+      "manager_version": "0.1.0-beta.1",
+      "platform": "android",
+      "architecture": "aarch64",
+      "variant": "device",
+      "issue": 3,
+      "updated_at_unix_ms": 1792800000000
+    },
+    {
+      "vn_id": "v900004",
+      "release_id": "r900004",
+      "emulator": "rfvp",
+      "status": "perfect",
+      "notes": "<script>alert('synthetic')</script> 合成 HTML 载荷应按文本显示 / synthetic HTML payload must render as text",
+      "emulator_version": "0.1.0-beta.1",
+      "manager_version": "0.1.0-beta.1",
+      "platform": "windows",
+      "architecture": "x86_64",
+      "variant": "desktop",
+      "issue": 4,
+      "updated_at_unix_ms": 1792800000000
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+# Runner labels: https://docs.github.com/actions/reference/runners/github-hosted-runners
+schema = "shinki.emu.build_targets.v1"
+
+[[targets]]
+triple = "x86_64-pc-windows-msvc"
+runner = "windows-2022"
+platform = "windows"
+architecture = "x86_64"
+variant = "desktop"
+tools = ["cargo", "rustc", "cmake", "ninja", "git"]
+manager_supported = true
+manager_blocked = ""
+
+[[targets]]
+triple = "x86_64-unknown-linux-gnu"
+runner = "ubuntu-24.04"
+platform = "linux"
+architecture = "x86_64"
+variant = "desktop"
+tools = ["cargo", "rustc"]
+manager_supported = false
+manager_blocked = "Native Manager host and packaging integration are not adapted for this target."
+
+[[targets]]
+triple = "x86_64-apple-darwin"
+runner = "macos-15-intel"
+platform = "macos"
+architecture = "x86_64"
+variant = "desktop"
+tools = ["cargo", "xcrun"]
+manager_supported = false
+manager_blocked = "Native Manager host and packaging integration are not adapted for this target."
+
+[[targets]]
+triple = "aarch64-apple-darwin"
+runner = "macos-15"
+platform = "macos"
+architecture = "aarch64"
+variant = "desktop"
+tools = ["cargo", "xcrun"]
+manager_supported = false
+manager_blocked = "Native Manager host and packaging integration are not adapted for this target."
+
+[[targets]]
+triple = "aarch64-linux-android"
+runner = "ubuntu-24.04"
+platform = "android"
+architecture = "aarch64"
+variant = "device"
+tools = ["cargo", "java", "git"]
+manager_supported = true
+manager_blocked = ""
+
+[[targets]]
+triple = "x86_64-linux-android"
+runner = "ubuntu-24.04"
+platform = "android"
+architecture = "x86_64"
+variant = "device"
+tools = ["cargo", "java", "git"]
+manager_supported = true
+manager_blocked = ""
+
+[[targets]]
+triple = "aarch64-apple-ios"
+runner = "macos-15"
+platform = "ios"
+architecture = "aarch64"
+variant = "device"
+tools = ["cargo", "xcrun"]
+manager_supported = false
+manager_blocked = "Native Manager host and packaging integration are not adapted for this target."
+
+[[targets]]
+triple = "aarch64-apple-ios-sim"
+runner = "macos-15"
+platform = "ios"
+architecture = "aarch64"
+variant = "simulator"
+tools = ["cargo", "xcrun"]
+manager_supported = false
+manager_blocked = "Native Manager host and packaging integration are not adapted for this target."
+
+[[targets]]
+triple = "aarch64-unknown-linux-ohos"
+runner = "ubuntu-24.04"
+platform = "ohos"
+architecture = "aarch64"
+variant = "device"
+tools = ["cargo"]
+manager_supported = false
+manager_blocked = "Native Manager host and packaging integration are not adapted for this target."

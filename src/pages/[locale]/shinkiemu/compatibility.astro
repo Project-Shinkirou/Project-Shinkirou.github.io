@@ -1,0 +1,205 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { formatUtc, LOCALES, STRINGS, type Locale } from '../../../lib/i18n.ts';
+import { ARCHITECTURES, PLATFORMS, STATUSES, VARIANTS } from '../../../lib/site-data.ts';
+import { ISSUES_URL, site } from '../../../lib/site.ts';
+
+export function getStaticPaths() {
+  return LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const strings = STRINGS[locale];
+const t = strings.compatibility;
+const coreName: Record<string, string> = Object.fromEntries(site.matrix.map((core) => [core.plugin_id, core.core]));
+const entries = [...site.compatibility].sort(
+  (a, b) =>
+    a.vn_id.localeCompare(b.vn_id, 'en', { numeric: true }) ||
+    a.release_id.localeCompare(b.release_id, 'en', { numeric: true }) ||
+    a.emulator.localeCompare(b.emulator) ||
+    a.platform.localeCompare(b.platform) ||
+    a.architecture.localeCompare(b.architecture) ||
+    a.variant.localeCompare(b.variant),
+);
+const filters = [
+  { name: 'core', label: t.core, options: site.matrix.map((core) => ({ value: core.plugin_id, label: core.core })) },
+  { name: 'platform', label: t.platform, options: PLATFORMS.map((value) => ({ value, label: strings.platform[value] })) },
+  { name: 'arch', label: t.architecture, options: ARCHITECTURES.map((value) => ({ value, label: strings.architecture[value] })) },
+  { name: 'variant', label: t.variant, options: VARIANTS.map((value) => ({ value, label: strings.variant[value] })) },
+  { name: 'status', label: t.status, options: STATUSES.map((value) => ({ value, label: strings.status[value] })) },
+];
+---
+
+<StarlightPage frontmatter={{ title: t.title, description: t.description, tableOfContents: false }}>
+  <p class="portal-lead">{t.lead}</p>
+  <p><a class="portal-button" href={`${ISSUES_URL}/new/choose`}>{t.submit}</a></p>
+
+  {
+    entries.length === 0 ? (
+      <div class="empty-state" role="status">
+        <p class="empty-title">{t.empty}</p>
+        <p>{t.emptyBody}</p>
+      </div>
+    ) : (
+      <compat-filter data-count={t.count} data-total={entries.length}>
+        <form class="filter-bar" role="search" aria-controls="compat-table">
+          <label>
+            <span>{t.search}</span>
+            <input type="search" name="q" placeholder={t.searchPlaceholder} autocomplete="off" spellcheck="false" />
+          </label>
+          {filters.map((filter) => (
+            <label>
+              <span>{filter.label}</span>
+              <select name={filter.name}>
+                <option value="">{t.all}</option>
+                {filter.options.map((option) => (
+                  <option value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+          ))}
+          <button type="reset" class="portal-button portal-button-secondary">{t.reset}</button>
+        </form>
+        <p class="filter-count" aria-live="polite" data-count-output />
+        <div class="table-scroll" tabindex="0" role="region" aria-label={t.title}>
+          <table id="compat-table" class="data-table">
+            <thead>
+              <tr>
+                <th scope="col">{t.columns.work}</th>
+                <th scope="col">{t.columns.release}</th>
+                <th scope="col">{t.columns.core}</th>
+                <th scope="col">{t.columns.platform}</th>
+                <th scope="col">{t.columns.status}</th>
+                <th scope="col">{t.columns.versions}</th>
+                <th scope="col">{t.columns.notes}</th>
+                <th scope="col">{t.columns.report}</th>
+                <th scope="col">{t.columns.updated}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((entry) => (
+                <tr
+                  data-vn={entry.vn_id}
+                  data-release={entry.release_id}
+                  data-core={entry.emulator}
+                  data-platform={entry.platform}
+                  data-arch={entry.architecture}
+                  data-variant={entry.variant}
+                  data-status={entry.status}
+                >
+                  <td>
+                    <a href={`https://vndb.org/${entry.vn_id}`}>{entry.vn_id}</a>
+                  </td>
+                  <td>
+                    <a href={`https://vndb.org/${entry.release_id}`}>{entry.release_id}</a>
+                  </td>
+                  <td>
+                    {coreName[entry.emulator]}
+                    <br />
+                    <code>{entry.emulator}</code>
+                  </td>
+                  <td>
+                    {strings.platform[entry.platform]}
+                    <br />
+                    <span class="muted">
+                      {strings.architecture[entry.architecture]} · {strings.variant[entry.variant]}
+                    </span>
+                  </td>
+                  <td>
+                    <span class={`chip chip-status-${entry.status}`}>{strings.status[entry.status]}</span>
+                  </td>
+                  <td class="nowrap">
+                    {entry.emulator_version && (
+                      <span>
+                        {t.coreVersion} {entry.emulator_version}
+                      </span>
+                    )}
+                    {entry.emulator_version && entry.manager_version && <br />}
+                    {entry.manager_version && (
+                      <span>
+                        {t.managerVersion} {entry.manager_version}
+                      </span>
+                    )}
+                  </td>
+                  <td class="notes">{entry.notes}</td>
+                  <td class="nowrap">
+                    {entry.issue === null ? (
+                      <span class="muted">{t.noIssue}</span>
+                    ) : (
+                      <a href={`${ISSUES_URL}/${entry.issue}`}>#{entry.issue}</a>
+                    )}
+                  </td>
+                  <td class="nowrap">
+                    <time datetime={new Date(entry.updated_at_unix_ms).toISOString()}>
+                      {formatUtc(entry.updated_at_unix_ms, locale, false)}
+                    </time>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p class="empty-state" role="status" data-no-match hidden>
+          {t.noMatch}
+        </p>
+      </compat-filter>
+    )
+  }
+</StarlightPage>
+
+<script>
+  // Client-side filtering. Every filter is mirrored in the URL query so a
+  // filtered view can be linked directly; without JavaScript all rows show.
+  const FIELDS = ['core', 'platform', 'arch', 'variant', 'status'] as const;
+
+  class CompatFilter extends HTMLElement {
+    connectedCallback() {
+      const form = this.querySelector('form');
+      if (!form) return;
+      const rows = [...this.querySelectorAll<HTMLTableRowElement>('tbody tr')];
+      const count = this.querySelector<HTMLElement>('[data-count-output]');
+      const noMatch = this.querySelector<HTMLElement>('[data-no-match]');
+      const template = (this.dataset.count ?? '').replace('{total}', this.dataset.total ?? '');
+      const search = form.elements.namedItem('q') as HTMLInputElement;
+      const selects = Object.fromEntries(
+        FIELDS.map((name) => [name, form.elements.namedItem(name) as HTMLSelectElement]),
+      ) as Record<(typeof FIELDS)[number], HTMLSelectElement>;
+
+      const params = new URLSearchParams(window.location.search);
+      search.value = params.get('q') ?? '';
+      for (const name of FIELDS) {
+        const wanted = params.get(name) ?? '';
+        // Unknown values (stale links) fall back to "all" instead of hiding everything.
+        selects[name].value = [...selects[name].options].some((option) => option.value === wanted) ? wanted : '';
+      }
+
+      const apply = (updateUrl: boolean) => {
+        const query = search.value.trim().toLowerCase();
+        let shown = 0;
+        for (const row of rows) {
+          const { vn = '', release = '' } = row.dataset;
+          const visible =
+            (query === '' || vn.includes(query) || release.includes(query)) &&
+            FIELDS.every((name) => selects[name].value === '' || row.dataset[name] === selects[name].value);
+          row.hidden = !visible;
+          if (visible) shown += 1;
+        }
+        if (count) count.textContent = template.replace('{shown}', String(shown));
+        if (noMatch) noMatch.hidden = shown !== 0;
+        if (!updateUrl) return;
+        const next = new URLSearchParams();
+        if (query !== '') next.set('q', query);
+        for (const name of FIELDS) if (selects[name].value !== '') next.set(name, selects[name].value);
+        const suffix = next.toString();
+        history.replaceState(null, '', `${window.location.pathname}${suffix ? `?${suffix}` : ''}${window.location.hash}`);
+      };
+
+      form.addEventListener('input', () => apply(true));
+      form.addEventListener('submit', (event) => event.preventDefault());
+      // `reset` fires before the controls are cleared.
+      form.addEventListener('reset', () => setTimeout(() => apply(true)));
+      apply(false);
+    }
+  }
+  customElements.define('compat-filter', CompatFilter);
+</script>

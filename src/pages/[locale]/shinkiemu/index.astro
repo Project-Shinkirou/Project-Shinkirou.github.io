@@ -1,0 +1,72 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { LOCALES, STRINGS, type Locale } from '../../../lib/i18n.ts';
+import { SHINKIEMU_REPO } from '../../../lib/site-data.ts';
+import { ISSUES_URL, RELEASES_URL, site } from '../../../lib/site.ts';
+
+export function getStaticPaths() {
+  return LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const t = STRINGS[locale].overview;
+const base = `/${locale}`;
+const combinations = site.matrix.flatMap((core) => core.targets);
+const supported = combinations.filter((target) => target.status === 'supported').length;
+const publishedCores = new Set(site.cores.map((release) => release.plugin_id)).size;
+---
+
+<StarlightPage frontmatter={{ title: t.title, description: t.description }}>
+  <p class="portal-lead">{t.lead}</p>
+
+  <h2>{t.downloadTitle}</h2>
+  <p>{t.managerBody}</p>
+  <p>{publishedCores > 0 ? t.coresPublished(publishedCores) : t.noCoresPublished}</p>
+  <p class="portal-actions">
+    <a class="portal-button" href={RELEASES_URL}>{t.releases}</a>
+    <a href={`${base}/shinkiemu/cores/`}>{t.coresLink}</a>
+  </p>
+
+  <h2>{t.matrixTitle}</h2>
+  <p>{t.matrixBody(supported, combinations.length, site.targets.length)}</p>
+
+  <h3>{t.managerTitle}</h3>
+  <div class="table-scroll" tabindex="0" role="region" aria-label={t.managerTitle}>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">{t.target}</th>
+          <th scope="col">{t.targetPlatform}</th>
+          <th scope="col">{t.targetStatus}</th>
+          <th scope="col">{t.reason}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {site.targets.map((target) => (
+          <tr>
+            <td>
+              <code>{target.triple}</code>
+            </td>
+            <td>{`${target.platform} · ${target.architecture} · ${target.variant}`}</td>
+            <td>
+              <span class={`chip chip-${target.manager.status}`}>
+                {target.manager.status === 'supported' ? t.supported : t.blocked}
+              </span>
+            </td>
+            <td>{target.manager.reason}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <h2>{t.linksTitle}</h2>
+  <ul>
+    <li><a href={`${base}/shinkiemu/docs/`}>{t.docs}</a></li>
+    <li><a href={`${base}/shinkiemu/compatibility/`}>{t.compatibility}</a></li>
+    <li><a href={`${base}/shinkiemu/patches/`}>{t.patches}</a></li>
+    <li><a href={`${ISSUES_URL}/new/choose`}>{t.report}</a></li>
+    <li><a href={SHINKIEMU_REPO}>{t.source}</a></li>
+    <li><a href="/data/shinkiemu/v1/index.json">{t.data}</a></li>
+  </ul>
+</StarlightPage>

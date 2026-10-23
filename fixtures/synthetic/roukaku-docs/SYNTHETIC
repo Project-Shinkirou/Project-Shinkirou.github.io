@@ -1,0 +1,1 @@
+Synthetic test data for local portal builds only. Never deployed: the prebuild refuses this directory when SITE_PRODUCTION=1.

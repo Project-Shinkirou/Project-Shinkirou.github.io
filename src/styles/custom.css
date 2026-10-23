@@ -1,0 +1,322 @@
+/* Portal theme on top of Starlight: blue/cyan accent, status chips, tables. */
+
+:root {
+  --sl-color-accent-low: hsl(205, 70%, 16%);
+  --sl-color-accent: hsl(198, 90%, 46%);
+  --sl-color-accent-high: hsl(190, 90%, 80%);
+  --portal-cyan: hsl(186, 80%, 52%);
+  --portal-card-bg: var(--sl-color-gray-6);
+  --portal-border: var(--sl-color-gray-5);
+  --chip-ok-bg: hsl(152, 45%, 20%);
+  --chip-ok-fg: hsl(152, 70%, 82%);
+  --chip-good-bg: hsl(198, 60%, 22%);
+  --chip-good-fg: hsl(190, 85%, 85%);
+  --chip-warn-bg: hsl(40, 60%, 22%);
+  --chip-warn-fg: hsl(42, 90%, 80%);
+  --chip-bad-bg: hsl(0, 50%, 24%);
+  --chip-bad-fg: hsl(0, 85%, 86%);
+  --chip-muted-bg: var(--sl-color-gray-5);
+  --chip-muted-fg: var(--sl-color-gray-1);
+}
+
+:root[data-theme='light'] {
+  --sl-color-accent-low: hsl(195, 85%, 92%);
+  --sl-color-accent: hsl(205, 85%, 40%);
+  --sl-color-accent-high: hsl(210, 80%, 24%);
+  --portal-cyan: hsl(188, 85%, 32%);
+  --portal-card-bg: var(--sl-color-gray-7, var(--sl-color-gray-6));
+  --chip-ok-bg: hsl(150, 55%, 90%);
+  --chip-ok-fg: hsl(152, 70%, 20%);
+  --chip-good-bg: hsl(195, 75%, 90%);
+  --chip-good-fg: hsl(205, 80%, 24%);
+  --chip-warn-bg: hsl(45, 90%, 88%);
+  --chip-warn-fg: hsl(30, 80%, 24%);
+  --chip-bad-bg: hsl(0, 80%, 93%);
+  --chip-bad-fg: hsl(0, 65%, 32%);
+  --chip-muted-bg: var(--sl-color-gray-6);
+  --chip-muted-fg: var(--sl-color-gray-2);
+}
+
+/* Focus is always visible for keyboard users. */
+:focus-visible {
+  outline: 2px solid var(--portal-cyan);
+  outline-offset: 2px;
+}
+
+.synthetic-banner {
+  padding: 0.5rem var(--sl-nav-pad-x);
+  background: var(--chip-warn-bg);
+  color: var(--chip-warn-fg);
+  font-weight: 600;
+  text-align: center;
+}
+
+.portal-lead {
+  font-size: var(--sl-text-lg);
+  color: var(--sl-color-gray-2);
+}
+
+.muted {
+  color: var(--sl-color-gray-3);
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* Buttons are plain links styled as buttons. */
+.portal-button {
+  display: inline-block;
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--sl-color-accent);
+  border-radius: 999px;
+  background: var(--sl-color-accent);
+  color: var(--sl-color-black);
+  font-weight: 600;
+  text-decoration: none;
+  line-height: 1.5;
+  cursor: pointer;
+}
+:root[data-theme='light'] .portal-button {
+  color: var(--sl-color-white);
+}
+.portal-button:hover {
+  background: var(--portal-cyan);
+  border-color: var(--portal-cyan);
+}
+.portal-button-secondary,
+:root[data-theme='light'] .portal-button-secondary {
+  background: transparent;
+  color: var(--sl-color-text-accent);
+}
+.portal-button-secondary:hover {
+  color: var(--sl-color-black);
+}
+.portal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+}
+
+/* Home page */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 1.5rem;
+}
+.product-card,
+.core-card,
+.patch-card {
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--portal-border);
+  border-radius: 0.75rem;
+  background: var(--portal-card-bg);
+}
+.product-card {
+  border-top: 4px solid var(--sl-color-accent);
+}
+.product-card + .product-card {
+  margin-top: 0;
+}
+.product-card:nth-child(2) {
+  border-top-color: var(--portal-cyan);
+}
+.product-kicker {
+  margin: 0;
+  font-size: var(--sl-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sl-color-text-accent);
+}
+.product-card h2 {
+  margin-top: 0.25rem;
+}
+.product-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  padding: 0;
+  list-style: none;
+}
+.product-links li {
+  margin: 0;
+}
+.portal-snapshot {
+  color: var(--sl-color-gray-3);
+  font-size: var(--sl-text-sm);
+}
+
+/* Cards stacked in content */
+.core-card,
+.patch-card {
+  margin-top: 1.5rem;
+}
+.core-card > h2,
+.patch-card > h3 {
+  margin-top: 0;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 0.5rem 1.5rem;
+  margin: 0.75rem 0;
+}
+.facts > div {
+  margin: 0;
+}
+.facts dt {
+  font-size: var(--sl-text-xs);
+  font-weight: 600;
+  color: var(--sl-color-gray-3);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.facts dd {
+  margin: 0.1rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.hash {
+  font-size: var(--sl-text-xs);
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+/* Status chips: color plus text, never color alone. */
+.chip {
+  display: inline-block;
+  padding: 0.05rem 0.6rem;
+  border-radius: 999px;
+  font-size: var(--sl-text-xs);
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+  vertical-align: middle;
+  background: var(--chip-muted-bg);
+  color: var(--chip-muted-fg);
+}
+.chip-supported,
+.chip-status-perfect,
+.chip-status-completable {
+  background: var(--chip-ok-bg);
+  color: var(--chip-ok-fg);
+}
+.chip-kind-recipe,
+.chip-kind-hosted {
+  background: var(--chip-good-bg);
+  color: var(--chip-good-fg);
+}
+.chip-status-flawed,
+.chip-status-boot_only,
+.chip-warning {
+  background: var(--chip-warn-bg);
+  color: var(--chip-warn-fg);
+  white-space: normal;
+}
+.chip-status-unplayable,
+.chip-blocked {
+  background: var(--chip-bad-bg);
+  color: var(--chip-bad-fg);
+}
+
+/* Tables scroll horizontally on narrow screens instead of overflowing. */
+.table-scroll {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+.sl-markdown-content .data-table,
+.data-table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--sl-text-sm);
+}
+.data-table th,
+.data-table td {
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--portal-border);
+  text-align: start;
+  vertical-align: top;
+}
+.data-table th {
+  white-space: nowrap;
+}
+.data-table td.notes {
+  min-width: 14rem;
+  white-space: pre-line;
+}
+
+/* Compatibility filters */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  margin-top: 1.5rem;
+}
+.filter-bar label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  font-size: var(--sl-text-sm);
+  color: var(--sl-color-gray-2);
+}
+.filter-bar input,
+.filter-bar select {
+  min-width: 9rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--portal-border);
+  border-radius: 0.4rem;
+  background: var(--sl-color-bg);
+  color: var(--sl-color-white);
+  font: inherit;
+}
+.filter-bar button {
+  margin: 0;
+  font: inherit;
+}
+.filter-count {
+  font-size: var(--sl-text-sm);
+  color: var(--sl-color-gray-3);
+}
+@media (max-width: 40rem) {
+  .filter-bar label,
+  .filter-bar input,
+  .filter-bar select {
+    width: 100%;
+  }
+}
+
+.empty-state {
+  padding: 1.5rem;
+  border: 1px dashed var(--portal-border);
+  border-radius: 0.75rem;
+  text-align: center;
+}
+.empty-state[hidden] {
+  display: none;
+}
+.empty-title {
+  font-size: var(--sl-text-xl);
+  font-weight: 600;
+}
+
+/* Footer source revisions */
+.source-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--portal-border);
+  font-size: var(--sl-text-xs);
+  color: var(--sl-color-gray-3);
+}
+.source-footer code {
+  font-size: inherit;
+}

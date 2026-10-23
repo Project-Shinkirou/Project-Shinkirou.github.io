@@ -1,0 +1,31 @@
+{
+  "schema": "shinki.emu.cores.v1",
+  "entries": [
+    {
+      "plugin_id": "rfvp",
+      "display_name": "RFVP",
+      "family_name": "FVP",
+      "version": "0.1.0-beta.1",
+      "abi": "shinki.emu.native.c.v3",
+      "platform": "windows-x86_64",
+      "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/core-rfvp-v0.1.0-beta.1/shinki-emu-core-rfvp-0.1.0-beta.1-windows-x86_64.zip",
+      "sha256": "f76b2995f09016fb8410a516e53fcea3c39021ff6ce7ba3cdeb52baa362f4be7",
+      "size": 4194304,
+      "license": "MPL-2.0",
+      "release_tag": "core-rfvp-v0.1.0-beta.1"
+    },
+    {
+      "plugin_id": "shinki.emu.musica",
+      "display_name": "Shinki Musica",
+      "family_name": "Musica",
+      "version": "0.1.0-beta.1",
+      "abi": "shinki.emu.native.c.v3",
+      "platform": "windows-x86_64",
+      "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/core-shinki-emu-musica-v0.1.0-beta.1/shinki-emu-core-shinki-emu-musica-0.1.0-beta.1-windows-x86_64.zip",
+      "sha256": "19ecb7cf9569cb269548c3fc564080d2643d19df7e6b42f28166c7e33b85977c",
+      "size": 4194304,
+      "license": "MIT OR Apache-2.0",
+      "release_tag": "core-shinki-emu-musica-v0.1.0-beta.1"
+    }
+  ]
+}

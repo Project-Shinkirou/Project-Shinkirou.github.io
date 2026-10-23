@@ -1,0 +1,585 @@
+// Data contract for the portal build. The prebuild script validates the
+// ShinkiEMU metadata snapshot against these rules and writes a normalized
+// `src/generated/site-data.json`; pages only read that validated file.
+//
+// The rules mirror the Rust DTO validators in ShinkiEMU
+// (`Source/Providers/shinki-emu-metadata`) closely enough that a snapshot the
+// portal accepts is also accepted by the Manager. The Rust crate stays the
+// schema source of truth; this module only refuses data the site cannot render
+// honestly.
+
+export const INDEX_SCHEMA = 'shinki.emu.metadata.index.v1';
+export const COMPATIBILITY_SCHEMA = 'shinki.emu.compatibility.v4';
+export const CORES_SCHEMA = 'shinki.emu.cores.v1';
+export const PATCHES_SCHEMA = 'shinki.emu.patches.v1';
+
+export const RELEASE_DOWNLOAD_PREFIX =
+  'https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/';
+export const SHINKIEMU_REPO = 'https://github.com/Project-Shinkirou/ShinkiEMU';
+export const ROUKAKU_REPO = 'https://github.com/Project-Shinkirou/RoukakuEngine';
+
+export const MAX_INDEXED_FILE_BYTES = 8 * 1024 * 1024;
+export const MAX_INDEXED_TOTAL_BYTES = 64 * 1024 * 1024;
+export const MAX_INDEXED_FILES = 4096;
+export const MAX_HOSTED_PATCH_BYTES = 1024 * 1024 * 1024;
+export const MAX_CORE_PACKAGE_BYTES = 512 * 1024 * 1024;
+
+export const PLATFORMS = ['windows', 'linux', 'macos', 'android', 'ios', 'ohos'] as const;
+export const ARCHITECTURES = ['x86_64', 'aarch64'] as const;
+export const VARIANTS = ['desktop', 'device', 'simulator'] as const;
+export const STATUSES = ['perfect', 'completable', 'flawed', 'boot_only', 'unplayable'] as const;
+export const PATCH_KINDS = ['recipe', 'external', 'hosted'] as const;
+
+export type Platform = (typeof PLATFORMS)[number];
+export type Architecture = (typeof ARCHITECTURES)[number];
+export type Variant = (typeof VARIANTS)[number];
+export type Status = (typeof STATUSES)[number];
+export type PatchKind = (typeof PATCH_KINDS)[number];
+
+export interface IndexedFile {
+  path: string;
+  sha256: string;
+  size: number;
+}
+
+export interface MetadataIndex {
+  schema: string;
+  generated_at_unix_ms: number;
+  source_commit: string;
+  files: IndexedFile[];
+}
+
+export interface CompatibilityEntry {
+  vn_id: string;
+  release_id: string;
+  emulator: string;
+  status: Status;
+  notes: string | null;
+  emulator_version: string | null;
+  manager_version: string | null;
+  platform: Platform;
+  architecture: Architecture;
+  variant: Variant;
+  issue: number | null;
+  updated_at_unix_ms: number;
+}
+
+export interface CoreRelease {
+  plugin_id: string;
+  display_name: string;
+  family_name: string;
+  version: string;
+  abi: string;
+  platform: string;
+  url: string;
+  sha256: string;
+  size: number;
+  license: string;
+  release_tag: string;
+}
+
+export interface LocalizedText {
+  'zh-CN': string;
+  en: string;
+}
+
+export interface PatchArtifact {
+  url: string;
+  sha256: string;
+  size: number;
+  file_name: string;
+}
+
+export interface PatchEntry {
+  id: string;
+  title: LocalizedText;
+  version: string;
+  vn_ids: string[];
+  release_ids: string[];
+  emulators: string[];
+  kind: PatchKind;
+  source_url: string | null;
+  license: string;
+  authorization_url: string | null;
+  summary: LocalizedText;
+  issue_url: string | null;
+  artifact: PatchArtifact | null;
+  recipe: { script: string } | null;
+}
+
+export interface MatrixTarget {
+  target: string;
+  status: 'supported' | 'blocked';
+  reason: string | null;
+}
+
+/** One core of ShinkiEMU `build/cores.toml`, with targets in `build/targets.toml` order. */
+export interface MatrixCore {
+  core: string;
+  plugin_id: string;
+  family: string;
+  license: string;
+  /** Non-empty when binaries are withheld until distribution review closes. */
+  publish_blocked: string | null;
+  /** Targets where the core ships statically inside the Manager rather than as a package. */
+  static_manager_targets: string[];
+  targets: MatrixTarget[];
+}
+
+/** One target of ShinkiEMU `build/targets.toml`, including the Manager's own status. */
+export interface BuildTarget {
+  triple: string;
+  platform: Platform;
+  architecture: Architecture;
+  variant: Variant;
+  manager: MatrixTarget;
+}
+
+export interface BuildInventory {
+  targets: BuildTarget[];
+  cores: MatrixCore[];
+}
+
+export interface SiteSources {
+  roukaku_commit: string;
+  shinkiemu_commit: string;
+  generated_at: string;
+}
+
+export interface SiteData {
+  /** True when any input came from `fixtures/synthetic/`; such builds are never deployed. */
+  synthetic: boolean;
+  index: {
+    generated_at_unix_ms: number;
+    source_commit: string;
+    file_count: number;
+  };
+  sources: SiteSources;
+  compatibility: CompatibilityEntry[];
+  cores: CoreRelease[];
+  patches: PatchEntry[];
+  targets: BuildTarget[];
+  matrix: MatrixCore[];
+}
+
+export class DataError extends Error {
+  constructor(where: string, message: string) {
+    super(`${where}: ${message}`);
+    this.name = 'DataError';
+  }
+}
+
+type Json = unknown;
+
+function record(value: Json, where: string): Record<string, Json> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new DataError(where, 'expected an object');
+  }
+  return value as Record<string, Json>;
+}
+
+function only(object: Record<string, Json>, where: string, allowed: readonly string[]): void {
+  for (const key of Object.keys(object)) {
+    if (!allowed.includes(key)) throw new DataError(where, `unknown field "${key}"`);
+  }
+}
+
+function array(value: Json, where: string): Json[] {
+  if (!Array.isArray(value)) throw new DataError(where, 'expected an array');
+  return value;
+}
+
+function text(value: Json, where: string, min = 1, max = 1024): string {
+  if (typeof value !== 'string') throw new DataError(where, 'expected a string');
+  const length = [...value].length;
+  if (length < min || length > max) throw new DataError(where, `length must be ${min}..${max}`);
+  // Control characters other than newline/tab never reach rendered pages.
+  if (/[\u0000-\u0008\u000b-\u001f\u007f]/.test(value)) {
+    throw new DataError(where, 'contains control characters');
+  }
+  return value;
+}
+
+function optionalText(value: Json, where: string, min = 1, max = 1024): string | null {
+  return value === undefined || value === null ? null : text(value, where, min, max);
+}
+
+function pattern(value: Json, where: string, regex: RegExp): string {
+  if (typeof value !== 'string' || !regex.test(value)) {
+    throw new DataError(where, `must match ${regex}`);
+  }
+  return value;
+}
+
+function oneOf<T extends string>(value: Json, where: string, allowed: readonly T[]): T {
+  if (typeof value !== 'string' || !(allowed as readonly string[]).includes(value)) {
+    throw new DataError(where, `must be one of ${allowed.join(', ')}`);
+  }
+  return value as T;
+}
+
+function integer(value: Json, where: string, min: number, max = Number.MAX_SAFE_INTEGER): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < min || value > max) {
+    throw new DataError(where, `must be an integer in ${min}..${max}`);
+  }
+  return value;
+}
+
+function https(value: Json, where: string): string {
+  const raw = text(value, where, 1, 2048);
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new DataError(where, 'must be an absolute URL');
+  }
+  if (url.protocol !== 'https:' || url.username !== '' || url.password !== '') {
+    throw new DataError(where, 'must be an https URL without credentials');
+  }
+  return raw;
+}
+
+function optionalHttps(value: Json, where: string): string | null {
+  return value === undefined || value === null ? null : https(value, where);
+}
+
+function uniqueList(value: Json, where: string, item: (value: Json, where: string) => string): string[] {
+  const list = array(value, where).map((entry, i) => item(entry, `${where}[${i}]`));
+  if (new Set(list).size !== list.length) throw new DataError(where, 'contains duplicates');
+  return list;
+}
+
+const SHA256 = /^[0-9a-f]{64}$/;
+const COMMIT = /^([0-9a-f]{40}|[0-9a-f]{64})$/;
+const VN_ID = /^v[0-9]{1,63}$/;
+const RELEASE_ID = /^r[0-9]{1,63}$/;
+const PLUGIN_ID = /^[A-Za-z0-9._-]{1,128}$/;
+const TRIPLE = /^[a-z0-9_]+(-[a-z0-9_]+){1,4}$/;
+const ASSET = /^[A-Za-z0-9._-]{1,256}$/;
+const SEMVER =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
+
+/**
+ * Relative `/`-separated path without traversal, drive letters, alternate
+ * streams, or Windows-trimmed trailing dots/spaces (same rule as the Rust
+ * `is_safe_metadata_relative_path`).
+ */
+export function isSafeRelativePath(path: string): boolean {
+  if (path.length === 0 || path.length > 256 || path.includes('..')) return false;
+  return path
+    .split('/')
+    .every((segment) => segment !== '' && segment !== '.' && !segment.endsWith('.') && /^[A-Za-z0-9._-]+$/.test(segment));
+}
+
+export function parseIndex(value: Json): MetadataIndex {
+  const object = record(value, 'index.json');
+  only(object, 'index.json', ['schema', 'generated_at_unix_ms', 'source_commit', 'files']);
+  if (object.schema !== INDEX_SCHEMA) throw new DataError('index.json.schema', `expected ${INDEX_SCHEMA}`);
+  const files = array(object.files, 'index.json.files');
+  if (files.length > MAX_INDEXED_FILES) throw new DataError('index.json.files', `more than ${MAX_INDEXED_FILES} files`);
+  const seen = new Set<string>();
+  let total = 0;
+  const parsed = files.map((raw, i) => {
+    const where = `index.json.files[${i}]`;
+    const file = record(raw, where);
+    only(file, where, ['path', 'sha256', 'size']);
+    const path = text(file.path, `${where}.path`, 1, 256);
+    if (!isSafeRelativePath(path) || path === 'index.json') throw new DataError(`${where}.path`, `unsafe path "${path}"`);
+    const folded = path.toLowerCase();
+    if (seen.has(folded)) throw new DataError(`${where}.path`, `duplicate (case-insensitive) path "${path}"`);
+    seen.add(folded);
+    const size = integer(file.size, `${where}.size`, 0, MAX_INDEXED_FILE_BYTES);
+    total += size;
+    return { path, sha256: pattern(file.sha256, `${where}.sha256`, SHA256), size };
+  });
+  if (total > MAX_INDEXED_TOTAL_BYTES) throw new DataError('index.json.files', 'total size exceeds 64 MiB');
+  return {
+    schema: INDEX_SCHEMA,
+    generated_at_unix_ms: integer(object.generated_at_unix_ms, 'index.json.generated_at_unix_ms', 0),
+    source_commit: pattern(object.source_commit, 'index.json.source_commit', COMMIT),
+    files: parsed,
+  };
+}
+
+export function parseCompatibility(value: Json, cores: ReadonlySet<string>): CompatibilityEntry[] {
+  const object = record(value, 'compatibility.json');
+  only(object, 'compatibility.json', ['schema', 'generated_at_unix_ms', 'entries']);
+  if (object.schema !== COMPATIBILITY_SCHEMA) {
+    throw new DataError('compatibility.json.schema', `expected ${COMPATIBILITY_SCHEMA}`);
+  }
+  const keys = new Set<string>();
+  return array(object.entries, 'compatibility.json.entries').map((raw, i) => {
+    const where = `compatibility.json.entries[${i}]`;
+    const entry = record(raw, where);
+    only(entry, where, [
+      'vn_id', 'release_id', 'emulator', 'status', 'notes', 'emulator_version', 'manager_version',
+      'platform', 'architecture', 'variant', 'issue', 'updated_at_unix_ms',
+    ]);
+    const platform = oneOf(entry.platform, `${where}.platform`, PLATFORMS);
+    const variant = oneOf(entry.variant, `${where}.variant`, VARIANTS);
+    const desktop = platform === 'windows' || platform === 'linux' || platform === 'macos';
+    if (desktop !== (variant === 'desktop')) {
+      throw new DataError(`${where}.variant`, `"${variant}" is not valid for platform "${platform}"`);
+    }
+    const emulator = pattern(entry.emulator, `${where}.emulator`, PLUGIN_ID);
+    if (!cores.has(emulator)) throw new DataError(`${where}.emulator`, `unknown core "${emulator}"`);
+    const parsed: CompatibilityEntry = {
+      vn_id: pattern(entry.vn_id, `${where}.vn_id`, VN_ID),
+      release_id: pattern(entry.release_id, `${where}.release_id`, RELEASE_ID),
+      emulator,
+      status: oneOf(entry.status, `${where}.status`, STATUSES),
+      notes: optionalText(entry.notes, `${where}.notes`, 0, 1024),
+      emulator_version: optionalText(entry.emulator_version, `${where}.emulator_version`, 1, 64),
+      manager_version: optionalText(entry.manager_version, `${where}.manager_version`, 1, 64),
+      platform,
+      architecture: oneOf(entry.architecture, `${where}.architecture`, ARCHITECTURES),
+      variant,
+      issue: entry.issue === undefined || entry.issue === null ? null : integer(entry.issue, `${where}.issue`, 1),
+      updated_at_unix_ms: integer(entry.updated_at_unix_ms, `${where}.updated_at_unix_ms`, 0),
+    };
+    const key = [parsed.release_id, parsed.emulator, parsed.platform, parsed.architecture, parsed.variant].join('/');
+    if (keys.has(key)) throw new DataError(where, `duplicate record key ${key}`);
+    keys.add(key);
+    return parsed;
+  });
+}
+
+/** `<tag>/<asset>` under the organization's ShinkiEMU release downloads. */
+function releaseAsset(url: string): { tag: string; asset: string } | null {
+  if (!url.startsWith(RELEASE_DOWNLOAD_PREFIX)) return null;
+  const [tag, asset, ...rest] = url.slice(RELEASE_DOWNLOAD_PREFIX.length).split('/');
+  if (rest.length > 0 || !tag || !asset || !ASSET.test(tag) || !ASSET.test(asset)) return null;
+  if (asset === '.' || asset === '..') return null;
+  return { tag, asset };
+}
+
+export function parseCores(value: Json, cores: ReadonlySet<string>): CoreRelease[] {
+  const object = record(value, 'cores.json');
+  only(object, 'cores.json', ['schema', 'entries']);
+  if (object.schema !== CORES_SCHEMA) throw new DataError('cores.json.schema', `expected ${CORES_SCHEMA}`);
+  const keys = new Set<string>();
+  return array(object.entries, 'cores.json.entries').map((raw, i) => {
+    const where = `cores.json.entries[${i}]`;
+    const entry = record(raw, where);
+    only(entry, where, [
+      'plugin_id', 'display_name', 'family_name', 'version', 'abi', 'platform', 'url', 'sha256', 'size',
+      'license', 'release_tag',
+    ]);
+    const plugin_id = pattern(entry.plugin_id, `${where}.plugin_id`, PLUGIN_ID);
+    if (!cores.has(plugin_id)) throw new DataError(`${where}.plugin_id`, `core "${plugin_id}" is not in build-cores.toml`);
+    const release_tag = pattern(entry.release_tag, `${where}.release_tag`, /^[A-Za-z0-9._-]{1,128}$/);
+    const url = https(entry.url, `${where}.url`);
+    const asset = releaseAsset(url);
+    if (!asset || asset.tag !== release_tag) {
+      throw new DataError(`${where}.url`, `must be ${RELEASE_DOWNLOAD_PREFIX}${release_tag}/<asset>`);
+    }
+    const parsed: CoreRelease = {
+      plugin_id,
+      display_name: text(entry.display_name, `${where}.display_name`, 1, 64),
+      family_name: text(entry.family_name, `${where}.family_name`, 1, 64),
+      version: pattern(entry.version, `${where}.version`, SEMVER),
+      abi: text(entry.abi, `${where}.abi`, 1, 128),
+      platform: pattern(entry.platform, `${where}.platform`, /^[a-z0-9_]{1,32}-[a-z0-9_]{1,32}$/),
+      url,
+      sha256: pattern(entry.sha256, `${where}.sha256`, SHA256),
+      size: integer(entry.size, `${where}.size`, 1, MAX_CORE_PACKAGE_BYTES),
+      license: text(entry.license, `${where}.license`, 1, 128),
+      release_tag,
+    };
+    const key = `${parsed.plugin_id}/${parsed.platform}/${parsed.version}`;
+    if (keys.has(key)) throw new DataError(where, `duplicate release ${key}`);
+    keys.add(key);
+    return parsed;
+  });
+}
+
+function localized(value: Json, where: string, max: number): LocalizedText {
+  const object = record(value, where);
+  only(object, where, ['zh-CN', 'en']);
+  return { 'zh-CN': text(object['zh-CN'], `${where}.zh-CN`, 1, max), en: text(object.en, `${where}.en`, 1, max) };
+}
+
+export function parsePatches(value: Json, cores: ReadonlySet<string>): PatchEntry[] {
+  const object = record(value, 'patches.json');
+  only(object, 'patches.json', ['schema', 'entries']);
+  if (object.schema !== PATCHES_SCHEMA) throw new DataError('patches.json.schema', `expected ${PATCHES_SCHEMA}`);
+  const ids = new Set<string>();
+  return array(object.entries, 'patches.json.entries').map((raw, i) => {
+    const where = `patches.json.entries[${i}]`;
+    const entry = record(raw, where);
+    only(entry, where, [
+      'id', 'title', 'version', 'vn_ids', 'release_ids', 'emulators', 'kind', 'source_url', 'license',
+      'authorization_url', 'summary', 'issue_url', 'artifact', 'recipe',
+    ]);
+    const id = pattern(entry.id, `${where}.id`, PLUGIN_ID);
+    if (id === '.') throw new DataError(`${where}.id`, 'invalid patch id');
+    if (ids.has(id)) throw new DataError(`${where}.id`, `duplicate patch id "${id}"`);
+    ids.add(id);
+    const version = pattern(entry.version, `${where}.version`, SEMVER);
+    const kind = oneOf(entry.kind, `${where}.kind`, PATCH_KINDS);
+    const emulators = uniqueList(entry.emulators, `${where}.emulators`, (v, w) => pattern(v, w, PLUGIN_ID));
+    for (const emulator of emulators) {
+      if (!cores.has(emulator)) throw new DataError(`${where}.emulators`, `unknown core "${emulator}"`);
+    }
+    let artifact: PatchArtifact | null = null;
+    if (entry.artifact !== undefined && entry.artifact !== null) {
+      const a = record(entry.artifact, `${where}.artifact`);
+      only(a, `${where}.artifact`, ['url', 'sha256', 'size', 'file_name']);
+      artifact = {
+        url: https(a.url, `${where}.artifact.url`),
+        sha256: pattern(a.sha256, `${where}.artifact.sha256`, SHA256),
+        size: integer(a.size, `${where}.artifact.size`, 1, MAX_HOSTED_PATCH_BYTES),
+        file_name: pattern(a.file_name, `${where}.artifact.file_name`, ASSET),
+      };
+    }
+    let recipe: { script: string } | null = null;
+    if (entry.recipe !== undefined && entry.recipe !== null) {
+      const r = record(entry.recipe, `${where}.recipe`);
+      only(r, `${where}.recipe`, ['script']);
+      const script = text(r.script, `${where}.recipe.script`, 1, 256);
+      if (!isSafeRelativePath(script) || !script.endsWith('.luau')) {
+        throw new DataError(`${where}.recipe.script`, 'must be a safe relative .luau path');
+      }
+      recipe = { script };
+    }
+    const parsed: PatchEntry = {
+      id,
+      title: localized(entry.title, `${where}.title`, 256),
+      version,
+      vn_ids: uniqueList(entry.vn_ids, `${where}.vn_ids`, (v, w) => pattern(v, w, VN_ID)),
+      release_ids: uniqueList(entry.release_ids, `${where}.release_ids`, (v, w) => pattern(v, w, RELEASE_ID)),
+      emulators,
+      kind,
+      source_url: optionalHttps(entry.source_url, `${where}.source_url`),
+      license: text(entry.license, `${where}.license`, 1, 256),
+      authorization_url: optionalHttps(entry.authorization_url, `${where}.authorization_url`),
+      summary: localized(entry.summary, `${where}.summary`, 2048),
+      issue_url: optionalHttps(entry.issue_url, `${where}.issue_url`),
+      artifact,
+      recipe,
+    };
+    if (parsed.vn_ids.length === 0) throw new DataError(`${where}.vn_ids`, 'needs at least one VNDB work id');
+    if (parsed.emulators.length === 0) throw new DataError(`${where}.emulators`, 'needs at least one core');
+    switch (kind) {
+      case 'hosted': {
+        if (!parsed.authorization_url) throw new DataError(where, 'hosted patch needs authorization_url');
+        if (!artifact) throw new DataError(where, 'hosted patch needs an artifact');
+        const asset = releaseAsset(artifact.url);
+        if (!asset || asset.asset !== artifact.file_name) {
+          throw new DataError(
+            `${where}.artifact.url`,
+            `must be ${RELEASE_DOWNLOAD_PREFIX}<tag>/${artifact.file_name} (conventionally tag patch-${id}-v${version})`,
+          );
+        }
+        if (recipe) throw new DataError(where, 'hosted patch must not carry a recipe');
+        break;
+      }
+      case 'external':
+        if (!artifact && !parsed.source_url) throw new DataError(where, 'external patch needs artifact or source_url');
+        if (recipe) throw new DataError(where, 'external patch must not carry a recipe');
+        break;
+      case 'recipe':
+        if (!recipe) throw new DataError(where, 'recipe patch needs recipe.script');
+        if (artifact) throw new DataError(where, 'recipe patch must not carry an artifact');
+        break;
+    }
+    return parsed;
+  });
+}
+
+export const BUILD_CORES_SCHEMA = 'shinki.emu.build_cores.v1';
+export const BUILD_TARGETS_SCHEMA = 'shinki.emu.build_targets.v1';
+
+/**
+ * Reads the parsed ShinkiEMU `build/targets.toml` and `build/cores.toml`, the
+ * single build/release inventory. Fields the site does not render (manifests,
+ * features, tools, runners) are ignored so build-only additions do not break
+ * the portal; every rendered field is validated.
+ */
+export function parseBuildInventory(targetsValue: Json, coresValue: Json): BuildInventory {
+  const targetsFile = record(targetsValue, 'build-targets.toml');
+  if (targetsFile.schema !== BUILD_TARGETS_SCHEMA) {
+    throw new DataError('build-targets.toml.schema', `expected ${BUILD_TARGETS_SCHEMA}`);
+  }
+  const targetList = array(targetsFile.targets, 'build-targets.toml.targets');
+  if (targetList.length === 0) throw new DataError('build-targets.toml.targets', 'target list is empty');
+  const triples: string[] = [];
+  const targets = targetList.map((raw, i): BuildTarget => {
+    const where = `build-targets.toml.targets[${i}]`;
+    const t = record(raw, where);
+    const triple = pattern(t.triple, `${where}.triple`, TRIPLE);
+    if (triples.includes(triple)) throw new DataError(`${where}.triple`, `duplicate target "${triple}"`);
+    triples.push(triple);
+    if (typeof t.manager_supported !== 'boolean') throw new DataError(`${where}.manager_supported`, 'expected a boolean');
+    const managerBlocked = text(t.manager_blocked ?? '', `${where}.manager_blocked`, 0, 1024);
+    if (!t.manager_supported && managerBlocked === '') {
+      throw new DataError(`${where}.manager_blocked`, 'unsupported Manager target needs a reason');
+    }
+    return {
+      triple,
+      platform: oneOf(t.platform, `${where}.platform`, PLATFORMS),
+      architecture: oneOf(t.architecture, `${where}.architecture`, ARCHITECTURES),
+      variant: oneOf(t.variant, `${where}.variant`, VARIANTS),
+      manager: t.manager_supported
+        ? { target: triple, status: 'supported', reason: null }
+        : { target: triple, status: 'blocked', reason: managerBlocked },
+    };
+  });
+
+  const coresFile = record(coresValue, 'build-cores.toml');
+  if (coresFile.schema !== BUILD_CORES_SCHEMA) {
+    throw new DataError('build-cores.toml.schema', `expected ${BUILD_CORES_SCHEMA}`);
+  }
+  const coreList = array(coresFile.cores, 'build-cores.toml.cores');
+  if (coreList.length === 0) throw new DataError('build-cores.toml.cores', 'core inventory is empty');
+  const ids = new Set<string>();
+  const cores = coreList.map((raw, i): MatrixCore => {
+    const where = `build-cores.toml.cores[${i}]`;
+    const core = record(raw, where);
+    const plugin_id = pattern(core.id, `${where}.id`, PLUGIN_ID);
+    if (ids.has(plugin_id)) throw new DataError(`${where}.id`, `duplicate core "${plugin_id}"`);
+    ids.add(plugin_id);
+    const targetName = (value: Json, w: string) => {
+      const triple = pattern(value, w, TRIPLE);
+      if (!triples.includes(triple)) throw new DataError(w, `target "${triple}" is not in build-targets.toml`);
+      return triple;
+    };
+    const supported = uniqueList(core.supported_targets, `${where}.supported_targets`, targetName);
+    const status: Record<string, MatrixTarget> = {};
+    for (const triple of supported) status[triple] = { target: triple, status: 'supported', reason: null };
+    array(core.blocked ?? [], `${where}.blocked`).forEach((rawBlocked, j) => {
+      const w = `${where}.blocked[${j}]`;
+      const blocked = record(rawBlocked, w);
+      const triple = targetName(blocked.target, `${w}.target`);
+      if (status[triple]) throw new DataError(`${w}.target`, `target "${triple}" is listed twice`);
+      status[triple] = { target: triple, status: 'blocked', reason: text(blocked.reason, `${w}.reason`, 1, 1024) };
+    });
+    const missing = triples.filter((triple) => !status[triple]);
+    if (missing.length > 0) throw new DataError(where, `no supported/blocked status for ${missing.join(', ')}`);
+    const publishBlocked = text(core.publish_blocked ?? '', `${where}.publish_blocked`, 0, 1024);
+    return {
+      core: text(core.display_name, `${where}.display_name`, 1, 128),
+      plugin_id,
+      family: text(core.family_name, `${where}.family_name`, 1, 128),
+      license: text(core.license, `${where}.license`, 1, 256),
+      publish_blocked: publishBlocked === '' ? null : publishBlocked,
+      static_manager_targets: uniqueList(core.static_manager_targets ?? [], `${where}.static_manager_targets`, targetName),
+      targets: triples.map((triple) => status[triple]),
+    };
+  });
+  return { targets, cores };
+}
+
+export function parseSources(value: Json): SiteSources {
+  const object = record(value, 'site-sources.json');
+  only(object, 'site-sources.json', ['roukaku_commit', 'shinkiemu_commit', 'generated_at']);
+  const generated_at = text(object.generated_at, 'site-sources.json.generated_at', 1, 64);
+  if (Number.isNaN(Date.parse(generated_at))) {
+    throw new DataError('site-sources.json.generated_at', 'must be an ISO 8601 timestamp');
+  }
+  return {
+    roukaku_commit: pattern(object.roukaku_commit, 'site-sources.json.roukaku_commit', COMMIT),
+    shinkiemu_commit: pattern(object.shinkiemu_commit, 'site-sources.json.shinkiemu_commit', COMMIT),
+    generated_at: new Date(generated_at).toISOString(),
+  };
+}

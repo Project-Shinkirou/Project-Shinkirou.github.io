@@ -1,0 +1,49 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { LOCALES, STRINGS, type Locale } from '../../lib/i18n.ts';
+import { ROUKAKU_REPO } from '../../lib/site-data.ts';
+import { site } from '../../lib/site.ts';
+
+export function getStaticPaths() {
+  return LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const t = STRINGS[locale].home;
+const base = `/${locale}`;
+---
+
+<StarlightPage
+  frontmatter={{ title: t.title, description: t.tagline, template: 'splash', tableOfContents: false }}
+  hasSidebar={false}
+>
+  <p class="portal-lead">{t.tagline}</p>
+
+  <div class="product-grid">
+    <section class="product-card" aria-labelledby="product-shinkiemu">
+      <p class="product-kicker">{t.shinkiemu.kicker}</p>
+      <h2 id="product-shinkiemu">ShinkiEMU</h2>
+      <p>{t.shinkiemu.body}</p>
+      <ul class="product-links">
+        <li><a class="portal-button" href={`${base}/shinkiemu/`}>{t.shinkiemu.overview}</a></li>
+        <li><a href={`${base}/shinkiemu/compatibility/`}>{t.shinkiemu.compatibility}</a></li>
+        <li><a href={`${base}/shinkiemu/cores/`}>{t.shinkiemu.cores}</a></li>
+        <li><a href={`${base}/shinkiemu/patches/`}>{t.shinkiemu.patches}</a></li>
+      </ul>
+    </section>
+
+    <section class="product-card" aria-labelledby="product-roukaku">
+      <p class="product-kicker">{t.roukaku.kicker}</p>
+      <h2 id="product-roukaku">RoukakuEngine</h2>
+      <p>{t.roukaku.body}</p>
+      <ul class="product-links">
+        <li><a class="portal-button" href={`${base}/roukaku/`}>{t.roukaku.docs}</a></li>
+        <li><a href={ROUKAKU_REPO}>{t.roukaku.source}</a></li>
+      </ul>
+    </section>
+  </div>
+
+  <p class="portal-snapshot">
+    {t.snapshot}: {t.stats(site.compatibility.length, site.matrix.length, site.patches.length)}
+  </p>
+</StarlightPage>
