@@ -1,0 +1,42 @@
+{
+  "schema": "shinki.portal.manager_release.v1",
+  "release": {
+    "tag": "manager-v0.1.0-beta.2",
+    "version": "0.1.0-beta.2",
+    "prerelease": true,
+    "published_at": "2026-10-20T08:00:00Z",
+    "html_url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/tag/manager-v0.1.0-beta.2",
+    "assets": [
+      {
+        "name": "shinki-emu-manager-manager-0.1.0-beta.2-windows-x86_64.zip",
+        "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/manager-v0.1.0-beta.2/shinki-emu-manager-manager-0.1.0-beta.2-windows-x86_64.zip",
+        "size": 48234112,
+        "sha256": "e9a65177cd6e8019f3f60653b7a4b8d240792fffdb3df8e228ab2f92dc55c92e"
+      },
+      {
+        "name": "shinki-emu-manager-manager-0.1.0-beta.2-linux-x86_64.zip",
+        "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/manager-v0.1.0-beta.2/shinki-emu-manager-manager-0.1.0-beta.2-linux-x86_64.zip",
+        "size": 27704828,
+        "sha256": "b42e7eaacb25f934ced1992ed3002181691f74c5e4894314197488fffdacec6d"
+      },
+      {
+        "name": "shinki-emu-manager-manager-0.1.0-beta.2-android-aarch64.zip",
+        "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/manager-v0.1.0-beta.2/shinki-emu-manager-manager-0.1.0-beta.2-android-aarch64.zip",
+        "size": 155221017,
+        "sha256": null
+      },
+      {
+        "name": "shinki-emu-manager-manager-0.1.0-beta.2-ios-aarch64-device-test.zip",
+        "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/manager-v0.1.0-beta.2/shinki-emu-manager-manager-0.1.0-beta.2-ios-aarch64-device-test.zip",
+        "size": 61337600,
+        "sha256": "fda147a9ded297d1c62d771f5237bd5f70f49a7734f6a6cd119cd251198ef700"
+      },
+      {
+        "name": "shinki-emu-manager-0.1.0-beta.2-windows-x86_64-sources.zip",
+        "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/manager-v0.1.0-beta.2/shinki-emu-manager-0.1.0-beta.2-windows-x86_64-sources.zip",
+        "size": 912441344,
+        "sha256": "56f79a1d45530e932391e644d9b29ca87f3ab2ee93fe5a15abc587483004fe25"
+      }
+    ]
+  }
+}

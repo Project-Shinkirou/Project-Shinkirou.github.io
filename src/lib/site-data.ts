@@ -143,7 +143,44 @@ export interface BuildInventory {
 export interface SiteSources {
   roukaku_commit: string;
   shinkiemu_commit: string;
+  /** Latest published Manager release tag at build time, `null` before the first release. */
+  manager_release_tag: string | null;
   generated_at: string;
+}
+
+/** VNDB title of a work or release, fetched at build time. */
+export interface VndbTitle {
+  /** VNDB main title (romanized when the original script is not Latin). */
+  title: string;
+  /** Title in the original script when it differs from `title`. */
+  alttitle: string | null;
+}
+
+export interface VndbTitles {
+  vn: Record<string, VndbTitle>;
+  release: Record<string, VndbTitle>;
+}
+
+/** A Manager release archive for one platform. */
+export interface ManagerAsset {
+  name: string;
+  url: string;
+  size: number;
+  sha256: string | null;
+  platform: Platform;
+  architecture: Architecture;
+  /** Set for iOS test packages (`device` or `simulator`). */
+  variant: Variant | null;
+}
+
+export interface ManagerRelease {
+  tag: string;
+  version: string;
+  prerelease: boolean;
+  published_at: string;
+  html_url: string;
+  /** Platform packages; source bundles and other attachments are left out. */
+  assets: ManagerAsset[];
 }
 
 export interface SiteData {
@@ -155,6 +192,8 @@ export interface SiteData {
     file_count: number;
   };
   sources: SiteSources;
+  titles: VndbTitles;
+  manager_release: ManagerRelease | null;
   compatibility: CompatibilityEntry[];
   cores: CoreRelease[];
   patches: PatchEntry[];
@@ -572,7 +611,7 @@ export function parseBuildInventory(targetsValue: Json, coresValue: Json): Build
 
 export function parseSources(value: Json): SiteSources {
   const object = record(value, 'site-sources.json');
-  only(object, 'site-sources.json', ['roukaku_commit', 'shinkiemu_commit', 'generated_at']);
+  only(object, 'site-sources.json', ['roukaku_commit', 'shinkiemu_commit', 'manager_release_tag', 'generated_at']);
   const generated_at = text(object.generated_at, 'site-sources.json.generated_at', 1, 64);
   if (Number.isNaN(Date.parse(generated_at))) {
     throw new DataError('site-sources.json.generated_at', 'must be an ISO 8601 timestamp');
@@ -580,6 +619,102 @@ export function parseSources(value: Json): SiteSources {
   return {
     roukaku_commit: pattern(object.roukaku_commit, 'site-sources.json.roukaku_commit', COMMIT),
     shinkiemu_commit: pattern(object.shinkiemu_commit, 'site-sources.json.shinkiemu_commit', COMMIT),
+    manager_release_tag:
+      object.manager_release_tag === null
+        ? null
+        : pattern(object.manager_release_tag, 'site-sources.json.manager_release_tag', MANAGER_TAG),
     generated_at: new Date(generated_at).toISOString(),
   };
+}
+
+export const VNDB_TITLES_SCHEMA = 'shinki.portal.vndb_titles.v1';
+export const MANAGER_RELEASE_SCHEMA = 'shinki.portal.manager_release.v1';
+const MANAGER_TAG = /^manager-v[0-9A-Za-z.+-]{1,64}$/;
+
+function titleMap(value: Json, where: string, id: RegExp, required: ReadonlySet<string>): Record<string, VndbTitle> {
+  const object = record(value, where);
+  const out: Record<string, VndbTitle> = {};
+  for (const [key, entry] of Object.entries(object)) {
+    pattern(key, `${where} key`, id);
+    const item = record(entry, `${where}.${key}`);
+    only(item, `${where}.${key}`, ['title', 'alttitle']);
+    out[key] = {
+      title: text(item.title, `${where}.${key}.title`, 1, 512),
+      alttitle: optionalText(item.alttitle, `${where}.${key}.alttitle`, 1, 512),
+    };
+  }
+  for (const key of required) {
+    if (!(key in out)) throw new DataError(where, `no VNDB title for ${key}`);
+  }
+  return out;
+}
+
+/** VNDB titles for every referenced work and release; a missing one fails the build. */
+export function parseVndbTitles(value: Json, vnIds: ReadonlySet<string>, releaseIds: ReadonlySet<string>): VndbTitles {
+  const object = record(value, 'vndb.json');
+  only(object, 'vndb.json', ['schema', 'vn', 'release']);
+  if (object.schema !== VNDB_TITLES_SCHEMA) throw new DataError('vndb.json.schema', `must be ${VNDB_TITLES_SCHEMA}`);
+  return {
+    vn: titleMap(object.vn, 'vndb.json.vn', VN_ID, vnIds),
+    release: titleMap(object.release, 'vndb.json.release', RELEASE_ID, releaseIds),
+  };
+}
+
+/**
+ * `shinki-emu-manager-manager-<version>-<platform>-<arch>.zip`, or
+ * `...-ios-<arch>-<variant>-test.zip` for iOS test packages (ShinkiEMU
+ * `xtask/src/release.rs`). Source bundles end in `-sources.zip` and do not match.
+ */
+function classifyAsset(name: string, version: string): Pick<ManagerAsset, 'platform' | 'architecture' | 'variant'> | null {
+  const prefix = `shinki-emu-manager-manager-${version}-`;
+  if (!name.startsWith(prefix) || !name.endsWith('.zip')) return null;
+  const rest = name.slice(prefix.length, -'.zip'.length);
+  const ios = /^ios-(x86_64|aarch64)-(device|simulator)-test$/.exec(rest);
+  if (ios) return { platform: 'ios', architecture: ios[1] as Architecture, variant: ios[2] as Variant };
+  const desktop = /^(windows|linux|macos|android|ohos)-(x86_64|aarch64)$/.exec(rest);
+  if (desktop) return { platform: desktop[1] as Platform, architecture: desktop[2] as Architecture, variant: null };
+  return null;
+}
+
+export function parseManagerRelease(value: Json, expectedTag: string | null): ManagerRelease | null {
+  const object = record(value, 'manager-release.json');
+  only(object, 'manager-release.json', ['schema', 'release']);
+  if (object.schema !== MANAGER_RELEASE_SCHEMA) {
+    throw new DataError('manager-release.json.schema', `must be ${MANAGER_RELEASE_SCHEMA}`);
+  }
+  if (object.release === null) {
+    if (expectedTag !== null) throw new DataError('manager-release.json', `missing release ${expectedTag}`);
+    return null;
+  }
+  const where = 'manager-release.json.release';
+  const release = record(object.release, where);
+  only(release, where, ['tag', 'version', 'prerelease', 'published_at', 'html_url', 'assets']);
+  const tag = pattern(release.tag, `${where}.tag`, MANAGER_TAG);
+  if (tag !== expectedTag) throw new DataError(`${where}.tag`, `${tag} does not match site-sources.json (${expectedTag})`);
+  const version = pattern(release.version, `${where}.version`, SEMVER);
+  if (tag !== `manager-v${version}`) throw new DataError(`${where}.version`, `does not match tag ${tag}`);
+  if (typeof release.prerelease !== 'boolean') throw new DataError(`${where}.prerelease`, 'must be a boolean');
+  const published_at = text(release.published_at, `${where}.published_at`, 1, 64);
+  if (Number.isNaN(Date.parse(published_at))) throw new DataError(`${where}.published_at`, 'must be an ISO 8601 timestamp');
+  const html_url = https(release.html_url, `${where}.html_url`);
+  if (html_url !== `${SHINKIEMU_REPO}/releases/tag/${tag}`) throw new DataError(`${where}.html_url`, 'must be the release page');
+  const assets: ManagerAsset[] = [];
+  array(release.assets, `${where}.assets`).forEach((value, i) => {
+    const at = `${where}.assets[${i}]`;
+    const asset = record(value, at);
+    only(asset, at, ['name', 'url', 'size', 'sha256']);
+    const name = pattern(asset.name, `${at}.name`, ASSET);
+    const url = https(asset.url, `${at}.url`);
+    if (url !== `${RELEASE_DOWNLOAD_PREFIX}${tag}/${name}`) throw new DataError(`${at}.url`, 'must be this release download');
+    const kind = classifyAsset(name, version);
+    if (!kind) return;
+    assets.push({
+      name,
+      url,
+      size: integer(asset.size, `${at}.size`, 1, MAX_CORE_PACKAGE_BYTES * 4),
+      sha256: asset.sha256 === null ? null : pattern(asset.sha256, `${at}.sha256`, SHA256),
+      ...kind,
+    });
+  });
+  return { tag, version, prerelease: release.prerelease, published_at: new Date(published_at).toISOString(), html_url, assets };
 }

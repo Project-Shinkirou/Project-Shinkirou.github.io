@@ -22,6 +22,13 @@ pub fn http_client() -> Result<Client> {
 struct Sources {
     roukaku_commit: String,
     shinkiemu_commit: String,
+    /// Latest published Manager release; part of the deployed record so the
+    /// scheduled check redeploys when a release is published.
+    manager_release_tag: Option<String>,
+}
+
+fn github_token() -> Option<String> {
+    std::env::var("GITHUB_TOKEN").ok().filter(|s| !s.is_empty())
 }
 
 #[derive(Serialize, Deserialize)]
@@ -40,7 +47,7 @@ struct SiteSources {
 
 pub fn sources(out: &Path) -> Result<()> {
     let client = http_client()?;
-    let token = std::env::var("GITHUB_TOKEN").ok().filter(|s| !s.is_empty());
+    let token = github_token();
     let resolve = |repo: &str| -> Result<String> {
         let url = format!("https://api.github.com/repos/Project-Shinkirou/{repo}/git/ref/heads/main");
         let mut request = client.get(url).header("Accept", "application/vnd.github+json")
@@ -65,6 +72,8 @@ pub fn sources(out: &Path) -> Result<()> {
     write_json(out, &Sources {
         roukaku_commit: resolve("RoukakuEngine")?,
         shinkiemu_commit: resolve("ShinkiEMU")?,
+        manager_release_tag: crate::external::latest_manager_release(&client, token.as_deref())?
+            .map(|release| release.tag),
     })
 }
 
@@ -126,8 +135,22 @@ pub fn prepare(roukaku: &Path, shinkiemu: &Path, out: &Path) -> Result<()> {
         for (source, destination) in [("cores.toml", "build-cores.toml"), ("targets.toml", "build-targets.toml")] {
             fs::copy(shinkiemu.join("build").join(source), data.join(destination))?;
         }
+        let client = http_client()?;
+        let release = crate::external::latest_manager_release(&client, github_token().as_deref())?;
+        let manager_release_tag = release.as_ref().map(|release| release.tag.clone());
+        write_json(&data.join("manager-release.json"), &crate::external::manager_release_file(release))?;
+        let read = |name: &str| -> Result<serde_json::Value> {
+            Ok(serde_json::from_slice(&fs::read(data.join(name)).with_context(|| format!("reading {name}"))?)?)
+        };
+        let (vn_ids, release_ids) =
+            crate::external::referenced_ids(&read("compatibility.json")?, &read("patches.json")?)?;
+        write_json(&data.join("vndb.json"), &crate::external::vndb_titles(&client, &vn_ids, &release_ids)?)?;
         write_json(&data.join("site-sources.json"), &SiteSources {
-            commits: Sources { roukaku_commit: roukaku_commit.clone(), shinkiemu_commit: shinkiemu_commit.clone() },
+            commits: Sources {
+                roukaku_commit: roukaku_commit.clone(),
+                shinkiemu_commit: shinkiemu_commit.clone(),
+                manager_release_tag,
+            },
             generated_at,
         })?;
         ensure!(revision(&roukaku)?.0 == roukaku_commit && revision(&shinkiemu)?.0 == shinkiemu_commit,

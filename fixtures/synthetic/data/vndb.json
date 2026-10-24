@@ -1,0 +1,39 @@
+{
+  "schema": "shinki.portal.vndb_titles.v1",
+  "vn": {
+    "v900001": {
+      "title": "Gousei Tesuto Sakuhin Ichi",
+      "alttitle": "合成テスト作品・一"
+    },
+    "v900002": {
+      "title": "Synthetic Test Work Two",
+      "alttitle": null
+    },
+    "v900003": {
+      "title": "Gousei Tesuto Sakuhin San: Nagai Fukudai no Aru Taitoru",
+      "alttitle": "合成テスト作品・三 〜長い副題のあるタイトル〜"
+    },
+    "v900004": {
+      "title": "Synthetic Test Work Four",
+      "alttitle": null
+    }
+  },
+  "release": {
+    "r900001": {
+      "title": "Synthetic Test Release 1",
+      "alttitle": null
+    },
+    "r900002": {
+      "title": "Synthetic Test Release 2",
+      "alttitle": "合成テスト版・二"
+    },
+    "r900003": {
+      "title": "Synthetic Test Release 3",
+      "alttitle": null
+    },
+    "r900004": {
+      "title": "Synthetic Test Release 4",
+      "alttitle": null
+    }
+  }
+}

@@ -57,7 +57,8 @@ jobs:
               const deployed = await response.json();
               core.setOutput('changed', String(
                 deployed.roukaku_commit !== sources.roukaku_commit ||
-                deployed.shinkiemu_commit !== sources.shinkiemu_commit
+                deployed.shinkiemu_commit !== sources.shinkiemu_commit ||
+                (deployed.manager_release_tag ?? null) !== sources.manager_release_tag
               ));
             }
 
@@ -93,6 +94,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - name: Prepare exact product snapshot
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: cargo xtask site prepare --roukaku .work/roukaku --shinkiemu .work/shinkiemu --out .work/prepared
       - name: Build production portal
         run: cargo xtask site build --prepared .work/prepared

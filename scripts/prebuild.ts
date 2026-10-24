@@ -8,7 +8,8 @@
 //   content collection.
 //
 // Environment:
-//   SHINKI_DATA_DIR     metadata snapshot, plus site-sources.json and verbatim
+//   SHINKI_DATA_DIR     metadata snapshot, plus site-sources.json, vndb.json,
+//                       manager-release.json (from `xtask site prepare`) and verbatim
 //                       copies of ShinkiEMU build/targets.toml and build/cores.toml
 //                       as build-targets.toml and build-cores.toml
 //   ROUKAKU_DOCS_DIR    RoukakuEngine docs/ tree with zh-cn/ and en/
@@ -31,6 +32,8 @@ import {
   parseCores,
   parseIndex,
   parseBuildInventory,
+  parseManagerRelease,
+  parseVndbTitles,
   parsePatches,
   parseSources,
   type SiteData,
@@ -134,6 +137,15 @@ function loadData(dataDir: string): LoadedSnapshot {
     parseTomlFile(readInside(dataDir, 'build-cores.toml'), 'build-cores.toml'),
   );
   const known = new Set(inventory.cores.map((core) => core.plugin_id));
+  const sources = parseSources(json('site-sources.json'));
+  const compatibility = parseCompatibility(json('compatibility.json'), known);
+  const patches = parsePatches(json('patches.json'), known);
+  // Fetched by `xtask site prepare`; not part of the indexed metadata snapshot.
+  const titles = parseVndbTitles(
+    json('vndb.json'),
+    new Set([...compatibility.map((entry) => entry.vn_id), ...patches.flatMap((patch) => patch.vn_ids)]),
+    new Set([...compatibility.map((entry) => entry.release_id), ...patches.flatMap((patch) => patch.release_ids)]),
+  );
   const data: SiteData = {
     synthetic,
     index: {
@@ -141,10 +153,12 @@ function loadData(dataDir: string): LoadedSnapshot {
       source_commit: index.source_commit,
       file_count: index.files.length,
     },
-    sources: parseSources(json('site-sources.json')),
-    compatibility: parseCompatibility(json('compatibility.json'), known),
+    sources,
+    titles,
+    manager_release: parseManagerRelease(json('manager-release.json'), sources.manager_release_tag),
+    compatibility,
     cores: parseCores(json('cores.json'), known),
-    patches: parsePatches(json('patches.json'), known),
+    patches,
     targets: inventory.targets,
     matrix: inventory.cores,
   };
@@ -316,7 +330,7 @@ function main(): void {
   rmSync(contentRoot, { recursive: true, force: true });
   const pages =
     importDocs(
-      { env: 'ROUKAKU_DOCS_DIR', fixture: 'roukaku-docs', repo: ROUKAKU_REPO, commit: sources.roukaku_commit, route: 'roukaku' },
+      { env: 'ROUKAKU_DOCS_DIR', fixture: 'roukaku-docs', repo: ROUKAKU_REPO, commit: sources.roukaku_commit, route: 'roukaku/docs' },
       contentRoot,
     ) +
     importDocs(
