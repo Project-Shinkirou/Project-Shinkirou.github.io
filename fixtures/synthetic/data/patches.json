@@ -5,7 +5,8 @@
       "id": "synthetic-recipe",
       "title": {
         "zh-CN": "合成配方补丁",
-        "en": "Synthetic recipe patch"
+        "en": "Synthetic recipe patch",
+        "ja": "合成レシピパッチ"
       },
       "version": "1.0.0",
       "vn_ids": [
@@ -21,7 +22,8 @@
       "authorization_url": null,
       "summary": {
         "zh-CN": "合成测试数据：已审查 Luau 配方。",
-        "en": "Synthetic test data: reviewed Luau recipe."
+        "en": "Synthetic test data: reviewed Luau recipe.",
+        "ja": "合成テストデータ：審査済みの Luau レシピ。"
       },
       "issue_url": null,
       "artifact": null,
@@ -61,7 +63,8 @@
       "id": "synthetic-hosted",
       "title": {
         "zh-CN": "合成托管补丁",
-        "en": "Synthetic hosted patch"
+        "en": "Synthetic hosted patch",
+        "ja": "合成ホストパッチ"
       },
       "version": "1.0.0",
       "vn_ids": [
@@ -79,7 +82,8 @@
       "authorization_url": "https://example.org/synthetic-authorization",
       "summary": {
         "zh-CN": "合成测试数据：公开自造附件。",
-        "en": "Synthetic test data: self-made public attachment."
+        "en": "Synthetic test data: self-made public attachment.",
+        "ja": "合成テストデータ：自作の公開添付ファイル。"
       },
       "issue_url": "https://github.com/Project-Shinkirou/ShinkiEMU/issues/6",
       "artifact": {

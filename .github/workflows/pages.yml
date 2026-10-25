@@ -99,6 +99,8 @@ jobs:
         run: cargo xtask site prepare --roukaku .work/roukaku --shinkiemu .work/shinkiemu --out .work/prepared
       - name: Build production portal
         run: cargo xtask site build --prepared .work/prepared
+      - name: Test portal data contract
+        run: npm test
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
