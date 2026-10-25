@@ -89,6 +89,36 @@
         "file_name": "synthetic-hosted.bin"
       },
       "recipe": null
+    },
+    {
+      "id": "synthetic-shared-external",
+      "title": {
+        "zh-CN": "合成跨作品外部补丁",
+        "en": "Synthetic cross-work external patch"
+      },
+      "version": "0.3.0",
+      "vn_ids": [
+        "v900001",
+        "v900004"
+      ],
+      "release_ids": [
+        "r900004"
+      ],
+      "emulators": [
+        "shinki.emu.musica",
+        "ReMinori"
+      ],
+      "kind": "external",
+      "source_url": "https://example.org/synthetic-shared-external",
+      "license": "LicenseRef-Synthetic",
+      "authorization_url": null,
+      "summary": {
+        "zh-CN": "合成测试数据：适用于两部作品与两个核心的外部链接。",
+        "en": "Synthetic test data: external link that applies to two works and two cores."
+      },
+      "issue_url": null,
+      "artifact": null,
+      "recipe": null
     }
   ]
 }

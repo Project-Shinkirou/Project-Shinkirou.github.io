@@ -81,6 +81,12 @@ export interface CoreRelease {
 export interface LocalizedText {
   'zh-CN': string;
   en: string;
+  /**
+   * Optional Japanese text. patches.v1 in ShinkiEMU currently carries only
+   * zh-CN and en, so real snapshots omit it and Japanese pages fall back to
+   * English, then Chinese (`localizedText` in i18n.ts).
+   */
+  ja?: string;
 }
 
 export interface PatchArtifact {
@@ -109,7 +115,13 @@ export interface PatchEntry {
 
 export interface MatrixTarget {
   target: string;
-  status: 'supported' | 'blocked';
+  /**
+   * `static`: the core ships statically inside the Manager on this target
+   * (`static_manager_targets`). It is available to players there even though
+   * no standalone core package is built, so it counts as supported.
+   */
+  status: 'supported' | 'static' | 'blocked';
+  /** Why the target is blocked, or why a static target has no standalone package. */
   reason: string | null;
 }
 
@@ -119,6 +131,14 @@ export interface MatrixCore {
   plugin_id: string;
   family: string;
   license: string;
+  /** `[package].version` of the core's manifest at `revision` (from `core-versions.json`). */
+  version: string;
+  /** Commit the core is built from: the fork pin, or the ShinkiEMU commit for owned cores. */
+  revision: string;
+  /** Repository `revision` belongs to: the organization fork, or ShinkiEMU for owned cores. */
+  repo: string;
+  /** Original upstream project of a third-party core (`[cores.source].upstream`); null for owned cores. */
+  upstream: string | null;
   /** Non-empty when binaries are withheld until distribution review closes. */
   publish_blocked: string | null;
   /** Targets where the core ships statically inside the Manager rather than as a package. */
@@ -434,8 +454,10 @@ export function parseCores(value: Json, cores: ReadonlySet<string>): CoreRelease
 
 function localized(value: Json, where: string, max: number): LocalizedText {
   const object = record(value, where);
-  only(object, where, ['zh-CN', 'en']);
-  return { 'zh-CN': text(object['zh-CN'], `${where}.zh-CN`, 1, max), en: text(object.en, `${where}.en`, 1, max) };
+  only(object, where, ['zh-CN', 'en', 'ja']);
+  const result: LocalizedText = { 'zh-CN': text(object['zh-CN'], `${where}.zh-CN`, 1, max), en: text(object.en, `${where}.en`, 1, max) };
+  if (object.ja !== undefined) result.ja = text(object.ja, `${where}.ja`, 1, max);
+  return result;
 }
 
 export function parsePatches(value: Json, cores: ReadonlySet<string>): PatchEntry[] {
@@ -528,14 +550,26 @@ export function parsePatches(value: Json, cores: ReadonlySet<string>): PatchEntr
 
 export const BUILD_CORES_SCHEMA = 'shinki.emu.build_cores.v1';
 export const BUILD_TARGETS_SCHEMA = 'shinki.emu.build_targets.v1';
+/** Written by `xtask site prepare` (`xtask/src/versions.rs`). */
+export const CORE_VERSIONS_SCHEMA = 'shinki.portal.core_versions.v1';
+const ORG_REPO_PREFIX = 'https://github.com/Project-Shinkirou/';
+const GITHUB_REPO = /^https:\/\/github\.com\/[A-Za-z0-9._-]{1,100}\/[A-Za-z0-9._-]{1,100}$/;
 
 /**
  * Reads the parsed ShinkiEMU `build/targets.toml` and `build/cores.toml`, the
- * single build/release inventory. Fields the site does not render (manifests,
- * features, tools, runners) are ignored so build-only additions do not break
- * the portal; every rendered field is validated.
+ * single build/release inventory, together with `core-versions.json` (each
+ * core's manifest version at the revision it is built from). Fields the site
+ * does not render (manifests, features, tools, runners) are ignored so
+ * build-only additions do not break the portal; every rendered field is
+ * validated.
  */
-export function parseBuildInventory(targetsValue: Json, coresValue: Json): BuildInventory {
+export function parseBuildInventory(targetsValue: Json, coresValue: Json, versionsValue: Json): BuildInventory {
+  const versionsFile = record(versionsValue, 'core-versions.json');
+  only(versionsFile, 'core-versions.json', ['schema', 'cores']);
+  if (versionsFile.schema !== CORE_VERSIONS_SCHEMA) {
+    throw new DataError('core-versions.json.schema', `expected ${CORE_VERSIONS_SCHEMA}`);
+  }
+  const versions = record(versionsFile.cores, 'core-versions.json.cores');
   const targetsFile = record(targetsValue, 'build-targets.toml');
   if (targetsFile.schema !== BUILD_TARGETS_SCHEMA) {
     throw new DataError('build-targets.toml.schema', `expected ${BUILD_TARGETS_SCHEMA}`);
@@ -595,17 +629,47 @@ export function parseBuildInventory(targetsValue: Json, coresValue: Json): Build
     });
     const missing = triples.filter((triple) => !status[triple]);
     if (missing.length > 0) throw new DataError(where, `no supported/blocked status for ${missing.join(', ')}`);
+    const staticTargets = uniqueList(core.static_manager_targets ?? [], `${where}.static_manager_targets`, targetName);
+    // Statically embedded targets ship inside the Manager, so players have the
+    // core there; the inventory's `blocked` reason only explains why no
+    // standalone package exists.
+    for (const triple of staticTargets) status[triple] = { ...status[triple], status: 'static' };
     const publishBlocked = text(core.publish_blocked ?? '', `${where}.publish_blocked`, 0, 1024);
+
+    let repo = SHINKIEMU_REPO;
+    let upstream: string | null = null;
+    let pinned: string | null = null;
+    if (core.source !== undefined) {
+      const source = record(core.source, `${where}.source`);
+      repo = pattern(source.repo, `${where}.source.repo`, GITHUB_REPO);
+      if (!repo.startsWith(ORG_REPO_PREFIX)) throw new DataError(`${where}.source.repo`, 'must be an organization fork');
+      pinned = pattern(source.rev, `${where}.source.rev`, COMMIT);
+      upstream = pattern(source.upstream, `${where}.source.upstream`, GITHUB_REPO);
+      if (upstream.startsWith(ORG_REPO_PREFIX)) throw new DataError(`${where}.source.upstream`, 'must be the original project, not the fork');
+    }
+    const versionWhere = `core-versions.json.cores.${plugin_id}`;
+    const version = record(versions[plugin_id], versionWhere);
+    only(version, versionWhere, ['version', 'rev']);
+    const revision = pattern(version.rev, `${versionWhere}.rev`, COMMIT);
+    if (pinned !== null && revision !== pinned) {
+      throw new DataError(`${versionWhere}.rev`, 'does not match the pinned [cores.source].rev');
+    }
     return {
       core: text(core.display_name, `${where}.display_name`, 1, 128),
       plugin_id,
       family: text(core.family_name, `${where}.family_name`, 1, 128),
       license: text(core.license, `${where}.license`, 1, 256),
+      version: text(version.version, `${versionWhere}.version`, 1, 64),
+      revision,
+      repo,
+      upstream,
       publish_blocked: publishBlocked === '' ? null : publishBlocked,
-      static_manager_targets: uniqueList(core.static_manager_targets ?? [], `${where}.static_manager_targets`, targetName),
+      static_manager_targets: staticTargets,
       targets: triples.map((triple) => status[triple]),
     };
   });
+  const unknown = Object.keys(versions).filter((id) => !ids.has(id));
+  if (unknown.length > 0) throw new DataError('core-versions.json.cores', `unknown cores ${unknown.join(', ')}`);
   return { targets, cores };
 }
 

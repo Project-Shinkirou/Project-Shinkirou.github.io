@@ -51,7 +51,8 @@
   font-weight: 600;
   white-space: nowrap;
 }
-.matrix-state.is-supported {
+.matrix-state.is-supported,
+.matrix-state.is-static {
   background: var(--st-perfect-bg);
   color: var(--st-perfect-fg);
 }

@@ -16,7 +16,10 @@ const base = `/${locale}`;
 const cores = site.matrix.map((core) => ({
   ...core,
   anchor: coreAnchor(core.plugin_id),
-  supported: core.targets.filter((target) => target.status === 'supported').length,
+  supported: core.targets.filter((target) => target.status !== 'blocked').length,
+  shortRevision: core.revision.slice(0, 12),
+  repoName: core.repo.replace('https://github.com/', ''),
+  upstreamName: core.upstream?.replace('https://github.com/', '') ?? null,
   // Same original engine, different implementation (e.g. Musica and ReMinori).
   siblings: site.matrix.filter((other) => other.family === core.family && other.plugin_id !== core.plugin_id),
   releases: site.cores.filter((release) => release.plugin_id === core.plugin_id),
@@ -73,6 +76,38 @@ const cores = site.matrix.map((core) => ({
               <dt>{t.license}</dt>
               <dd>{core.license}</dd>
             </div>
+            <div>
+              <dt>{t.coreVersion}</dt>
+              <dd>
+                <code>{core.version}</code>
+              </dd>
+            </div>
+            <div>
+              <dt>{t.revision}</dt>
+              <dd>
+                <a href={`${core.repo}/tree/${core.revision}`} aria-label={t.revisionLabel(core.shortRevision, core.repoName)}>
+                  <code class="hash">{core.shortRevision}</code>
+                </a>
+              </dd>
+            </div>
+            <div>
+              <dt>{t.sourceRepo}</dt>
+              <dd>
+                <a href={core.repo}>{core.repoName}</a>
+              </dd>
+            </div>
+            <div>
+              <dt>{t.upstream}</dt>
+              <dd>
+                {core.upstream ? (
+                  <a href={core.upstream} aria-label={t.upstreamLabel(core.core)}>
+                    {core.upstreamName}
+                  </a>
+                ) : (
+                  <span class="muted">{t.owned}</span>
+                )}
+              </dd>
+            </div>
           </dl>
 
           <PlatformStates core={core} locale={locale} />
@@ -113,12 +148,10 @@ const cores = site.matrix.map((core) => ({
                         <code>{target.target}</code>
                       </th>
                       <td>
-                        <span class={`chip chip-${target.status}`}>
-                          {target.status === 'supported' ? t.supported : t.blocked}
+                        <span class={`chip chip-${target.status === 'blocked' ? 'blocked' : 'supported'}`}>
+                          {target.status === 'blocked' ? t.blocked : t.supported}
                         </span>
-                        {core.static_manager_targets.includes(target.target) && (
-                          <span class="chip chip-static">{t.staticBadge}</span>
-                        )}
+                        {target.status === 'static' && <span class="chip chip-static">{t.staticBadge}</span>}
                       </td>
                       <td>{target.reason}</td>
                     </tr>

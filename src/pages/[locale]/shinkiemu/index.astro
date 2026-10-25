@@ -17,6 +17,7 @@ const locale = Astro.params.locale as Locale;
 const strings = STRINGS[locale];
 const t = strings.shinkiemu;
 const legend = strings.platformState;
+const coreText = strings.cores;
 const base = `/${locale}`;
 const reports: Record<string, number> = {};
 for (const entry of site.compatibility) reports[entry.emulator] = (reports[entry.emulator] ?? 0) + 1;
@@ -83,6 +84,10 @@ const resources = [
         {legend.legendSupported}
       </li>
       <li>
+        <span class="platform-state is-static" aria-hidden="true"><PlatformIcon platform="ios" /></span>
+        {legend.legendStatic}
+      </li>
+      <li>
         <span class="platform-state is-blocked" aria-hidden="true"><PlatformIcon platform="windows" /></span>
         {legend.legendBlocked}
       </li>
@@ -103,6 +108,20 @@ const resources = [
               </div>
               <p class="core-meta">
                 <code>{core.plugin_id}</code> · {core.license}
+              </p>
+              <p class="core-meta core-revision">
+                {coreText.coreVersion} <code>{core.version}</code> ·{' '}
+                <a href={`${core.repo}/tree/${core.revision}`} aria-label={coreText.revisionLabel(core.revision.slice(0, 12), core.repo.replace('https://github.com/', ''))}>
+                  <code class="hash">{core.revision.slice(0, 12)}</code>
+                </a>
+                {core.upstream && (
+                  <>
+                    {' · '}
+                    <a href={core.upstream} aria-label={coreText.upstreamLabel(core.core)}>
+                      {coreText.upstream}
+                    </a>
+                  </>
+                )}
               </p>
               <PlatformStates core={core} locale={locale} />
               <div class="core-tile-foot">

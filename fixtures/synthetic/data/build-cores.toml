@@ -9,21 +9,18 @@ license = "MPL-2.0"
 manifest = "ThirdParty/rfvp/crates/shinki-emu-rfvp/Cargo.toml"
 package = "shinki-emu-rfvp"
 features = ["dynamic-plugin-export"]
+dependencies = ["subtitle", "gstreamer"]
 artifact_kind = "rust-cdylib"
 resources = []
 licenses = ["ThirdParty/rfvp/LICENSE", "ThirdParty/rfvp/crates/shinki-emu-rfvp/THIRD_PARTY_NOTICES.md", "ThirdParty/rfvp/crates/shinki-emu-rfvp/MODIFICATIONS.md"]
-supported_targets = ["x86_64-pc-windows-msvc"]
-static_manager_targets = ["aarch64-linux-android", "x86_64-linux-android"]
+supported_targets = ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu", "aarch64-apple-darwin", "x86_64-apple-darwin"]
+static_manager_targets = ["aarch64-linux-android", "x86_64-linux-android", "aarch64-apple-ios", "aarch64-apple-ios-sim", "x86_64-apple-ios"]
 publish_blocked = ""
-[[cores.blocked]]
-target = "x86_64-unknown-linux-gnu"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to Linux."
-[[cores.blocked]]
-target = "x86_64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
-[[cores.blocked]]
-target = "aarch64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+[cores.source]
+repo = "https://github.com/Project-Shinkirou/rfvp"
+branch = "shinki-apple"
+rev = "7c241b477fb10efd981b20af67b1fb9745ec97fe"
+upstream = "https://github.com/xmoezzz/rfvp"
 [[cores.blocked]]
 target = "aarch64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
@@ -32,10 +29,13 @@ target = "x86_64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
 [[cores.blocked]]
 target = "aarch64-apple-ios"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "Statically embedded in the iOS Manager; standalone dynamic-core installation is not supported."
 [[cores.blocked]]
 target = "aarch64-apple-ios-sim"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "Statically embedded in the iOS Manager; standalone dynamic-core installation is not supported."
+[[cores.blocked]]
+target = "x86_64-apple-ios"
+reason = "Statically embedded in the iOS Manager; standalone dynamic-core installation is not supported."
 [[cores.blocked]]
 target = "aarch64-unknown-linux-ohos"
 reason = "Native OpenHarmony host and core adapter are not implemented; OHOS_SDK_NATIVE is additionally required."
@@ -48,20 +48,18 @@ license = "MPL-2.0"
 manifest = "ThirdParty/siglus_rs/shinki/shinki-emu-siglus_rs/Cargo.toml"
 package = "shinki-emu-siglus_rs"
 features = ["dynamic"]
+dependencies = []
 artifact_kind = "rust-cdylib"
 resources = []
 licenses = ["ThirdParty/siglus_rs/LICENSE-MPL-2.0", "ThirdParty/siglus_rs/shinki/THIRD_PARTY_NOTICES.md", "ThirdParty/siglus_rs/shinki/MODIFICATIONS.md", "ThirdParty/siglus_rs/vendor/kira/LICENSE-MIT", "ThirdParty/siglus_rs/vendor/kira/LICENSE-APACHE"]
-supported_targets = ["x86_64-pc-windows-msvc"]
+supported_targets = ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu", "aarch64-apple-darwin", "x86_64-apple-darwin"]
+static_manager_targets = ["aarch64-apple-ios", "aarch64-apple-ios-sim", "x86_64-apple-ios"]
 publish_blocked = ""
-[[cores.blocked]]
-target = "x86_64-unknown-linux-gnu"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to Linux."
-[[cores.blocked]]
-target = "x86_64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
-[[cores.blocked]]
-target = "aarch64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+[cores.source]
+repo = "https://github.com/Project-Shinkirou/siglus_rs"
+branch = "shinki-apple"
+rev = "2436c25fc966306e03cdada833b507eec97b51c4"
+upstream = "https://github.com/xmoezzz/siglus_rs"
 [[cores.blocked]]
 target = "aarch64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
@@ -70,10 +68,13 @@ target = "x86_64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
 [[cores.blocked]]
 target = "aarch64-apple-ios"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "Statically embedded in the iOS Manager; standalone dynamic-core installation is not supported."
 [[cores.blocked]]
 target = "aarch64-apple-ios-sim"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "Statically embedded in the iOS Manager; standalone dynamic-core installation is not supported."
+[[cores.blocked]]
+target = "x86_64-apple-ios"
+reason = "Statically embedded in the iOS Manager; standalone dynamic-core installation is not supported."
 [[cores.blocked]]
 target = "aarch64-unknown-linux-ohos"
 reason = "Native OpenHarmony host and core adapter are not implemented; OHOS_SDK_NATIVE is additionally required."
@@ -86,20 +87,23 @@ license = "MPL-2.0"
 manifest = "ThirdParty/art3m1s-core/crates/shinki-emu-art3m1s-core/Cargo.toml"
 package = "shinki-emu-art3m1s-core"
 features = []
+dependencies = ["ffmpeg"]
 artifact_kind = "rust-cdylib"
 resources = []
 licenses = ["ThirdParty/art3m1s-core/LICENSE", "ThirdParty/art3m1s-core/crates/shinki-emu-art3m1s-core/THIRD_PARTY_NOTICES.md", "ThirdParty/art3m1s-core/crates/shinki-emu-art3m1s-core/MODIFICATIONS.md", "ThirdParty/art3m1s-core/crates/pf8/LICENSE"]
-supported_targets = ["x86_64-pc-windows-msvc"]
+supported_targets = ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu"]
 publish_blocked = ""
-[[cores.blocked]]
-target = "x86_64-unknown-linux-gnu"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to Linux."
+[cores.source]
+repo = "https://github.com/Project-Shinkirou/art3m1s-core"
+branch = "shinki"
+rev = "bc8c17a9b3c7ac7f6a3e20ce6d301f5dff4ebe5f"
+upstream = "https://github.com/Alphaly2K/art3m1s-core"
 [[cores.blocked]]
 target = "x86_64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+reason = "Artemis core features require FFmpeg, but xtask dependencies.rs has no Apple FFmpeg preparation/runtime-closure path; only Windows and Linux native trees are prepared."
 [[cores.blocked]]
 target = "aarch64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+reason = "Artemis core features require FFmpeg, but xtask dependencies.rs has no Apple FFmpeg preparation/runtime-closure path; only Windows and Linux native trees are prepared."
 [[cores.blocked]]
 target = "aarch64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
@@ -108,10 +112,13 @@ target = "x86_64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
 [[cores.blocked]]
 target = "aarch64-apple-ios"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "ThirdParty/art3m1s-core/crates/shinki-emu-art3m1s-core/src/session.rs:298-301 selects NativeVulkanHardware on iOS rather than NativeMetal; the selected FFmpeg feature also lacks an iOS dependency build."
 [[cores.blocked]]
 target = "aarch64-apple-ios-sim"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "ThirdParty/art3m1s-core/crates/shinki-emu-art3m1s-core/src/session.rs:298-301 selects NativeVulkanHardware on iOS rather than NativeMetal; the selected FFmpeg feature also lacks an iOS dependency build."
+[[cores.blocked]]
+target = "x86_64-apple-ios"
+reason = "ThirdParty/art3m1s-core/crates/shinki-emu-art3m1s-core/src/session.rs:298-301 selects NativeVulkanHardware on iOS rather than NativeMetal; the selected FFmpeg feature also lacks an iOS dependency build."
 [[cores.blocked]]
 target = "aarch64-unknown-linux-ohos"
 reason = "Native OpenHarmony host and core adapter are not implemented; OHOS_SDK_NATIVE is additionally required."
@@ -124,20 +131,18 @@ license = "MIT OR Apache-2.0"
 manifest = "Source/Families/shinki-emu-musica/Cargo.toml"
 package = "shinki-emu-musica"
 features = ["dynamic-plugin-export", "ffmpeg-vcpkg"]
+dependencies = ["ffmpeg", "subtitle"]
 artifact_kind = "rust-cdylib"
 resources = []
 licenses = ["LICENSE-MIT", "LICENSE-APACHE", "Assets/Fonts/OFL-NotoSansJP.txt"]
-supported_targets = ["x86_64-pc-windows-msvc"]
+supported_targets = ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu"]
 publish_blocked = ""
 [[cores.blocked]]
-target = "x86_64-unknown-linux-gnu"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to Linux."
-[[cores.blocked]]
 target = "x86_64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+reason = "Musica selects ffmpeg-vcpkg (Source/Families/shinki-emu-musica/Cargo.toml:14); xtask has no Apple FFmpeg dependency preparation/runtime-closure path for the SDK video decoder."
 [[cores.blocked]]
 target = "aarch64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+reason = "Musica selects ffmpeg-vcpkg (Source/Families/shinki-emu-musica/Cargo.toml:14); xtask has no Apple FFmpeg dependency preparation/runtime-closure path for the SDK video decoder."
 [[cores.blocked]]
 target = "aarch64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
@@ -146,10 +151,13 @@ target = "x86_64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
 [[cores.blocked]]
 target = "aarch64-apple-ios"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "Musica selects ffmpeg-vcpkg (Source/Families/shinki-emu-musica/Cargo.toml:14); xtask has no Apple FFmpeg dependency preparation/runtime-closure path for the SDK video decoder."
 [[cores.blocked]]
 target = "aarch64-apple-ios-sim"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "Musica selects ffmpeg-vcpkg (Source/Families/shinki-emu-musica/Cargo.toml:14); xtask has no Apple FFmpeg dependency preparation/runtime-closure path for the SDK video decoder."
+[[cores.blocked]]
+target = "x86_64-apple-ios"
+reason = "Musica selects ffmpeg-vcpkg (Source/Families/shinki-emu-musica/Cargo.toml:14); xtask has no Apple FFmpeg dependency preparation/runtime-closure path for the SDK video decoder."
 [[cores.blocked]]
 target = "aarch64-unknown-linux-ohos"
 reason = "Native OpenHarmony host and core adapter are not implemented; OHOS_SDK_NATIVE is additionally required."
@@ -162,20 +170,18 @@ license = "MPL-2.0"
 manifest = "ThirdParty/sena-rs/crates/shinki-emu-sena-rs/Cargo.toml"
 package = "shinki-emu-sena-rs"
 features = ["diagnostic-bridge"]
+dependencies = []
 artifact_kind = "rust-cdylib"
 resources = []
-licenses = ["ThirdParty/sena-rs/LICENSE-MPL-2.0"]
-supported_targets = ["x86_64-pc-windows-msvc"]
+licenses = ["ThirdParty/sena-rs/LICENSE-MPL-2.0", "docs/licenses/sena-rs/MS-PGothic.txt"]
+supported_targets = ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu", "aarch64-apple-darwin", "x86_64-apple-darwin"]
+static_manager_targets = ["aarch64-apple-ios", "aarch64-apple-ios-sim", "x86_64-apple-ios"]
 publish_blocked = ""
-[[cores.blocked]]
-target = "x86_64-unknown-linux-gnu"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to Linux."
-[[cores.blocked]]
-target = "x86_64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
-[[cores.blocked]]
-target = "aarch64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+[cores.source]
+repo = "https://github.com/Project-Shinkirou/sena-rs"
+branch = "shinki-apple"
+rev = "696a83ccaf096d3dd49c3c9a7c1f948c35acfed8"
+upstream = "https://github.com/xmoezzz/sena-rs"
 [[cores.blocked]]
 target = "aarch64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
@@ -184,10 +190,13 @@ target = "x86_64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
 [[cores.blocked]]
 target = "aarch64-apple-ios"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "Statically embedded in the iOS Manager; standalone dynamic-core installation is not supported."
 [[cores.blocked]]
 target = "aarch64-apple-ios-sim"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "Statically embedded in the iOS Manager; standalone dynamic-core installation is not supported."
+[[cores.blocked]]
+target = "x86_64-apple-ios"
+reason = "Statically embedded in the iOS Manager; standalone dynamic-core installation is not supported."
 [[cores.blocked]]
 target = "aarch64-unknown-linux-ohos"
 reason = "Native OpenHarmony host and core adapter are not implemented; OHOS_SDK_NATIVE is additionally required."
@@ -200,20 +209,26 @@ license = "(MIT OR Apache-2.0) AND LicenseRef-KiriKiri2"
 manifest = "ThirdParty/kirikiri2/shinki/Cargo.toml"
 package = "shinki-emu-kirikiroid2-web"
 features = []
+dependencies = ["native-vcpkg", "bison"]
 artifact_kind = "native-shared"
 resources = []
-licenses = ["ThirdParty/kirikiri2/LICENSE", "ThirdParty/kirikiri2/shinki/README.md", "ThirdParty/kirikiri2/cpp/plugins/layerExImage/LICENSE.TXT", "ThirdParty/kirikiri2/ui/cocos-studio/DroidSansFallback.LICENSE.txt"]
+licenses = ["ThirdParty/kirikiri2/LICENSE", "ThirdParty/kirikiri2/shinki/README.md", "ThirdParty/kirikiri2/cpp/plugins/layerExImage/LICENSE.TXT", "ThirdParty/kirikiri2/ui/cocos-studio/DroidSansFallback.LICENSE.txt", "ThirdParty/kirikiri2/shinki/licenses/libbpg-MIT.txt", "ThirdParty/kirikiri2/shinki/licenses/minizip-zlib.txt", "ThirdParty/kirikiri2/shinki/licenses/UnRAR.txt"]
 supported_targets = ["x86_64-pc-windows-msvc"]
 publish_blocked = ""
+[cores.source]
+repo = "https://github.com/Project-Shinkirou/kirikiroid2-web"
+branch = "shinki"
+rev = "c46d994feff822d59ce7a825584257842871aac4"
+upstream = "https://github.com/fenghengzhi/kirikiroid2-web"
 [[cores.blocked]]
 target = "x86_64-unknown-linux-gnu"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to Linux."
+reason = "ThirdParty/kirikiri2/shinki/build.rs:9 accepts only native Windows x64/MSVC. The Linux/GNU entry, x64-linux-dynamic triplet and GLFW/POSIX owner live on the fork branch linux-port (860c1d4f), not yet built against its Linux native dependencies; no Linux core artifact, ELF closure or Manager load is verified."
 [[cores.blocked]]
 target = "x86_64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+reason = "ThirdParty/kirikiri2/shinki/build.rs:9 accepts only a native Windows x64/MSVC HOST and TARGET; Apple targets and their native owner build are not adapted."
 [[cores.blocked]]
 target = "aarch64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+reason = "ThirdParty/kirikiri2/shinki/build.rs:9 accepts only a native Windows x64/MSVC HOST and TARGET; Apple targets and their native owner build are not adapted."
 [[cores.blocked]]
 target = "aarch64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
@@ -222,10 +237,13 @@ target = "x86_64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
 [[cores.blocked]]
 target = "aarch64-apple-ios"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "ThirdParty/kirikiri2/shinki/build.rs:9 accepts only a native Windows x64/MSVC HOST and TARGET; Apple targets and their native owner build are not adapted."
 [[cores.blocked]]
 target = "aarch64-apple-ios-sim"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "ThirdParty/kirikiri2/shinki/build.rs:9 accepts only a native Windows x64/MSVC HOST and TARGET; Apple targets and their native owner build are not adapted."
+[[cores.blocked]]
+target = "x86_64-apple-ios"
+reason = "ThirdParty/kirikiri2/shinki/build.rs:9 accepts only a native Windows x64/MSVC HOST and TARGET; Apple targets and their native owner build are not adapted."
 [[cores.blocked]]
 target = "aarch64-unknown-linux-ohos"
 reason = "Native OpenHarmony host and core adapter are not implemented; OHOS_SDK_NATIVE is additionally required."
@@ -238,20 +256,18 @@ license = "MPL-2.0"
 manifest = "ThirdParty/ethornell-rs/crates/shinki-emu-ethornell-rs/Cargo.toml"
 package = "shinki-emu-ethornell-rs"
 features = ["diagnostic-bridge"]
+dependencies = []
 artifact_kind = "rust-cdylib"
 resources = []
 licenses = ["ThirdParty/ethornell-rs/LICENSE-MPL-2.0", "ThirdParty/ethornell-rs/MODIFICATIONS.md"]
-supported_targets = ["x86_64-pc-windows-msvc"]
+supported_targets = ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu", "aarch64-apple-darwin", "x86_64-apple-darwin"]
+static_manager_targets = ["aarch64-apple-ios", "aarch64-apple-ios-sim", "x86_64-apple-ios"]
 publish_blocked = ""
-[[cores.blocked]]
-target = "x86_64-unknown-linux-gnu"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to Linux."
-[[cores.blocked]]
-target = "x86_64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
-[[cores.blocked]]
-target = "aarch64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+[cores.source]
+repo = "https://github.com/Project-Shinkirou/ethornell-rs"
+branch = "shinki-apple"
+rev = "f8362be7d2f4d634c25a98a317dfe56ffae56346"
+upstream = "https://github.com/xmoezzz/ethornell-rs"
 [[cores.blocked]]
 target = "aarch64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
@@ -260,10 +276,13 @@ target = "x86_64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
 [[cores.blocked]]
 target = "aarch64-apple-ios"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "Statically embedded in the iOS Manager; standalone dynamic-core installation is not supported."
 [[cores.blocked]]
 target = "aarch64-apple-ios-sim"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "Statically embedded in the iOS Manager; standalone dynamic-core installation is not supported."
+[[cores.blocked]]
+target = "x86_64-apple-ios"
+reason = "Statically embedded in the iOS Manager; standalone dynamic-core installation is not supported."
 [[cores.blocked]]
 target = "aarch64-unknown-linux-ohos"
 reason = "Native OpenHarmony host and core adapter are not implemented; OHOS_SDK_NATIVE is additionally required."
@@ -276,35 +295,42 @@ license = "MIT OR Apache-2.0"
 manifest = "Source/Families/shinki-emu-cmvs/Cargo.toml"
 package = "shinki-emu-cmvs"
 features = ["video-ffmpeg"]
+dependencies = ["ffmpeg"]
 artifact_kind = "rust-cdylib"
 resources = []
 licenses = ["LICENSE-MIT", "LICENSE-APACHE"]
-supported_targets = ["x86_64-pc-windows-msvc"]
+supported_targets = []
 publish_blocked = ""
 [[cores.blocked]]
+target = "x86_64-pc-windows-msvc"
+reason = "CMVS 正在独立工作树开发，暂不参与依赖升级后的构建；开发完成后单独合入。"
+[[cores.blocked]]
 target = "x86_64-unknown-linux-gnu"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to Linux."
+reason = "CMVS 正在独立工作树开发，暂不参与依赖升级后的构建；开发完成后单独合入。"
 [[cores.blocked]]
 target = "x86_64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+reason = "CMVS 正在独立工作树开发，暂不参与依赖升级后的构建；开发完成后单独合入。"
 [[cores.blocked]]
 target = "aarch64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+reason = "CMVS 正在独立工作树开发，暂不参与依赖升级后的构建；开发完成后单独合入。"
 [[cores.blocked]]
 target = "aarch64-linux-android"
-reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
+reason = "CMVS 正在独立工作树开发，暂不参与依赖升级后的构建；开发完成后单独合入。"
 [[cores.blocked]]
 target = "x86_64-linux-android"
-reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
+reason = "CMVS 正在独立工作树开发，暂不参与依赖升级后的构建；开发完成后单独合入。"
 [[cores.blocked]]
 target = "aarch64-apple-ios"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "CMVS 正在独立工作树开发，暂不参与依赖升级后的构建；开发完成后单独合入。"
 [[cores.blocked]]
 target = "aarch64-apple-ios-sim"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "CMVS 正在独立工作树开发，暂不参与依赖升级后的构建；开发完成后单独合入。"
+[[cores.blocked]]
+target = "x86_64-apple-ios"
+reason = "CMVS 正在独立工作树开发，暂不参与依赖升级后的构建；开发完成后单独合入。"
 [[cores.blocked]]
 target = "aarch64-unknown-linux-ohos"
-reason = "Native OpenHarmony host and core adapter are not implemented; OHOS_SDK_NATIVE is additionally required."
+reason = "CMVS 正在独立工作树开发，暂不参与依赖升级后的构建；开发完成后单独合入。"
 
 [[cores]]
 id = "ReMinori"
@@ -313,21 +339,19 @@ family_name = "Musica"
 license = "AGPL-3.0-only"
 manifest = "ThirdParty/ReMinori/crates/shinki/Cargo.toml"
 package = "shinki-emu-ReMinori"
-features = []
+features = ["dynamic-plugin-export"]
+dependencies = []
 artifact_kind = "rust-cdylib"
 resources = []
-licenses = ["ThirdParty/ReMinori/LICENSE"]
-supported_targets = ["x86_64-pc-windows-msvc"]
-publish_blocked = "Distribution review must close corresponding-source, third-party notices and asset permissions before binary publication."
-[[cores.blocked]]
-target = "x86_64-unknown-linux-gnu"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to Linux."
-[[cores.blocked]]
-target = "x86_64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
-[[cores.blocked]]
-target = "aarch64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+licenses = ["ThirdParty/ReMinori/LICENSE", "ThirdParty/ReMinori/MODIFICATIONS.md"]
+supported_targets = ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu", "aarch64-apple-darwin", "x86_64-apple-darwin"]
+static_manager_targets = ["aarch64-apple-ios", "aarch64-apple-ios-sim", "x86_64-apple-ios"]
+publish_blocked = ""
+[cores.source]
+repo = "https://github.com/Project-Shinkirou/ReMinori"
+branch = "shinki-apple"
+rev = "595b3e337e29fd4e3b711b45d02a7237459b01f8"
+upstream = "https://github.com/luoyily/ReMinori"
 [[cores.blocked]]
 target = "aarch64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
@@ -336,10 +360,13 @@ target = "x86_64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
 [[cores.blocked]]
 target = "aarch64-apple-ios"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "Statically embedded in the iOS Manager; standalone dynamic-core installation is not supported."
 [[cores.blocked]]
 target = "aarch64-apple-ios-sim"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "Statically embedded in the iOS Manager; standalone dynamic-core installation is not supported."
+[[cores.blocked]]
+target = "x86_64-apple-ios"
+reason = "Statically embedded in the iOS Manager; standalone dynamic-core installation is not supported."
 [[cores.blocked]]
 target = "aarch64-unknown-linux-ohos"
 reason = "Native OpenHarmony host and core adapter are not implemented; OHOS_SDK_NATIVE is additionally required."
@@ -352,20 +379,26 @@ license = "ISC"
 manifest = "ThirdParty/impacto/shinki/Cargo.toml"
 package = "shinki-emu-impacto"
 features = []
+dependencies = ["native-vcpkg", "impacto-sources"]
 artifact_kind = "native-shared"
 resources = []
-licenses = ["ThirdParty/impacto/LICENSE"]
+licenses = ["ThirdParty/impacto/LICENSE", "ThirdParty/impacto/THIRDPARTY.md", "ThirdParty/impacto/README.md", "ThirdParty/impacto/licenses/NotoSansCJK-OFL.txt"]
 supported_targets = ["x86_64-pc-windows-msvc"]
-publish_blocked = "Distribution review must close corresponding-source, third-party notices and asset permissions before binary publication."
+publish_blocked = ""
+[cores.source]
+repo = "https://github.com/Project-Shinkirou/impacto"
+branch = "shinki"
+rev = "876657c4e54e2d6d97296a33edb36cb5dc9cb6f0"
+upstream = "https://github.com/CommitteeOfZero/impacto"
 [[cores.blocked]]
 target = "x86_64-unknown-linux-gnu"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to Linux."
+reason = "ThirdParty/impacto/shinki/build.rs:66 accepts only native Windows x64/MSVC. The Linux/GNU entry, x64-linux-dynamic triplet, SDL owner and ELF install path live on the fork branch linux-port (8db2fd87), not yet built against its Linux native dependencies; no Linux core artifact, ELF closure or Manager load is verified."
 [[cores.blocked]]
 target = "x86_64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+reason = "ThirdParty/impacto/shinki/build.rs:66 accepts only a native Windows x64/MSVC HOST and TARGET; its native dependency/install paths have no Apple implementation."
 [[cores.blocked]]
 target = "aarch64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+reason = "ThirdParty/impacto/shinki/build.rs:66 accepts only a native Windows x64/MSVC HOST and TARGET; its native dependency/install paths have no Apple implementation."
 [[cores.blocked]]
 target = "aarch64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
@@ -374,10 +407,13 @@ target = "x86_64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
 [[cores.blocked]]
 target = "aarch64-apple-ios"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "ThirdParty/impacto/shinki/build.rs:66 accepts only a native Windows x64/MSVC HOST and TARGET; its native dependency/install paths have no Apple implementation."
 [[cores.blocked]]
 target = "aarch64-apple-ios-sim"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "ThirdParty/impacto/shinki/build.rs:66 accepts only a native Windows x64/MSVC HOST and TARGET; its native dependency/install paths have no Apple implementation."
+[[cores.blocked]]
+target = "x86_64-apple-ios"
+reason = "ThirdParty/impacto/shinki/build.rs:66 accepts only a native Windows x64/MSVC HOST and TARGET; its native dependency/install paths have no Apple implementation."
 [[cores.blocked]]
 target = "aarch64-unknown-linux-ohos"
 reason = "Native OpenHarmony host and core adapter are not implemented; OHOS_SDK_NATIVE is additionally required."
@@ -390,20 +426,26 @@ license = "MIT AND LGPL-2.1-or-later"
 manifest = "ThirdParty/renpy/shinki/Cargo.toml"
 package = "shinki-emu-renpy"
 features = []
+dependencies = ["renpy"]
 artifact_kind = "native-shared"
 resources = []
-licenses = ["ThirdParty/renpy/shinki/LICENSE"]
+licenses = ["ThirdParty/renpy/shinki/LICENSE", "ThirdParty/renpy/licenses/renpy/README.txt", "ThirdParty/renpy/licenses/renpy/python", "ThirdParty/renpy/licenses/renpy/python-sources.json", "ThirdParty/renpy/licenses/renpy/native-sources.json"]
 supported_targets = ["x86_64-pc-windows-msvc"]
-publish_blocked = "Distribution review must close corresponding-source, third-party notices and asset permissions before binary publication."
+publish_blocked = ""
+[cores.source]
+repo = "https://github.com/Project-Shinkirou/renpy"
+branch = "shinki"
+rev = "3b7c96bdd79bcf445dab33e44c64dc59332c32d3"
+upstream = "https://github.com/renpy/renpy"
 [[cores.blocked]]
 target = "x86_64-unknown-linux-gnu"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to Linux."
+reason = "The pinned official Ren'Py 8.5.3 Linux SDK lib/py3-linux-x86_64/librenpython.so does not export SDL_SendKeyboardKey/Text, SDL_SetKeyboardFocus/MouseFocus or SDL_SendMouseMotion/Button/Wheel required by shinki/core.cpp:39-46 and 678-746. A Linux resident-interpreter/SDL build exposing native input state is required; SDK Linux embeds CPython 3.12.8 rather than the Windows 3.12.7 development inputs."
 [[cores.blocked]]
 target = "x86_64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+reason = "ThirdParty/renpy/shinki/build.rs:26 requires native Windows x64/MSVC; the embedded CPython/Cython/SDL inputs and native core.cpp are Windows-specific, not an iOS/macOS SDK port."
 [[cores.blocked]]
 target = "aarch64-apple-darwin"
-reason = "Embedded core adapter and distributable native dependency closure have not been ported to macOS."
+reason = "ThirdParty/renpy/shinki/build.rs:26 requires native Windows x64/MSVC; the embedded CPython/Cython/SDL inputs and native core.cpp are Windows-specific, not an iOS/macOS SDK port."
 [[cores.blocked]]
 target = "aarch64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
@@ -412,10 +454,13 @@ target = "x86_64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
 [[cores.blocked]]
 target = "aarch64-apple-ios"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "ThirdParty/renpy/shinki/build.rs:26 requires native Windows x64/MSVC; the embedded CPython/Cython/SDL inputs and native core.cpp are Windows-specific, not an iOS/macOS SDK port."
 [[cores.blocked]]
 target = "aarch64-apple-ios-sim"
-reason = "Native iOS host and core embedding adapter are not implemented."
+reason = "ThirdParty/renpy/shinki/build.rs:26 requires native Windows x64/MSVC; the embedded CPython/Cython/SDL inputs and native core.cpp are Windows-specific, not an iOS/macOS SDK port."
+[[cores.blocked]]
+target = "x86_64-apple-ios"
+reason = "ThirdParty/renpy/shinki/build.rs:26 requires native Windows x64/MSVC; the embedded CPython/Cython/SDL inputs and native core.cpp are Windows-specific, not an iOS/macOS SDK port."
 [[cores.blocked]]
 target = "aarch64-unknown-linux-ohos"
 reason = "Native OpenHarmony host and core adapter are not implemented; OHOS_SDK_NATIVE is additionally required."

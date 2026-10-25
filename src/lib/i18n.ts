@@ -1,16 +1,16 @@
 // Portal UI strings. Product documentation is not translated here; it comes
 // from the product repositories' docs/ trees.
 
-import type { Architecture, PatchKind, Platform, Status, Variant } from './site-data.ts';
+import type { Architecture, LocalizedText, PatchKind, Platform, Status, Variant } from './site-data.ts';
 
-export const LOCALES = ['zh-cn', 'en'] as const;
+export const LOCALES = ['zh-cn', 'en', 'ja'] as const;
 export type Locale = (typeof LOCALES)[number];
 
 /** BCP 47 language tag for `Intl` formatting and localized metadata maps. */
-export const LANG: Record<Locale, 'zh-CN' | 'en'> = { 'zh-cn': 'zh-CN', en: 'en' };
+export const LANG: Record<Locale, 'zh-CN' | 'en' | 'ja'> = { 'zh-cn': 'zh-CN', en: 'en', ja: 'ja' };
 
 export function isLocale(value: string | undefined): value is Locale {
-  return value === 'zh-cn' || value === 'en';
+  return (LOCALES as readonly (string | undefined)[]).includes(value);
 }
 
 const zh = {
@@ -30,9 +30,10 @@ const zh = {
     roukakuDocs: 'RoukakuEngine 文档',
     menu: '菜单',
     github: 'GitHub 上的 Project-Shinkirou',
-    /** Label of the link to the other locale, written in that locale. */
-    otherLanguage: 'English',
-    otherLanguageLabel: 'Switch to English',
+    /** Name of this locale, written in this locale; listed in the language switcher. */
+    languageName: '简体中文',
+    language: '语言',
+    languageLabel: (name: string) => `语言：${name}`,
   },
   theme: {
     toLight: '切换到浅色主题',
@@ -120,6 +121,8 @@ const zh = {
     legend: '图例',
     legendSupported: '至少一个目标可构建',
     legendBlocked: '全部目标阻塞',
+    legendStatic: '静态集成于 Manager（图标带圆点）',
+    static: '可构建（静态集成于 Manager）',
     label: (platform: string, state: string) => `${platform}：${state}`,
   },
   download: {
@@ -210,6 +213,13 @@ const zh = {
     staticBadge: '静态集成',
     supportedNote: '“可构建”表示构建清单声明支持该目标，不代表已有发布或已实玩验证。',
     publishBlocked: '暂不发布二进制',
+    coreVersion: '核心版本',
+    revision: '源码修订',
+    revisionLabel: (sha: string, repo: string) => `${repo} 在提交 ${sha} 处的源码`,
+    sourceRepo: '源码仓库',
+    owned: 'Project-Shinkirou 自有核心',
+    upstream: '上游项目',
+    upstreamLabel: (name: string) => `${name} 的上游项目`,
     staticInManager: (targets: string) => `在 ${targets} 上以静态方式集成在 Manager 中，不单独发布核心包。`,
     releases: '已发布的安装包',
     noReleases: '尚无发布。',
@@ -230,6 +240,18 @@ const zh = {
     kindsNav: '补丁种类',
     count: (n: number) => `${n} 个条目`,
     empty: '暂无条目。',
+    filters: '筛选补丁',
+    work: '作品',
+    core: '核心',
+    kind: '种类',
+    all: '全部',
+    reset: '清除筛选',
+    /** Filled in by the client filter script. */
+    shown: '显示 {shown} / {total} 个条目',
+    noMatch: '没有符合筛选条件的补丁。',
+    browseTitle: '分类浏览',
+    byWork: '按作品',
+    byCore: '按核心',
     kinds: {
       recipe: '配方',
       external: '外部',
@@ -357,10 +379,11 @@ const en: Strings = {
     docs: 'Docs',
     shinkiemuDocs: 'ShinkiEMU docs',
     roukakuDocs: 'RoukakuEngine docs',
+    languageName: 'English',
+    language: 'Language',
+    languageLabel: (name: string) => `Language: ${name}`,
     menu: 'Menu',
     github: 'Project-Shinkirou on GitHub',
-    otherLanguage: '中文',
-    otherLanguageLabel: '切换到简体中文',
   },
   theme: {
     toLight: 'Switch to light theme',
@@ -449,6 +472,8 @@ const en: Strings = {
     legend: 'Legend',
     legendSupported: 'At least one target buildable',
     legendBlocked: 'All targets blocked',
+    legendStatic: 'Built statically into the Manager (icon with a dot)',
+    static: 'Buildable (static in Manager)',
     label: (platform: string, state: string) => `${platform}: ${state}`,
   },
   download: {
@@ -541,6 +566,13 @@ const en: Strings = {
     supportedNote:
       '“Buildable” means the build manifest declares the target; it does not mean a release exists or the core was play-tested there.',
     publishBlocked: 'Binaries withheld',
+    coreVersion: 'Core version',
+    revision: 'Source revision',
+    revisionLabel: (sha: string, repo: string) => `Source of ${repo} at commit ${sha}`,
+    sourceRepo: 'Source repository',
+    owned: 'Project-Shinkirou core',
+    upstream: 'Upstream project',
+    upstreamLabel: (name: string) => `Upstream project of ${name}`,
     staticInManager: (targets: string) => `Built statically into the Manager on ${targets}; no separate core package there.`,
     releases: 'Published packages',
     noReleases: 'No releases yet.',
@@ -562,6 +594,17 @@ const en: Strings = {
     kindsNav: 'Patch kinds',
     count: (n: number) => `${n} ${n === 1 ? 'entry' : 'entries'}`,
     empty: 'No entries yet.',
+    filters: 'Filter patches',
+    work: 'Work',
+    core: 'Core',
+    kind: 'Kind',
+    all: 'All',
+    reset: 'Clear filters',
+    shown: 'Showing {shown} of {total} entries',
+    noMatch: 'No patches match these filters.',
+    browseTitle: 'Browse',
+    byWork: 'By work',
+    byCore: 'By core',
     kinds: {
       recipe: 'Recipe',
       external: 'External',
@@ -675,7 +718,370 @@ const en: Strings = {
   },
 };
 
-export const STRINGS: Record<Locale, Strings> = { 'zh-cn': zh, en };
+const ja: Strings = {
+  syntheticBanner:
+    'このサイトはローカル確認用の合成テストデータでビルドされています。実際の互換性レポートやリリース情報ではないため、公開しないでください。',
+  nav: {
+    label: 'メインナビゲーション',
+    skip: '本文へスキップ',
+    home: 'Project-Shinkirou ホーム',
+    shinkiemu: 'ShinkiEMU',
+    compatibility: '互換性',
+    cores: 'コア',
+    patches: 'パッチ',
+    roukaku: 'RoukakuEngine',
+    docs: 'ドキュメント',
+    shinkiemuDocs: 'ShinkiEMU ドキュメント',
+    roukakuDocs: 'RoukakuEngine ドキュメント',
+    languageName: '日本語',
+    language: '言語',
+    languageLabel: (name: string) => `言語：${name}`,
+    menu: 'メニュー',
+    github: 'GitHub の Project-Shinkirou',
+  },
+  theme: {
+    toLight: 'ライトテーマに切り替える',
+    toDark: 'ダークテーマに切り替える',
+  },
+  footer: {
+    sources: 'データソース',
+    metadata: 'ShinkiEMU メタデータ',
+    shinkiemu: 'ShinkiEMU ソースコード',
+    roukaku: 'RoukakuEngine ソースコード',
+    generated: '生成日時',
+    synthetic: '合成テストデータ',
+  },
+  home: {
+    title: 'Project-Shinkirou',
+    description: 'ShinkiEMU と RoukakuEngine の組織ポータル',
+    eyebrow: 'オープンソースのビジュアルノベルプロジェクト',
+    tagline: '過去の作品を新しいプラットフォームで動かし続け、新しい作品のためのエンジンも用意します。',
+    intro:
+      'Project-Shinkirou は 2 つの独立したオープンソースプロジェクトを開発しています。ShinkiEMU はエンジンごとのコアで既存のビジュアルノベルを動かし、RoukakuEngine は新しいビジュアルノベルの制作に使います。',
+    productsTitle: '2 つのプロジェクト',
+    shinkiemu: {
+      kicker: '既存の作品を動かす',
+      body: 'ShinkiEMU は Manager と、エンジンごとに独立したコアで構成されています。各コアは FVP、SiglusEngine、Musica、Ren’Py などの元のエンジンを 1 つずつ実装し、作品の元のファイルをネイティブに実行します。互換性は作品・リリース・プラットフォームごとに報告され、レポートのない組み合わせは未検証です。',
+      cta: 'ShinkiEMU を見る',
+      compatibility: '互換性レポート',
+      cores: 'コア一覧',
+      patches: 'パッチ',
+    },
+    roukaku: {
+      kicker: '新しい作品を作る',
+      body: 'RoukakuEngine はビジュアルノベル制作エンジンで、ランタイム、プレイヤー、エディター、VN スクリプトのツールチェーンを含みます。ShinkiEMU はそのテキスト・メディア・プラットフォーム層のライブラリを再利用しています。',
+      cta: 'RoukakuEngine を見る',
+      docs: 'ドキュメントを読む',
+      source: 'ソースリポジトリ',
+    },
+    snapshotTitle: '現在のデータスナップショット',
+    snapshotNote: '数値はこのビルドで使ったメタデータスナップショットをそのまま反映しています。記録がなければ 0 と表示します。',
+    stats: {
+      reports: '互換性レポート',
+      cores: 'コア',
+      patches: 'パッチ項目',
+      platforms: '対象プラットフォーム',
+    },
+  },
+  shinkiemu: {
+    title: 'ShinkiEMU',
+    description: 'ShinkiEMU の概要、ダウンロード、コア',
+    eyebrow: 'Project-Shinkirou · 既存の作品を動かす',
+    pitch: 'ネイティブコアで、既存のビジュアルノベルエンジンの作品を動かします。',
+    lead: 'Manager はライブラリ、コアのインストール、メタデータの同期を担当します。各コアはそれぞれのエンジンの VM、メディア、ネイティブセーブデータを実装します。',
+    download: 'ダウンロード',
+    compatibility: '互換性',
+    guide: 'ユーザーガイド',
+    whatTitle: 'しくみ',
+    managerTitle: 'Manager',
+    managerBody:
+      'Manager はゲームの検出、コアのインストール、コアの画面表示、メタデータの連携を行います。すべてのコアを同梱しているわけではなく、コアは Manager から個別にインストール・更新できます。',
+    coresTitle: 'コア',
+    coresBody: '各コアは元のエンジンを 1 つ実装し、VM、描画、音声、ゲーム内メニュー、セーブの挙動を自ら受け持ちます。',
+    idsTitle: 'family・core・plugin_id',
+    idsBody:
+      'family は元のエンジンやフォーマットの系統、core はその実装の 1 つ、plugin_id はインストールとメタデータで使う正確な識別子で、大文字と小文字を区別します。shinki.emu.musica と ReMinori はどちらも Musica 系統ですが別々のコアで、設定やセーブの識別は共有しません。',
+    downloadTitle: 'ダウンロード',
+    downloadLead:
+      'Manager と各コアは ShinkiEMU の GitHub Releases で個別に公開されています。以下に、プラットフォームごとの Manager 最新版パッケージとビルド状況を示します。',
+    coresGridTitle: 'コア一覧',
+    coresGridLead: 'プラットフォームのアイコンはビルドマニフェストの宣言を示します。ビルド可能でも、公開済みや実機プレイ確認済みとは限りません。',
+    coreDetails: (name: string) => `${name} の詳細`,
+    allCores: 'すべてのコアの詳細',
+    reports: (n: number) => (n === 0 ? '報告なし' : `互換性レポート ${n} 件`),
+    publishBlocked: 'バイナリ非公開',
+    linksTitle: 'その他の情報',
+    docs: 'ユーザー・開発者向けドキュメント',
+    platforms: 'プラットフォームとビルドマトリクス',
+    patches: 'パッチデータベース',
+    report: 'レポートや問題を送る',
+    source: 'ソースリポジトリ',
+    data: 'メタデータインデックス（JSON）',
+  },
+  platformState: {
+    supported: 'ビルド可能',
+    blocked: 'ビルド不可',
+    none: 'ビルド対象なし',
+    legend: '凡例',
+    legendSupported: '1 つ以上のターゲットでビルド可能',
+    legendBlocked: 'すべてのターゲットでビルド不可',
+    legendStatic: 'Manager に静的統合（アイコンに点付き）',
+    static: 'ビルド可能（Manager に静的統合）',
+    label: (platform: string, state: string) => `${platform}：${state}`,
+  },
+  download: {
+    yourDevice: 'このデバイス',
+    notReleased: '未リリース',
+    notReleasedBody:
+      'ShinkiEMU Manager はまだリリースされていません。ドキュメントに沿ってソースからビルドするか、GitHub Releases をお待ちください。',
+    noAsset: (version: string) => `${version} にはこのプラットフォーム向けのパッケージがありません。`,
+    buildFromSource: 'ソースからビルド',
+    releases: 'GitHub Releases',
+    releaseNotes: 'リリースノート',
+    prerelease: 'プレリリース',
+    version: 'バージョン',
+    published: '公開日',
+    size: 'サイズ',
+    sha256: 'SHA-256',
+    noSha256: 'リリースに記載なし',
+    download: 'ダウンロード',
+    downloadLabel: (platform: string, detail: string, version: string) =>
+      `ShinkiEMU Manager ${version}（${platform} ${detail}）をダウンロード`,
+    testPackage: 'テストパッケージ',
+    buildStatus: 'ビルド状況',
+    targetState: (supported: number, total: number) =>
+      total === 0 ? 'ビルドマニフェストにこのプラットフォームはありません' : `${total} 個のビルドターゲットのうち ${supported} 個がビルド可能`,
+  },
+  compatibility: {
+    title: '互換性',
+    description: '作品・リリース・コア・プラットフォーム別の ShinkiEMU 互換性レポート',
+    lead: '各レコードは 1 つのリリース、1 つのコア、1 つの具体的なプラットフォーム（OS、アーキテクチャ、デスクトップ／デバイス／シミュレーター）に対応します。あるプラットフォームの結果が別のプラットフォームの代わりになることはありません。表にない組み合わせはまだ報告されていません。',
+    submit: '互換性レポートを送る',
+    summaryTitle: '状態の内訳',
+    total: (n: number) => `全 ${n} 件のレポート`,
+    statusFilter: '状態で絞り込む',
+    statusAll: 'すべての状態',
+    search: '検索',
+    searchPlaceholder: '作品タイトル、v12345、r67890',
+    letters: 'タイトルの頭文字',
+    lettersAll: 'すべて',
+    lettersOther: 'その他',
+    core: 'コア',
+    platform: 'プラットフォーム',
+    architecture: 'アーキテクチャ',
+    variant: '形態',
+    all: 'すべて',
+    reset: '絞り込みを解除',
+    empty: '報告なし',
+    emptyBody: '互換性データベースにはまだレポートがありません。作品・コア・プラットフォームのどの組み合わせも未検証です。',
+    emptyHow: 'レポートの送り方',
+    emptySteps: [
+      'ShinkiEMU で実際に作品を動かし、自分で確認した結果だけを記録してください。',
+      'VNDB の作品 ID（v…）とリリース ID（r…）、コアの plugin_id とバージョン、Manager のバージョン、OS・アーキテクチャ・形態を用意してください。',
+      'issue フォームから送信してください。メンテナーが承認すると、次のメタデータスナップショットに反映されます。',
+    ],
+    emptyGuide: '送信方法を読む',
+    noMatch: '条件に一致するレポートはありません。',
+    count: '{total} 件中 {shown} 件を表示',
+    columns: {
+      work: '作品',
+      release: 'リリース',
+      core: 'コア',
+      platform: 'プラットフォーム',
+      status: '状態',
+      versions: 'バージョン',
+      notes: '備考',
+      report: 'レポート',
+      updated: '更新',
+    },
+    coreVersion: 'コア',
+    managerVersion: 'Manager',
+    noIssue: '関連 issue なし',
+  },
+  cores: {
+    title: 'コア',
+    description: 'ShinkiEMU のコア：エンジン系統、プラグイン ID、ライセンス、ビルド状況、リリース',
+    lead: 'コアはプラグイン ID で区別します。エンジン系統は元の作品が使っているエンジンを指します。同じ系統に独立した実装が複数あることもあり、それぞれ設定、セーブの識別、互換性レコードを共有しません。',
+    jump: 'コアへ移動',
+    pluginId: 'プラグイン ID',
+    family: 'エンジン系統',
+    license: 'ライセンス',
+    sameFamily: (others: string) => `${others} と同じエンジン系統ですが、別の実装です。`,
+    targets: 'ビルドターゲット',
+    targetsSummary: (supported: number, total: number) => `ビルドターゲット：${total} 個中 ${supported} 個がビルド可能`,
+    target: 'ターゲット',
+    targetStatus: '状態',
+    reason: '理由',
+    supported: 'ビルド可能',
+    blocked: 'ビルド不可',
+    staticBadge: '静的統合',
+    supportedNote:
+      '「ビルド可能」はビルドマニフェストがそのターゲットを宣言していることを示し、リリース済みや実機プレイ確認済みを意味するものではありません。',
+    publishBlocked: 'バイナリ非公開',
+    coreVersion: 'コアのバージョン',
+    revision: 'ソースのリビジョン',
+    revisionLabel: (sha: string, repo: string) => `コミット ${sha} 時点の ${repo} のソース`,
+    sourceRepo: 'ソースリポジトリ',
+    owned: 'Project-Shinkirou 独自のコア',
+    upstream: '上流プロジェクト',
+    upstreamLabel: (name: string) => `${name} の上流プロジェクト`,
+    staticInManager: (targets: string) => `${targets} では Manager に静的に組み込まれており、コア単体のパッケージは公開しません。`,
+    releases: '公開済みパッケージ',
+    noReleases: 'リリースはまだありません。',
+    version: 'バージョン',
+    releasePlatform: 'プラットフォーム',
+    tag: 'タグ',
+    size: 'サイズ',
+    sha256: 'SHA-256',
+    download: 'ダウンロード',
+    downloadLabel: (name: string, platform: string, version: string) => `${name} ${version}（${platform}）をダウンロード`,
+    compatibility: (n: number) => (n === 0 ? '報告なし' : `互換性レポート ${n} 件`),
+  },
+  patches: {
+    title: 'パッチ',
+    description: 'ShinkiEMU パッチデータベース：審査済みレシピ、外部パッチ、許諾を得たホスト済み添付ファイル',
+    lead: 'パッチは 3 種類あります。レシピは審査済みの Luau スクリプトで、Manager の中でユーザーが用意したファイルに対してのみ実行されます。外部パッチは配布元へのリンクだけを載せます。ホスト済みパッチは明示的な許諾を得て ShinkiEMU Releases で公開している添付ファイルで、チェックサム付きです。このサイトがパッチを実行することはありません。',
+    submit: 'パッチ項目を送る',
+    kindsNav: 'パッチの種類',
+    count: (n: number) => `${n} 件`,
+    empty: '項目はまだありません。',
+    filters: 'パッチを絞り込む',
+    work: '作品',
+    core: 'コア',
+    kind: '種類',
+    all: 'すべて',
+    reset: '絞り込みを解除',
+    shown: '{total} 件中 {shown} 件を表示',
+    noMatch: '条件に一致するパッチはありません。',
+    browseTitle: '分類から探す',
+    byWork: '作品別',
+    byCore: 'コア別',
+    kinds: {
+      recipe: 'レシピ',
+      external: '外部',
+      hosted: 'ホスト',
+    },
+    kindTitles: {
+      recipe: '審査済みレシピ',
+      external: '外部パッチ',
+      hosted: '許諾済みホスト添付ファイル',
+    },
+    version: 'バージョン',
+    works: '対象作品',
+    releases: '対象リリース',
+    releasesUnrestricted: '対象リリース未限定（投稿者が作品単位で適用を宣言しており、すべてのリリースを検証したわけではありません）',
+    cores: 'コア',
+    license: 'ライセンス',
+    source: '配布元',
+    authorization: '許諾の根拠',
+    noAuthorization: '記載なし',
+    issue: '審査 issue',
+    script: 'レシピスクリプト',
+    recipeNote: 'ShinkiEMU Manager の中でのみ実行されます。このサイトではダウンロードも実行もできません。',
+    artifact: '添付ファイル',
+    externalArtifact: '外部の添付ファイル（組織ではホストしていないため、リンクのみ）',
+    sha256: 'SHA-256',
+    size: 'サイズ',
+    download: '添付ファイルをダウンロード',
+    downloadLabel: (name: string) => `${name} をダウンロード`,
+  },
+  roukaku: {
+    title: 'RoukakuEngine',
+    description: 'RoukakuEngine：ネイティブ 2D とビジュアルノベルの制作エンジン',
+    eyebrow: 'Project-Shinkirou · 新しい作品を作る',
+    pitch: 'ネイティブ 2D 作品とビジュアルノベルを制作・実行するエンジン。',
+    lead: '共通ランタイム層がシーン、タスク、クロック、入力、テキスト、メディア、リソース管理を提供し、RoukakuVN はその上でシナリオ進行、選択肢、演出、システム画面、セーブ／ロードを実装します。',
+    docs: 'ドキュメントを読む',
+    quickStart: 'クイックスタート',
+    source: 'ソースリポジトリ',
+    partsTitle: '4 つの構成要素',
+    parts: {
+      player: 'RoukakuPlayer は作品の実行ホストです。パッケージ化されたデータを読み込み、ウィンドウ、デバイス、プラットフォームイベントを管理します。',
+      vn: 'RoukakuVN はビジュアルノベル用のモジュールです。作者が書いた .roukaku ソースを Cook でコンパイルし、共通の VnSession で実行します。',
+      editor: 'RoukakuEditor はテキスト、シナリオグラフ、タイムライン、Details、単独の Player プレビューを備えています。パネルでの編集は同じソースに書き戻されます。',
+      cli: 'roukaku はコマンドラインツールで、スクリプトと UI のチェック、Cook、パッケージのビルド、プラットフォーム向けバンドルを担当します。',
+    },
+    startTitle: 'はじめる',
+    startBody:
+      'Rust（ツールチェーンは rust-toolchain.toml で選択されます）とネイティブの C/C++ ツールチェーンをインストールし、ビルド手順に従ってネイティブ依存関係を準備してから、リポジトリのルートで次を実行します：',
+    buildGuide: 'ビルド手順',
+    installCli: 'CLI を Cargo の bin ディレクトリにインストールします：',
+    startMore: '公開サンプルの Cook、パッケージ化、Player での起動手順はクイックスタートを参照してください。',
+    commandsLabel: (what: string) => `${what}のコマンド`,
+    noDownloads: 'RoukakuEngine にはまだバイナリのリリースがありません。ソースからビルドしてください。',
+    platformNote: '設定でプラットフォームが宣言されていても、そのプラットフォームでのウィンドウ、入力、音声、セーブ／ロードが実機で検証済みとは限りません。',
+    relationTitle: 'ShinkiEMU との関係',
+    relationBody:
+      'ShinkiEMU は既存のエンジンをネイティブに動かすための独立した製品で、RoukakuEngine の共有ライブラリを固定した Git リビジョンで利用しています。RoukakuEngine は ShinkiEMU に依存しません。',
+    licenseTitle: 'ライセンス',
+    licenseBody: '独自のコードは MIT OR Apache-2.0 のいずれかを選んで利用できます。サードパーティのコードと素材は、それぞれのライセンスと帰属表示に従います。',
+  },
+  platforms: {
+    title: 'プラットフォームとビルドマトリクス',
+    description: 'ターゲットトリプルごとの ShinkiEMU Manager と各コアのビルド状況',
+    lead: 'ビルドマニフェストにあるすべてのターゲットトリプルを一覧にしています。ビルド可能はマニフェストがそのターゲットを宣言していることを示し、リリース済みや実機プレイ確認済みを意味しません。ビルド不可のターゲットには理由を記載しています。',
+    summary: (supported: number, total: number, targets: number) =>
+      `ビルドマトリクスは ${targets} 個のターゲットを対象とし、${total} 個のコアとターゲットの組み合わせのうち ${supported} 個がビルド可能と宣言されています。`,
+    managerTitle: 'Manager',
+    coresTitle: 'コア',
+    reasonsTitle: 'ビルド不可の理由',
+    target: 'ターゲット',
+    platform: 'プラットフォーム',
+    status: '状態',
+    reason: '理由',
+    core: 'コア',
+    appliesTo: '対象',
+    supported: 'ビルド可能',
+    blocked: 'ビルド不可',
+    staticNote: 'Manager に静的統合',
+    product: 'コアのリリースと互換性は ShinkiEMU の製品ページにあります。',
+  },
+  notFound: {
+    title: 'ページが見つかりません',
+    body: 'このアドレスにはページがありません。移動または削除された可能性があります。',
+    home: '日本語のホームへ',
+  },
+  status: {
+    perfect: '完璧',
+    completable: 'クリア可能',
+    flawed: '不具合あり',
+    boot_only: '起動のみ',
+    unplayable: 'プレイ不可',
+  },
+  platform: {
+    windows: 'Windows',
+    linux: 'Linux',
+    macos: 'macOS',
+    android: 'Android',
+    ios: 'iOS',
+    ohos: 'HarmonyOS / OpenHarmony',
+  },
+  architecture: {
+    x86_64: 'x86_64',
+    aarch64: 'AArch64',
+  },
+  variant: {
+    desktop: 'デスクトップ',
+    device: 'デバイス',
+    simulator: 'シミュレーター',
+  },
+};
+
+export const STRINGS: Record<Locale, Strings> = { 'zh-cn': zh, en, ja };
+
+/**
+ * Metadata text in the best language available for `locale`: the locale's own
+ * text, then English, then Chinese (Japanese pages read ja → en → zh-CN).
+ * `lang` is the language actually returned, for the element's `lang` attribute.
+ */
+export function localizedText(text: LocalizedText, locale: Locale): { text: string; lang: 'zh-CN' | 'en' | 'ja' } {
+  const order = locale === 'zh-cn' ? (['zh-CN', 'en'] as const) : locale === 'en' ? (['en', 'zh-CN'] as const) : (['ja', 'en', 'zh-CN'] as const);
+  for (const lang of order) {
+    const value = text[lang];
+    if (value !== undefined) return { text: value, lang };
+  }
+  return { text: text['zh-CN'], lang: 'zh-CN' };
+}
 
 /** Human-readable byte size (binary units), e.g. `4.0 MiB`. */
 export function formatBytes(size: number, locale: Locale): string {

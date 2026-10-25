@@ -1,6 +1,7 @@
 ---
 // Per-platform build state of one core as icons. The state is carried by the
-// text label (visually hidden) and by shape: blocked icons are struck through.
+// text label (visually hidden, also the tooltip) and by shape: blocked icons
+// are struck through, statically integrated ones are green with a dot.
 import PlatformIcon from './PlatformIcon.astro';
 import { STRINGS, type Locale } from '../lib/i18n.ts';
 import { corePlatformStates } from '../lib/platforms.ts';

@@ -9,11 +9,12 @@
 //
 // Environment:
 //   SHINKI_DATA_DIR     metadata snapshot, plus site-sources.json, vndb.json,
-//                       manager-release.json (from `xtask site prepare`) and verbatim
-//                       copies of ShinkiEMU build/targets.toml and build/cores.toml
-//                       as build-targets.toml and build-cores.toml
-//   ROUKAKU_DOCS_DIR    RoukakuEngine docs/ tree with zh-cn/ and en/
-//   SHINKIEMU_DOCS_DIR  ShinkiEMU docs/ tree with zh-cn/ and en/
+//                       manager-release.json, core-versions.json (from
+//                       `xtask site prepare`) and verbatim copies of ShinkiEMU
+//                       build/targets.toml and build/cores.toml as
+//                       build-targets.toml and build-cores.toml
+//   ROUKAKU_DOCS_DIR    RoukakuEngine docs/ tree with zh-cn/, en/ and ja/
+//   SHINKIEMU_DOCS_DIR  ShinkiEMU docs/ tree with zh-cn/, en/ and ja/
 //   SITE_PRODUCTION=1   all three are required; synthetic fixtures are refused
 // Unset inputs fall back to fixtures/synthetic/ outside production.
 
@@ -43,7 +44,7 @@ import {
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const fixtures = path.join(root, 'fixtures', 'synthetic');
 const SYNTHETIC_MARKER = 'SYNTHETIC';
-const LOCALES = ['zh-cn', 'en'] as const;
+const LOCALES = ['zh-cn', 'en', 'ja'] as const;
 const REQUIRED_DATA_FILES = ['compatibility.json', 'cores.json', 'patches.json'];
 
 const production = process.env.SITE_PRODUCTION === '1';
@@ -135,9 +136,16 @@ function loadData(dataDir: string): LoadedSnapshot {
   const inventory = parseBuildInventory(
     parseTomlFile(readInside(dataDir, 'build-targets.toml'), 'build-targets.toml'),
     parseTomlFile(readInside(dataDir, 'build-cores.toml'), 'build-cores.toml'),
+    json('core-versions.json'),
   );
   const known = new Set(inventory.cores.map((core) => core.plugin_id));
   const sources = parseSources(json('site-sources.json'));
+  for (const core of inventory.cores) {
+    // Owned cores are versioned at the ShinkiEMU commit the snapshot was prepared from.
+    if (core.upstream === null && core.revision !== sources.shinkiemu_commit) {
+      throw new DataError(`core-versions.json.cores.${core.plugin_id}.rev`, 'owned core must use the prepared ShinkiEMU commit');
+    }
+  }
   const compatibility = parseCompatibility(json('compatibility.json'), known);
   const patches = parsePatches(json('patches.json'), known);
   // Fetched by `xtask site prepare`; not part of the indexed metadata snapshot.
@@ -287,12 +295,15 @@ function importDocs(docs: DocsSource, contentRoot: string): number {
     if (!files.includes('index.md') && !files.includes('index.mdx')) fail(`docs: ${docs.env}/${locale}/index.md is required`);
     perLocale.set(locale, files);
   }
-  // zh-cn is the default locale: Starlight falls back to it for missing English
-  // pages, but an English-only page would have no zh-cn route.
+  // zh-cn is the default locale: Starlight falls back to it for missing
+  // translated pages, but a page that exists only in a translation would have
+  // no zh-cn route.
   const zhPages = new Set((perLocale.get('zh-cn') ?? []).filter((f) => MARKDOWN.test(f)).map(docSlug));
-  for (const file of perLocale.get('en') ?? []) {
-    if (MARKDOWN.test(file) && !zhPages.has(docSlug(file))) {
-      fail(`docs: ${docs.env}/en/${file} has no zh-cn counterpart`);
+  for (const locale of LOCALES.filter((l) => l !== 'zh-cn')) {
+    for (const file of perLocale.get(locale) ?? []) {
+      if (MARKDOWN.test(file) && !zhPages.has(docSlug(file))) {
+        fail(`docs: ${docs.env}/${locale}/${file} has no zh-cn counterpart`);
+      }
     }
   }
   let count = 0;

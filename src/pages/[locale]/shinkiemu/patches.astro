@@ -1,7 +1,7 @@
 ---
 import ProductLayout from '../../../layouts/ProductLayout.astro';
 import VndbTitle from '../../../components/VndbTitle.astro';
-import { formatBytes, LANG, LOCALES, STRINGS, type Locale } from '../../../lib/i18n.ts';
+import { formatBytes, LANG, localizedText, LOCALES, STRINGS, type Locale } from '../../../lib/i18n.ts';
 import { PATCH_KINDS } from '../../../lib/site-data.ts';
 import { ISSUES_URL, site } from '../../../lib/site.ts';
 
@@ -14,13 +14,42 @@ const lang = LANG[locale];
 const t = STRINGS[locale].patches;
 const base = `/${locale}`;
 const coreName: Record<string, string> = Object.fromEntries(site.matrix.map((core) => [core.plugin_id, core.core]));
+const total = site.patches.length;
+
+// Title and summary in the page language when the entry has it, otherwise the
+// next language in the locale's fallback order (ja → en → zh-CN).
+const patches = site.patches
+  .map((patch) => ({ ...patch, shownTitle: localizedText(patch.title, locale), shownSummary: localizedText(patch.summary, locale) }))
+  .sort((a, b) => a.shownTitle.text.localeCompare(b.shownTitle.text, lang) || a.id.localeCompare(b.id));
 const groups = PATCH_KINDS.map((kind) => ({
   kind,
   anchor: `kind-${kind}`,
-  entries: site.patches
-    .filter((patch) => patch.kind === kind)
-    .sort((a, b) => a.title[lang].localeCompare(b.title[lang], lang) || a.id.localeCompare(b.id)),
+  entries: patches.filter((patch) => patch.kind === kind),
 }));
+
+// Static groupings by work and by core; the same links drive the client filter.
+const workTitle = (id: string) => site.titles.vn[id].title;
+const works = [...new Set(patches.flatMap((patch) => patch.vn_ids))]
+  .sort((a, b) => workTitle(a).localeCompare(workTitle(b), 'en') || a.localeCompare(b, 'en', { numeric: true }))
+  .map((id) => ({ id, entries: patches.filter((patch) => patch.vn_ids.includes(id)) }));
+const cores = site.matrix
+  .map((core) => ({ id: core.plugin_id, name: core.core, entries: patches.filter((patch) => patch.emulators.includes(core.plugin_id)) }))
+  .filter((core) => core.entries.length > 0);
+const browse = [
+  { key: 'work', title: t.byWork, groups: works.map((work) => ({ value: work.id, entries: work.entries })) },
+  { key: 'core', title: t.byCore, groups: cores.map((core) => ({ value: core.id, entries: core.entries })) },
+] as const;
+
+const filters = [
+  { name: 'work', label: t.work, options: works.map((work) => ({ value: work.id, label: `${workTitle(work.id)} (${work.id})` })) },
+  { name: 'core', label: t.core, options: cores.map((core) => ({ value: core.id, label: core.name })) },
+  {
+    name: 'kind',
+    label: t.kind,
+    options: groups.filter((group) => group.entries.length > 0).map((group) => ({ value: group.kind, label: t.kindTitles[group.kind] })),
+  },
+];
+const shownText = (shown: number) => t.shown.replace('{shown}', String(shown)).replace('{total}', String(total));
 ---
 
 <ProductLayout locale={locale} title={t.title} description={t.description} current="patches">
@@ -47,143 +76,324 @@ const groups = PATCH_KINDS.map((kind) => ({
     </nav>
   </div>
 
-  {
-    groups.map((group) => (
-      <section class="section container kind-section" id={group.anchor} aria-labelledby={`${group.anchor}-title`}>
-        <h2 id={`${group.anchor}-title`}>
-          {t.kindTitles[group.kind]}
-          <span class="heading-count">{t.count(group.entries.length)}</span>
-        </h2>
-        {group.entries.length === 0 ? (
-          <p class="muted">{t.empty}</p>
-        ) : (
+  <patch-filter data-shown={t.shown} data-total={total}>
+    {
+      total > 0 && (
+        <section class="section container patch-browse-section" aria-labelledby="browse-title">
+          <h2 id="browse-title">{t.browseTitle}</h2>
           <div class="grid grid-2">
-            {group.entries.map((patch) => (
-              <article class="card patch-card" id={`patch-${patch.id}`} aria-labelledby={`patch-${patch.id}-title`}>
-                <div class="patch-card-head">
-                  <h3 id={`patch-${patch.id}-title`}>{patch.title[lang]}</h3>
-                  <span class={`chip chip-kind-${patch.kind}`}>{t.kinds[patch.kind]}</span>
-                </div>
-                <p class="patch-summary">{patch.summary[lang]}</p>
-                <dl class="facts">
-                  <div class="facts-wide">
-                    <dt>{t.works}</dt>
-                    <dd>
-                      <ul class="work-list">
-                        {patch.vn_ids.map((id) => (
+            {browse.map((column) => (
+              <section class="card patch-browse" aria-labelledby={`browse-${column.key}-title`}>
+                <h3 id={`browse-${column.key}-title`}>{column.title}</h3>
+                <ul class="browse-groups">
+                  {column.groups.map((group) => (
+                    <li>
+                      <div class="browse-group-head">
+                        {column.key === 'work' ? (
+                          <VndbTitle id={group.value} kind="vn" />
+                        ) : (
+                          <span>
+                            {coreName[group.value]} <code>{group.value}</code>
+                          </span>
+                        )}
+                        <a
+                          class="browse-filter"
+                          href={`?${column.key}=${encodeURIComponent(group.value)}#patch-results`}
+                          data-apply-filter={column.key}
+                          data-value={group.value}
+                        >
+                          {t.count(group.entries.length)}
+                        </a>
+                      </div>
+                      <ul class="browse-entries">
+                        {group.entries.map((patch) => (
                           <li>
-                            <VndbTitle id={id} kind="vn" />
+                            <a href={`#patch-${patch.id}`} lang={patch.shownTitle.lang === lang ? undefined : patch.shownTitle.lang}>
+                              {patch.shownTitle.text}
+                            </a>
+                            <span class={`chip chip-kind-${patch.kind}`}>{t.kinds[patch.kind]}</span>
                           </li>
                         ))}
                       </ul>
-                    </dd>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    {
+      total > 0 && (
+        <div class="container" id="patch-results" tabindex="-1">
+          {/* Shown by the filter script; without JavaScript every patch stays visible, grouped below. */}
+          <form class="card filter-panel" role="search" aria-label={t.filters} data-filter-form hidden>
+            <h2 class="filter-title">{t.filters}</h2>
+            <div class="filter-fields">
+              {filters.map((filter) => (
+                <label class="field">
+                  <span>{filter.label}</span>
+                  <select name={filter.name}>
+                    <option value="">{t.all}</option>
+                    {filter.options.map((option) => (
+                      <option value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+            </div>
+            <div class="filter-row">
+              <p class="filter-count" aria-live="polite" data-count-output>
+                {shownText(total)}
+              </p>
+              <button type="reset" class="button button-secondary">
+                {t.reset}
+              </button>
+            </div>
+          </form>
+          <p class="no-match" role="status" data-no-match hidden>
+            {t.noMatch}
+          </p>
+        </div>
+      )
+    }
+
+    {
+      groups.map((group) => (
+        <section
+          class="section container kind-section"
+          id={group.anchor}
+          aria-labelledby={`${group.anchor}-title`}
+          data-kind-section={group.kind}
+        >
+          <h2 id={`${group.anchor}-title`}>
+            {t.kindTitles[group.kind]}
+            <span class="heading-count">{t.count(group.entries.length)}</span>
+          </h2>
+          {group.entries.length === 0 ? (
+            <p class="muted">{t.empty}</p>
+          ) : (
+            <div class="grid grid-2">
+              {group.entries.map((patch) => (
+                <article
+                  class="card patch-card"
+                  id={`patch-${patch.id}`}
+                  aria-labelledby={`patch-${patch.id}-title`}
+                  data-work={patch.vn_ids.join(' ')}
+                  data-core={patch.emulators.join(' ')}
+                  data-kind={patch.kind}
+                >
+                  <div class="patch-card-head">
+                    <h3 id={`patch-${patch.id}-title`} lang={patch.shownTitle.lang === lang ? undefined : patch.shownTitle.lang}>
+                      {patch.shownTitle.text}
+                    </h3>
+                    <span class={`chip chip-kind-${patch.kind}`}>{t.kinds[patch.kind]}</span>
                   </div>
-                  <div class="facts-wide">
-                    <dt>{t.releases}</dt>
-                    <dd>
-                      {patch.release_ids.length === 0 ? (
-                        <span class="chip chip-warning chip-wrap">{t.releasesUnrestricted}</span>
-                      ) : (
+                  <p class="patch-summary" lang={patch.shownSummary.lang === lang ? undefined : patch.shownSummary.lang}>
+                    {patch.shownSummary.text}
+                  </p>
+                  <dl class="facts">
+                    <div class="facts-wide">
+                      <dt>{t.works}</dt>
+                      <dd>
                         <ul class="work-list">
-                          {patch.release_ids.map((id) => (
+                          {patch.vn_ids.map((id) => (
                             <li>
-                              <VndbTitle id={id} kind="release" />
+                              <VndbTitle id={id} kind="vn" />
                             </li>
                           ))}
                         </ul>
-                      )}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{t.version}</dt>
-                    <dd>{patch.version}</dd>
-                  </div>
-                  <div>
-                    <dt>{t.license}</dt>
-                    <dd>{patch.license}</dd>
-                  </div>
-                  <div class="facts-wide">
-                    <dt>{t.cores}</dt>
-                    <dd>
-                      {patch.emulators.map((id, i) => (
-                        <>
-                          {i > 0 && ', '}
-                          {coreName[id]} <code>{id}</code>
-                        </>
-                      ))}
-                    </dd>
-                  </div>
-                  {patch.source_url && (
-                    <div class="facts-wide">
-                      <dt>{t.source}</dt>
-                      <dd>
-                        <a href={patch.source_url}>{patch.source_url}</a>
                       </dd>
                     </div>
-                  )}
-                  <div class="facts-wide">
-                    <dt>{t.authorization}</dt>
-                    <dd>
-                      {patch.authorization_url ? (
-                        <a href={patch.authorization_url}>{patch.authorization_url}</a>
-                      ) : (
-                        <span class="muted">{t.noAuthorization}</span>
-                      )}
-                    </dd>
-                  </div>
-                  {patch.issue_url && (
                     <div class="facts-wide">
-                      <dt>{t.issue}</dt>
+                      <dt>{t.releases}</dt>
                       <dd>
-                        <a href={patch.issue_url}>{patch.issue_url}</a>
+                        {patch.release_ids.length === 0 ? (
+                          <span class="chip chip-warning chip-wrap">{t.releasesUnrestricted}</span>
+                        ) : (
+                          <ul class="work-list">
+                            {patch.release_ids.map((id) => (
+                              <li>
+                                <VndbTitle id={id} kind="release" />
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </dd>
                     </div>
-                  )}
-                  {patch.recipe && (
+                    <div>
+                      <dt>{t.version}</dt>
+                      <dd>{patch.version}</dd>
+                    </div>
+                    <div>
+                      <dt>{t.license}</dt>
+                      <dd>{patch.license}</dd>
+                    </div>
                     <div class="facts-wide">
-                      <dt>{t.script}</dt>
+                      <dt>{t.cores}</dt>
                       <dd>
-                        <code>{patch.recipe.script}</code>
-                        <span class="cell-sub">{t.recipeNote}</span>
+                        {patch.emulators.map((id, i) => (
+                          <>
+                            {i > 0 && ', '}
+                            {coreName[id]} <code>{id}</code>
+                          </>
+                        ))}
                       </dd>
                     </div>
-                  )}
-                  {patch.artifact && (
-                    <>
+                    {patch.source_url && (
                       <div class="facts-wide">
-                        <dt>{t.artifact}</dt>
+                        <dt>{t.source}</dt>
                         <dd>
-                          <code>{patch.artifact.file_name}</code> · {formatBytes(patch.artifact.size, locale)}
+                          <a href={patch.source_url}>{patch.source_url}</a>
                         </dd>
                       </div>
+                    )}
+                    <div class="facts-wide">
+                      <dt>{t.authorization}</dt>
+                      <dd>
+                        {patch.authorization_url ? (
+                          <a href={patch.authorization_url}>{patch.authorization_url}</a>
+                        ) : (
+                          <span class="muted">{t.noAuthorization}</span>
+                        )}
+                      </dd>
+                    </div>
+                    {patch.issue_url && (
                       <div class="facts-wide">
-                        <dt>{t.sha256}</dt>
+                        <dt>{t.issue}</dt>
                         <dd>
-                          <code class="hash">{patch.artifact.sha256}</code>
+                          <a href={patch.issue_url}>{patch.issue_url}</a>
                         </dd>
                       </div>
-                    </>
+                    )}
+                    {patch.recipe && (
+                      <div class="facts-wide">
+                        <dt>{t.script}</dt>
+                        <dd>
+                          <code>{patch.recipe.script}</code>
+                          <span class="cell-sub">{t.recipeNote}</span>
+                        </dd>
+                      </div>
+                    )}
+                    {patch.artifact && (
+                      <>
+                        <div class="facts-wide">
+                          <dt>{t.artifact}</dt>
+                          <dd>
+                            <code>{patch.artifact.file_name}</code> · {formatBytes(patch.artifact.size, locale)}
+                          </dd>
+                        </div>
+                        <div class="facts-wide">
+                          <dt>{t.sha256}</dt>
+                          <dd>
+                            <code class="hash">{patch.artifact.sha256}</code>
+                          </dd>
+                        </div>
+                      </>
+                    )}
+                  </dl>
+                  {patch.kind === 'hosted' && patch.artifact && (
+                    <p>
+                      <a class="button button-primary" href={patch.artifact.url} aria-label={t.downloadLabel(patch.artifact.file_name)}>
+                        {t.download}
+                      </a>
+                    </p>
                   )}
-                </dl>
-                {patch.kind === 'hosted' && patch.artifact && (
-                  <p>
-                    <a class="button button-primary" href={patch.artifact.url} aria-label={t.downloadLabel(patch.artifact.file_name)}>
-                      {t.download}
-                    </a>
-                  </p>
-                )}
-                {patch.kind === 'external' && patch.artifact && (
-                  <p>
-                    <a href={patch.artifact.url} rel="nofollow noopener">
-                      {t.externalArtifact}
-                    </a>
-                  </p>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-    ))
-  }
+                  {patch.kind === 'external' && patch.artifact && (
+                    <p>
+                      <a href={patch.artifact.url} rel="nofollow noopener">
+                        {t.externalArtifact}
+                      </a>
+                    </p>
+                  )}
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      ))
+    }
+  </patch-filter>
 </ProductLayout>
+
+<script>
+  // Client-side filtering by work, core and kind, mirrored in the URL query so
+  // a filtered view can be linked. Without JavaScript the form stays hidden and
+  // every patch shows in its kind group.
+  const FILTERS = ['work', 'core', 'kind'] as const;
+  type Filter = (typeof FILTERS)[number];
+
+  class PatchFilter extends HTMLElement {
+    connectedCallback() {
+      const form = this.querySelector<HTMLFormElement>('[data-filter-form]');
+      if (!form) return;
+      const cards = [...this.querySelectorAll<HTMLElement>('article[data-kind]')];
+      const sections = [...this.querySelectorAll<HTMLElement>('[data-kind-section]')];
+      const count = this.querySelector<HTMLElement>('[data-count-output]');
+      const noMatch = this.querySelector<HTMLElement>('[data-no-match]');
+      const results = this.querySelector<HTMLElement>('#patch-results');
+      const template = (this.dataset.shown ?? '').replace('{total}', this.dataset.total ?? '');
+      const selects = Object.fromEntries(
+        FILTERS.map((name) => [name, form.elements.namedItem(name) as HTMLSelectElement]),
+      ) as Record<Filter, HTMLSelectElement>;
+      const has = (select: HTMLSelectElement, value: string) => [...select.options].some((option) => option.value === value);
+
+      // Unknown values (stale links) fall back to "all" instead of hiding everything.
+      const load = (params: URLSearchParams) => {
+        for (const name of FILTERS) {
+          const wanted = params.get(name) ?? '';
+          selects[name].value = has(selects[name], wanted) ? wanted : '';
+        }
+      };
+
+      const apply = (updateUrl: boolean) => {
+        let shown = 0;
+        for (const card of cards) {
+          const visible = FILTERS.every((name) => {
+            const value = selects[name].value;
+            return value === '' || (card.dataset[name] ?? '').split(' ').includes(value);
+          });
+          card.hidden = !visible;
+          if (visible) shown += 1;
+        }
+        const filtering = FILTERS.some((name) => selects[name].value !== '');
+        // While filtering, kind groups without a visible patch are hidden.
+        for (const section of sections) {
+          section.hidden = filtering && !section.querySelector('article[data-kind]:not([hidden])');
+        }
+        if (count) count.textContent = template.replace('{shown}', String(shown));
+        if (noMatch) noMatch.hidden = shown !== 0;
+        if (!updateUrl) return;
+        const next = new URLSearchParams();
+        for (const name of FILTERS) if (selects[name].value !== '') next.set(name, selects[name].value);
+        const suffix = next.toString();
+        history.replaceState(null, '', `${window.location.pathname}${suffix ? `?${suffix}` : ''}${window.location.hash}`);
+      };
+
+      // "N entries" links in the work/core lists set that one filter in place.
+      for (const link of this.querySelectorAll<HTMLAnchorElement>('[data-apply-filter]')) {
+        link.addEventListener('click', (event) => {
+          const name = link.dataset.applyFilter as Filter;
+          const value = link.dataset.value ?? '';
+          if (!FILTERS.includes(name) || !has(selects[name], value)) return;
+          event.preventDefault();
+          for (const other of FILTERS) selects[other].value = other === name ? value : '';
+          apply(true);
+          results?.scrollIntoView({ block: 'start' });
+          selects[name].focus({ preventScroll: true });
+        });
+      }
+      form.addEventListener('change', () => apply(true));
+      form.addEventListener('submit', (event) => event.preventDefault());
+      // `reset` fires before the controls are cleared.
+      form.addEventListener('reset', () => setTimeout(() => apply(true)));
+
+      form.hidden = false;
+      load(new URLSearchParams(window.location.search));
+      apply(false);
+    }
+  }
+  customElements.define('patch-filter', PatchFilter);
+</script>

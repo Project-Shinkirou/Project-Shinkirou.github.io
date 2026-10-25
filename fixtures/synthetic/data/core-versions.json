@@ -1,0 +1,49 @@
+{
+  "schema": "shinki.portal.core_versions.v1",
+  "cores": {
+    "ReMinori": {
+      "version": "0.1.0",
+      "rev": "595b3e337e29fd4e3b711b45d02a7237459b01f8"
+    },
+    "art3m1s-core": {
+      "version": "0.1.0",
+      "rev": "bc8c17a9b3c7ac7f6a3e20ce6d301f5dff4ebe5f"
+    },
+    "ethornell-rs": {
+      "version": "0.1.0",
+      "rev": "f8362be7d2f4d634c25a98a317dfe56ffae56346"
+    },
+    "impacto": {
+      "version": "0.1.0",
+      "rev": "876657c4e54e2d6d97296a33edb36cb5dc9cb6f0"
+    },
+    "kirikiroid2-web": {
+      "version": "0.1.0",
+      "rev": "c46d994feff822d59ce7a825584257842871aac4"
+    },
+    "renpy": {
+      "version": "0.1.0",
+      "rev": "3b7c96bdd79bcf445dab33e44c64dc59332c32d3"
+    },
+    "rfvp": {
+      "version": "0.6.0",
+      "rev": "7c241b477fb10efd981b20af67b1fb9745ec97fe"
+    },
+    "sena-rs": {
+      "version": "0.1.0",
+      "rev": "696a83ccaf096d3dd49c3c9a7c1f948c35acfed8"
+    },
+    "shinki.emu.cmvs": {
+      "version": "0.1.0",
+      "rev": "5e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e"
+    },
+    "shinki.emu.musica": {
+      "version": "0.1.0",
+      "rev": "5e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e"
+    },
+    "siglus_rs": {
+      "version": "1.0.0",
+      "rev": "2436c25fc966306e03cdada833b507eec97b51c4"
+    }
+  }
+}

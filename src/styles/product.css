@@ -246,6 +246,33 @@ body.product [tabindex='-1']:focus {
 }
 .control-lang {
   border-color: var(--mn-border);
+  list-style: none;
+}
+.control-lang::-webkit-details-marker {
+  display: none;
+}
+.lang-switcher summary.control-lang {
+  padding: 0.35rem 0.6rem;
+  color: var(--mn-text-soft);
+}
+.lang-switcher ul {
+  inset-inline: auto 0;
+  min-width: 9rem;
+}
+.lang-switcher a {
+  display: block;
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.5rem;
+  color: var(--mn-text-soft);
+  text-decoration: none;
+}
+.lang-switcher a:hover {
+  background: var(--mn-surface);
+  color: var(--mn-text-strong);
+}
+.lang-switcher a[aria-current='true'] {
+  color: var(--mn-text-strong);
+  box-shadow: inset 2px 0 0 var(--mn-accent);
 }
 
 .nav-mobile {
@@ -822,10 +849,22 @@ a.stat:hover {
   border: 1px solid var(--mn-border);
   border-radius: 0.5rem;
 }
-.platform-state.is-supported {
+.platform-state.is-supported,
+.platform-state.is-static {
   background: var(--st-perfect-bg);
   border-color: color-mix(in srgb, var(--st-perfect-solid) 55%, transparent);
   color: var(--st-perfect-fg);
+}
+/* Static integration: still green, plus a dot so it reads without color. */
+.platform-state.is-static::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 0.2rem;
+  inset-inline-end: 0.2rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: currentColor;
 }
 .platform-state.is-blocked,
 .platform-state.is-none {
@@ -1312,6 +1351,9 @@ button.legend-item[aria-pressed='true'] {
 .core-card h3 {
   font-size: 1.0625rem;
 }
+.core-revision .hash {
+  font-size: 0.875em;
+}
 
 /* ---------- Patches ---------- */
 
@@ -1386,6 +1428,54 @@ button.legend-item[aria-pressed='true'] {
 }
 .work-list .vndb {
   min-width: 0;
+}
+.patch-browse h3 {
+  font-size: 1.0625rem;
+}
+.browse-groups {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0;
+  list-style: none;
+}
+.browse-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  font-weight: 600;
+}
+.browse-group-head .vndb {
+  min-width: 0;
+}
+.browse-filter {
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.browse-entries {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+  padding-inline-start: 1rem;
+  color: var(--mn-text-soft);
+  font-size: 0.9375rem;
+}
+.browse-entries li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+.filter-title {
+  font-size: 1.0625rem;
+}
+#patch-results {
+  scroll-margin-top: 5rem;
+}
+#patch-results:focus {
+  outline: none;
 }
 
 /* ---------- RoukakuEngine ---------- */

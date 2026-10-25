@@ -38,12 +38,12 @@ const cores = site.matrix.map((core) => ({
   ...core,
   cells: core.targets.map((target) => ({
     ...target,
-    isStatic: core.static_manager_targets.includes(target.target),
     note: reasonNumber(target.reason, `${core.core} · ${target.target}`),
   })),
 }));
 const combos = cores.reduce((sum, core) => sum + core.cells.length, 0);
-const supported = cores.reduce((sum, core) => sum + core.cells.filter((cell) => cell.status === 'supported').length, 0);
+// Static targets count: the core is available there inside the Manager.
+const supported = cores.reduce((sum, core) => sum + core.cells.filter((cell) => cell.status !== 'blocked').length, 0);
 ---
 
 <StarlightPage
@@ -127,7 +127,7 @@ const supported = cores.reduce((sum, core) => sum + core.cells.filter((cell) => 
               </th>
               {core.cells.map((cell) => (
                 <td>
-                  <span class={`matrix-state is-${cell.status}`}>{cell.status === 'supported' ? t.supported : t.blocked}</span>
+                  <span class={`matrix-state is-${cell.status}`}>{cell.status === 'blocked' ? t.blocked : t.supported}</span>
                   {cell.note !== null && (
                     <sup>
                       <a href={`#reason-${cell.note}`} aria-label={`${t.reason} ${cell.note}`}>
@@ -135,7 +135,7 @@ const supported = cores.reduce((sum, core) => sum + core.cells.filter((cell) => 
                       </a>
                     </sup>
                   )}
-                  {cell.isStatic && <span class="matrix-sub">{t.staticNote}</span>}
+                  {cell.status === 'static' && <span class="matrix-sub">{t.staticNote}</span>}
                 </td>
               ))}
             </tr>

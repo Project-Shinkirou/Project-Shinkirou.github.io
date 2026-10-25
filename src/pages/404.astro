@@ -1,21 +1,30 @@
 ---
-// GitHub Pages serves this single /404.html for every unknown URL in both
-// languages, so it replaces Starlight's default-locale-only 404 route
-// (`disable404Route` in astro.config.ts) and shows both languages.
+// GitHub Pages serves this single /404.html for every unknown URL in every
+// language, so it replaces Starlight's default-locale-only 404 route
+// (`disable404Route` in astro.config.ts) and shows all three languages.
 import MirageScene from '../components/MirageScene.astro';
 import ProductLayout from '../layouts/ProductLayout.astro';
 import { LANG, LOCALES, STRINGS } from '../lib/i18n.ts';
 ---
 
-<ProductLayout locale="zh-cn" title="404" description="页面不存在 / Page not found" bilingual>
+<ProductLayout locale="zh-cn" title="404" description="页面不存在 / Page not found / ページが見つかりません" multilingual>
   <section class="hero hero-product not-found" aria-labelledby="hero-title">
     <MirageScene />
     <div class="container hero-inner">
       <p class="eyebrow">404</p>
       <h1 id="hero-title" class="hero-title">
-        <span lang="zh-CN">{STRINGS['zh-cn'].notFound.title}</span>
-        <span class="not-found-sep" aria-hidden="true">/</span>
-        <span lang="en">{STRINGS.en.notFound.title}</span>
+        {
+          LOCALES.map((locale, i) => (
+            <>
+              {i > 0 && (
+                <span class="not-found-sep" aria-hidden="true">
+                  /
+                </span>
+              )}
+              <span lang={LANG[locale]}>{STRINGS[locale].notFound.title}</span>
+            </>
+          ))
+        }
       </h1>
       {
         LOCALES.map((locale) => (

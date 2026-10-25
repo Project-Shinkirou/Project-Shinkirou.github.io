@@ -1,6 +1,7 @@
 mod external;
 mod site;
 mod snapshot;
+mod versions;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -63,11 +64,17 @@ fn main() -> Result<()> {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     match command {
         SiteCommand::Sources { out } => site::sources(&out),
-        SiteCommand::Prepare { roukaku, shinkiemu, out } => site::prepare(&roukaku, &shinkiemu, &out),
+        SiteCommand::Prepare {
+            roukaku,
+            shinkiemu,
+            out,
+        } => site::prepare(&roukaku, &shinkiemu, &out),
         SiteCommand::Build { prepared } => site::npm(&root, prepared.as_deref(), None),
-        SiteCommand::Dev { host, port, prepared } => {
-            site::npm(&root, prepared.as_deref(), Some((&host, port)))
-        }
+        SiteCommand::Dev {
+            host,
+            port,
+            prepared,
+        } => site::npm(&root, prepared.as_deref(), Some((&host, port))),
         SiteCommand::Verify { base_url } => snapshot::verify(&base_url),
     }
 }
