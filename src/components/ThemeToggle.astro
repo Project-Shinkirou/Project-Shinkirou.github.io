@@ -1,0 +1,53 @@
+---
+// Dark/light switch shared by the product header and Starlight (ThemeSelect
+// override). Hidden until the script runs, because it cannot work without it.
+import { STRINGS, type Locale } from '../lib/i18n.ts';
+
+interface Props {
+  locale: Locale;
+}
+
+const t = STRINGS[Astro.props.locale].theme;
+---
+
+<button type="button" class="theme-toggle" data-theme-toggle data-to-light={t.toLight} data-to-dark={t.toDark} aria-label={t.toLight} hidden>
+  <svg class="theme-icon-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+    <circle cx="12" cy="12" r="4.5" fill="currentColor"></circle>
+    <path
+      d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"></path>
+  </svg>
+  <svg class="theme-icon-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+    <path fill="currentColor" d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1Z"></path>
+  </svg>
+</button>
+
+<script>
+  const STORAGE_KEY = 'starlight-theme';
+  const root = document.documentElement;
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]')];
+
+  const sync = () => {
+    const dark = root.dataset.theme !== 'light';
+    for (const button of buttons) {
+      button.setAttribute('aria-label', (dark ? button.dataset.toLight : button.dataset.toDark) ?? '');
+    }
+  };
+
+  for (const button of buttons) {
+    button.hidden = false;
+    button.addEventListener('click', () => {
+      const next = root.dataset.theme === 'light' ? 'dark' : 'light';
+      root.dataset.theme = next;
+      try {
+        localStorage.setItem(STORAGE_KEY, next);
+      } catch {
+        // The switch still applies to this page when storage is unavailable.
+      }
+      sync();
+    });
+  }
+  sync();
+</script>

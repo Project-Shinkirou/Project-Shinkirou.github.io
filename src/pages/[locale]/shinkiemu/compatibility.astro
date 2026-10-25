@@ -1,6 +1,7 @@
 ---
-import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
-import { formatUtc, LOCALES, STRINGS, type Locale } from '../../../lib/i18n.ts';
+import ProductLayout from '../../../layouts/ProductLayout.astro';
+import VndbTitle from '../../../components/VndbTitle.astro';
+import { formatPercent, formatUtc, LOCALES, STRINGS, type Locale } from '../../../lib/i18n.ts';
 import { ARCHITECTURES, PLATFORMS, STATUSES, VARIANTS } from '../../../lib/site-data.ts';
 import { ISSUES_URL, site } from '../../../lib/site.ts';
 
@@ -11,146 +12,280 @@ export function getStaticPaths() {
 const locale = Astro.params.locale as Locale;
 const strings = STRINGS[locale];
 const t = strings.compatibility;
+const base = `/${locale}`;
 const coreName: Record<string, string> = Object.fromEntries(site.matrix.map((core) => [core.plugin_id, core.core]));
 const entries = [...site.compatibility].sort(
   (a, b) =>
-    a.vn_id.localeCompare(b.vn_id, 'en', { numeric: true }) ||
+    site.titles.vn[a.vn_id].title.localeCompare(site.titles.vn[b.vn_id].title, 'en') ||
     a.release_id.localeCompare(b.release_id, 'en', { numeric: true }) ||
     a.emulator.localeCompare(b.emulator) ||
     a.platform.localeCompare(b.platform) ||
     a.architecture.localeCompare(b.architecture) ||
     a.variant.localeCompare(b.variant),
 );
+const total = entries.length;
+const summary = STATUSES.map((status) => {
+  const count = entries.filter((entry) => entry.status === status).length;
+  return { status, count, percent: formatPercent(count, total, locale) };
+});
+
+// Alphabetical index over the romanized VNDB title; non-Latin initials go to "other".
+const OTHER = '#';
+const initialOf = (vnId: string) => {
+  const first = site.titles.vn[vnId].title.trim().charAt(0).toUpperCase();
+  return /[A-Z]/.test(first) ? first : OTHER;
+};
+const initials = [...new Set(entries.map((entry) => initialOf(entry.vn_id)))].sort((a, b) =>
+  a === OTHER ? 1 : b === OTHER ? -1 : a.localeCompare(b),
+);
+
 const filters = [
   { name: 'core', label: t.core, options: site.matrix.map((core) => ({ value: core.plugin_id, label: core.core })) },
   { name: 'platform', label: t.platform, options: PLATFORMS.map((value) => ({ value, label: strings.platform[value] })) },
   { name: 'arch', label: t.architecture, options: ARCHITECTURES.map((value) => ({ value, label: strings.architecture[value] })) },
   { name: 'variant', label: t.variant, options: VARIANTS.map((value) => ({ value, label: strings.variant[value] })) },
-  { name: 'status', label: t.status, options: STATUSES.map((value) => ({ value, label: strings.status[value] })) },
 ];
+const submitUrl = `${ISSUES_URL}/new/choose`;
 ---
 
-<StarlightPage frontmatter={{ title: t.title, description: t.description, tableOfContents: false }}>
-  <p class="portal-lead">{t.lead}</p>
-  <p><a class="portal-button" href={`${ISSUES_URL}/new/choose`}>{t.submit}</a></p>
+<ProductLayout locale={locale} title={t.title} description={t.description} current="compatibility">
+  <div class="container page-head">
+    <p class="breadcrumb"><a href={`${base}/shinkiemu/`}>ShinkiEMU</a></p>
+    <h1>{t.title}</h1>
+    <p class="lead">{t.lead}</p>
+    <div class="actions">
+      <a class="button button-primary" href={submitUrl}>{t.submit}</a>
+    </div>
+  </div>
 
-  {
-    entries.length === 0 ? (
-      <div class="empty-state" role="status">
-        <p class="empty-title">{t.empty}</p>
-        <p>{t.emptyBody}</p>
-      </div>
-    ) : (
-      <compat-filter data-count={t.count} data-total={entries.length}>
-        <form class="filter-bar" role="search" aria-controls="compat-table">
-          <label>
-            <span>{t.search}</span>
-            <input type="search" name="q" placeholder={t.searchPlaceholder} autocomplete="off" spellcheck="false" />
-          </label>
-          {filters.map((filter) => (
-            <label>
-              <span>{filter.label}</span>
-              <select name={filter.name}>
-                <option value="">{t.all}</option>
-                {filter.options.map((option) => (
-                  <option value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </label>
-          ))}
-          <button type="reset" class="portal-button portal-button-secondary">{t.reset}</button>
-        </form>
-        <p class="filter-count" aria-live="polite" data-count-output />
-        <div class="table-scroll" tabindex="0" role="region" aria-label={t.title}>
-          <table id="compat-table" class="data-table">
-            <thead>
-              <tr>
-                <th scope="col">{t.columns.work}</th>
-                <th scope="col">{t.columns.release}</th>
-                <th scope="col">{t.columns.core}</th>
-                <th scope="col">{t.columns.platform}</th>
-                <th scope="col">{t.columns.status}</th>
-                <th scope="col">{t.columns.versions}</th>
-                <th scope="col">{t.columns.notes}</th>
-                <th scope="col">{t.columns.report}</th>
-                <th scope="col">{t.columns.updated}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((entry) => (
-                <tr
-                  data-vn={entry.vn_id}
-                  data-release={entry.release_id}
-                  data-core={entry.emulator}
-                  data-platform={entry.platform}
-                  data-arch={entry.architecture}
-                  data-variant={entry.variant}
-                  data-status={entry.status}
-                >
-                  <td>
-                    <a href={`https://vndb.org/${entry.vn_id}`}>{entry.vn_id}</a>
-                  </td>
-                  <td>
-                    <a href={`https://vndb.org/${entry.release_id}`}>{entry.release_id}</a>
-                  </td>
-                  <td>
-                    {coreName[entry.emulator]}
-                    <br />
-                    <code>{entry.emulator}</code>
-                  </td>
-                  <td>
-                    {strings.platform[entry.platform]}
-                    <br />
-                    <span class="muted">
-                      {strings.architecture[entry.architecture]} · {strings.variant[entry.variant]}
-                    </span>
-                  </td>
-                  <td>
-                    <span class={`chip chip-status-${entry.status}`}>{strings.status[entry.status]}</span>
-                  </td>
-                  <td class="nowrap">
-                    {entry.emulator_version && (
-                      <span>
-                        {t.coreVersion} {entry.emulator_version}
-                      </span>
-                    )}
-                    {entry.emulator_version && entry.manager_version && <br />}
-                    {entry.manager_version && (
-                      <span>
-                        {t.managerVersion} {entry.manager_version}
-                      </span>
-                    )}
-                  </td>
-                  <td class="notes">{entry.notes}</td>
-                  <td class="nowrap">
-                    {entry.issue === null ? (
-                      <span class="muted">{t.noIssue}</span>
-                    ) : (
-                      <a href={`${ISSUES_URL}/${entry.issue}`}>#{entry.issue}</a>
-                    )}
-                  </td>
-                  <td class="nowrap">
-                    <time datetime={new Date(entry.updated_at_unix_ms).toISOString()}>
-                      {formatUtc(entry.updated_at_unix_ms, locale, false)}
-                    </time>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+  <div class="container">
+    <compat-filter data-count={t.count} data-total={total}>
+      <section class="card compat-summary" aria-labelledby="summary-title">
+        <div class="summary-head">
+          <h2 id="summary-title">{t.summaryTitle}</h2>
+          <p class="summary-total">{t.total(total)}</p>
         </div>
-        <p class="empty-state" role="status" data-no-match hidden>
-          {t.noMatch}
-        </p>
-      </compat-filter>
-    )
-  }
-</StarlightPage>
+        <div class="status-bar" aria-hidden="true">
+          {
+            summary
+              .filter((item) => item.count > 0)
+              .map((item) => <span class={`seg status-${item.status}`} style={`flex-grow: ${item.count}`} />)
+          }
+        </div>
+        <ul class="status-legend" aria-label={total > 0 ? t.statusFilter : undefined}>
+          {
+            summary.map((item) => {
+              const content = (
+                <>
+                  <span class="legend-swatch" aria-hidden="true" />
+                  <span class="legend-label">{strings.status[item.status]}</span>
+                  <span class="legend-numbers">
+                    <span class="legend-count">{item.count}</span>
+                    <span>{item.percent ?? '—'}</span>
+                  </span>
+                </>
+              );
+              return (
+                <li>
+                  {total > 0 ? (
+                    <button type="button" class={`legend-item status-${item.status}`} data-status={item.status} aria-pressed="false">
+                      {content}
+                    </button>
+                  ) : (
+                    <span class={`legend-item status-${item.status}`}>{content}</span>
+                  )}
+                </li>
+              );
+            })
+          }
+        </ul>
+
+        {
+          total > 0 && (
+            <form class="filter-panel" role="search" aria-label={t.search}>
+              <div class="filter-fields">
+                <label class="field field-search">
+                  <span>{t.search}</span>
+                  <input type="search" name="q" placeholder={t.searchPlaceholder} autocomplete="off" spellcheck="false" />
+                </label>
+                {filters.map((filter) => (
+                  <label class="field">
+                    <span>{filter.label}</span>
+                    <select name={filter.name}>
+                      <option value="">{t.all}</option>
+                      {filter.options.map((option) => (
+                        <option value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </div>
+              <div class="filter-row">
+                <div class="letter-bar" role="group" aria-labelledby="letters-label">
+                  <span id="letters-label" class="letter-bar-label">
+                    {t.letters}
+                  </span>
+                  <button type="button" class="letter" data-letter="" aria-pressed="true">
+                    {t.lettersAll}
+                  </button>
+                  {initials.map((letter) => (
+                    <button
+                      type="button"
+                      class="letter"
+                      data-letter={letter}
+                      aria-pressed="false"
+                      aria-label={letter === OTHER ? t.lettersOther : undefined}
+                    >
+                      {letter}
+                    </button>
+                  ))}
+                </div>
+                <button type="reset" class="button button-secondary">
+                  {t.reset}
+                </button>
+              </div>
+            </form>
+          )
+        }
+      </section>
+
+      {
+        total === 0 ? (
+          <section class="card empty-state" aria-labelledby="empty-title" style="margin-top: 1rem">
+            <p class="empty-zero">
+              <strong>0</strong>
+              <span>{t.total(0)}</span>
+            </p>
+            <h2 id="empty-title">{t.empty}</h2>
+            <p>{t.emptyBody}</p>
+            <h3>{t.emptyHow}</h3>
+            <ol>
+              {t.emptySteps.map((step) => (
+                <li>{step}</li>
+              ))}
+            </ol>
+            <div class="actions">
+              <a class="button button-primary" href={submitUrl}>
+                {t.submit}
+              </a>
+              <a class="button button-secondary" href={`${base}/shinkiemu/docs/metadata/`}>
+                {t.emptyGuide}
+              </a>
+            </div>
+          </section>
+        ) : (
+          <>
+            <p class="filter-count" aria-live="polite" data-count-output>
+              {t.count.replace('{shown}', String(total)).replace('{total}', String(total))}
+            </p>
+            <div class="table-scroll" tabindex="0" role="region" aria-label={t.title}>
+              <table class="data-table compat-table">
+                <thead>
+                  <tr>
+                    <th scope="col">{t.columns.work}</th>
+                    <th scope="col">{t.columns.release}</th>
+                    <th scope="col">{t.columns.core}</th>
+                    <th scope="col">{t.columns.platform}</th>
+                    <th scope="col">{t.columns.status}</th>
+                    <th scope="col">{t.columns.versions}</th>
+                    <th scope="col">{t.columns.notes}</th>
+                    <th scope="col">{t.columns.report}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entries.map((entry) => {
+                    const work = site.titles.vn[entry.vn_id];
+                    const release = site.titles.release[entry.release_id];
+                    const haystack = [entry.vn_id, entry.release_id, work.title, work.alttitle, release.title, release.alttitle]
+                      .filter(Boolean)
+                      .join('\n')
+                      .toLowerCase();
+                    return (
+                      <tr
+                        data-search={haystack}
+                        data-letter={initialOf(entry.vn_id)}
+                        data-core={entry.emulator}
+                        data-platform={entry.platform}
+                        data-arch={entry.architecture}
+                        data-variant={entry.variant}
+                        data-status={entry.status}
+                      >
+                        <td>
+                          <VndbTitle id={entry.vn_id} kind="vn" />
+                        </td>
+                        <td>
+                          <VndbTitle id={entry.release_id} kind="release" />
+                        </td>
+                        <td>
+                          {coreName[entry.emulator]}
+                          <code class="cell-sub plugin-id">
+                            {entry.emulator.split('.').map((part, i) => (
+                              <>
+                                {i > 0 && (
+                                  <>
+                                    .<wbr />
+                                  </>
+                                )}
+                                {part}
+                              </>
+                            ))}
+                          </code>
+                        </td>
+                        <td class="nowrap">
+                          {strings.platform[entry.platform]}
+                          <span class="cell-sub">
+                            {strings.architecture[entry.architecture]} · {strings.variant[entry.variant]}
+                          </span>
+                        </td>
+                        <td>
+                          <span class={`chip chip-status-${entry.status}`}>{strings.status[entry.status]}</span>
+                        </td>
+                        <td class="nowrap">
+                          {entry.emulator_version && (
+                            <span class="cell-sub">
+                              {t.coreVersion} {entry.emulator_version}
+                            </span>
+                          )}
+                          {entry.manager_version && (
+                            <span class="cell-sub">
+                              {t.managerVersion} {entry.manager_version}
+                            </span>
+                          )}
+                        </td>
+                        <td class="notes">{entry.notes}</td>
+                        <td class="report-cell">
+                          {entry.issue === null ? (
+                            <span class="muted">{t.noIssue}</span>
+                          ) : (
+                            <a href={`${ISSUES_URL}/${entry.issue}`}>#{entry.issue}</a>
+                          )}
+                          <span class="cell-sub">
+                            {t.columns.updated}{' '}
+                            <time datetime={new Date(entry.updated_at_unix_ms).toISOString()}>
+                              {formatUtc(entry.updated_at_unix_ms, locale, false)}
+                            </time>
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p class="no-match" role="status" data-no-match hidden>
+              {t.noMatch}
+            </p>
+          </>
+        )
+      }
+    </compat-filter>
+  </div>
+</ProductLayout>
 
 <script>
   // Client-side filtering. Every filter is mirrored in the URL query so a
   // filtered view can be linked directly; without JavaScript all rows show.
-  const FIELDS = ['core', 'platform', 'arch', 'variant', 'status'] as const;
+  const SELECTS = ['core', 'platform', 'arch', 'variant'] as const;
 
   class CompatFilter extends HTMLElement {
     connectedCallback() {
@@ -162,25 +297,36 @@ const filters = [
       const template = (this.dataset.count ?? '').replace('{total}', this.dataset.total ?? '');
       const search = form.elements.namedItem('q') as HTMLInputElement;
       const selects = Object.fromEntries(
-        FIELDS.map((name) => [name, form.elements.namedItem(name) as HTMLSelectElement]),
-      ) as Record<(typeof FIELDS)[number], HTMLSelectElement>;
+        SELECTS.map((name) => [name, form.elements.namedItem(name) as HTMLSelectElement]),
+      ) as Record<(typeof SELECTS)[number], HTMLSelectElement>;
+      const statusButtons = [...this.querySelectorAll<HTMLButtonElement>('button[data-status]')];
+      const letterButtons = [...this.querySelectorAll<HTMLButtonElement>('button[data-letter]')];
+      let status = '';
+      let letter = '';
 
+      // Unknown values (stale links) fall back to "all" instead of hiding everything.
       const params = new URLSearchParams(window.location.search);
       search.value = params.get('q') ?? '';
-      for (const name of FIELDS) {
+      for (const name of SELECTS) {
         const wanted = params.get(name) ?? '';
-        // Unknown values (stale links) fall back to "all" instead of hiding everything.
         selects[name].value = [...selects[name].options].some((option) => option.value === wanted) ? wanted : '';
       }
+      const wantedStatus = params.get('status') ?? '';
+      if (statusButtons.some((button) => button.dataset.status === wantedStatus)) status = wantedStatus;
+      const wantedLetter = params.get('letter') ?? '';
+      if (letterButtons.some((button) => button.dataset.letter === wantedLetter)) letter = wantedLetter;
 
       const apply = (updateUrl: boolean) => {
         const query = search.value.trim().toLowerCase();
+        for (const button of statusButtons) button.setAttribute('aria-pressed', String(button.dataset.status === status));
+        for (const button of letterButtons) button.setAttribute('aria-pressed', String(button.dataset.letter === letter));
         let shown = 0;
         for (const row of rows) {
-          const { vn = '', release = '' } = row.dataset;
           const visible =
-            (query === '' || vn.includes(query) || release.includes(query)) &&
-            FIELDS.every((name) => selects[name].value === '' || row.dataset[name] === selects[name].value);
+            (query === '' || (row.dataset.search ?? '').includes(query)) &&
+            (status === '' || row.dataset.status === status) &&
+            (letter === '' || row.dataset.letter === letter) &&
+            SELECTS.every((name) => selects[name].value === '' || row.dataset[name] === selects[name].value);
           row.hidden = !visible;
           if (visible) shown += 1;
         }
@@ -189,15 +335,33 @@ const filters = [
         if (!updateUrl) return;
         const next = new URLSearchParams();
         if (query !== '') next.set('q', query);
-        for (const name of FIELDS) if (selects[name].value !== '') next.set(name, selects[name].value);
+        for (const name of SELECTS) if (selects[name].value !== '') next.set(name, selects[name].value);
+        if (status !== '') next.set('status', status);
+        if (letter !== '') next.set('letter', letter);
         const suffix = next.toString();
         history.replaceState(null, '', `${window.location.pathname}${suffix ? `?${suffix}` : ''}${window.location.hash}`);
       };
 
+      for (const button of statusButtons) {
+        button.addEventListener('click', () => {
+          status = status === button.dataset.status ? '' : (button.dataset.status ?? '');
+          apply(true);
+        });
+      }
+      for (const button of letterButtons) {
+        button.addEventListener('click', () => {
+          letter = button.dataset.letter ?? '';
+          apply(true);
+        });
+      }
       form.addEventListener('input', () => apply(true));
       form.addEventListener('submit', (event) => event.preventDefault());
       // `reset` fires before the controls are cleared.
-      form.addEventListener('reset', () => setTimeout(() => apply(true)));
+      form.addEventListener('reset', () => {
+        status = '';
+        letter = '';
+        setTimeout(() => apply(true));
+      });
       apply(false);
     }
   }

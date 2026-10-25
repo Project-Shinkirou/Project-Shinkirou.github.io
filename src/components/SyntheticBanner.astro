@@ -1,0 +1,17 @@
+---
+// Permanent warning on every page of a build made from synthetic fixtures.
+import { STRINGS, type Locale } from '../lib/i18n.ts';
+import { site } from '../lib/site.ts';
+
+interface Props {
+  locale: Locale;
+}
+---
+
+{
+  site.synthetic && (
+    <div class="synthetic-banner" role="note" data-pagefind-ignore>
+      {STRINGS[Astro.props.locale].syntheticBanner}
+    </div>
+  )
+}

@@ -1,0 +1,69 @@
+/*
+ * Starlight docs on the mirage-night palette (tokens: theme.css, loaded before
+ * this file through `customCss`). Only Starlight's own color variables are
+ * remapped, so its components keep their structure.
+ */
+
+:root {
+  --sl-font: var(--mn-font);
+  --sl-font-mono: var(--mn-font-mono);
+
+  --sl-color-white: var(--mn-text-strong);
+  --sl-color-gray-1: var(--mn-text);
+  --sl-color-gray-2: var(--mn-text-soft);
+  --sl-color-gray-3: var(--mn-text-muted);
+  --sl-color-gray-4: var(--mn-border-strong);
+  --sl-color-gray-5: var(--mn-border);
+  --sl-color-gray-6: var(--mn-bg-elevated);
+  --sl-color-black: var(--mn-bg);
+
+  --sl-color-accent-low: var(--mn-accent-soft);
+  --sl-color-accent: var(--mn-accent);
+  --sl-color-accent-high: var(--mn-accent-strong);
+  --sl-color-text-invert: var(--mn-on-accent);
+  --sl-color-bg-inline-code: var(--mn-surface);
+}
+
+:root[data-theme='light'] {
+  --sl-color-white: var(--mn-text-strong);
+  --sl-color-gray-1: var(--mn-text);
+  --sl-color-gray-2: var(--mn-text-soft);
+  --sl-color-gray-3: var(--mn-text-muted);
+  --sl-color-gray-4: var(--mn-border-strong);
+  --sl-color-gray-5: var(--mn-border);
+  --sl-color-gray-6: var(--mn-surface);
+  --sl-color-gray-7: var(--mn-bg-inset);
+  --sl-color-black: var(--mn-bg);
+
+  --sl-color-accent-low: var(--mn-accent-soft);
+  --sl-color-accent: var(--mn-accent);
+  --sl-color-accent-high: var(--mn-accent-strong);
+  --sl-color-text-invert: var(--mn-on-accent);
+  --sl-color-bg-nav: var(--mn-bg-elevated);
+  --sl-color-bg-sidebar: var(--mn-bg-elevated);
+  --sl-color-bg-inline-code: var(--mn-surface);
+}
+
+/* The top bar carries the horizon line of the product header. */
+.header {
+  border-bottom: 1px solid var(--mn-border);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--mn-horizon) 45%, transparent);
+}
+
+/* The theme toggle replaces Starlight's select in the header and the mobile menu. */
+.theme-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--mn-border);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--mn-text-soft);
+  cursor: pointer;
+}
+.theme-toggle:hover {
+  border-color: var(--mn-border-strong);
+  color: var(--mn-text-strong);
+}

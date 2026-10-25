@@ -1,0 +1,17 @@
+---
+// Decorative platform glyph; callers always render the platform name as text.
+import { PLATFORM_ICON } from '../lib/icons.ts';
+import type { Platform } from '../lib/site-data.ts';
+
+interface Props {
+  platform: Platform;
+  size?: number;
+  class?: string;
+}
+
+const { platform, size = 24, class: className } = Astro.props;
+---
+
+<svg class={className} viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
+  <path fill="currentColor" d={PLATFORM_ICON[platform]}></path>
+</svg>

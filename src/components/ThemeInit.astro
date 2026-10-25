@@ -1,0 +1,18 @@
+---
+// Applies the stored theme before first paint, in both the product layout and
+// Starlight (as its ThemeProvider override). Night is the default; the
+// visitor's choice lives in Starlight's own `starlight-theme` key, so it
+// carries across product pages and docs.
+---
+
+<script is:inline>
+  (() => {
+    let stored = null;
+    try {
+      stored = localStorage.getItem('starlight-theme');
+    } catch {
+      // Storage can be unavailable (privacy modes); keep the default.
+    }
+    document.documentElement.dataset.theme = stored === 'light' ? 'light' : 'dark';
+  })();
+</script>

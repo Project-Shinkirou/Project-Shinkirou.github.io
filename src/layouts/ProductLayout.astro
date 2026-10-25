@@ -1,0 +1,206 @@
+---
+// Product-page shell: top navigation, language switch (same path in the other
+// locale), theme toggle shared with Starlight, synthetic banner and the
+// source-revision footer. Documentation pages stay on Starlight.
+import LogoMark from '../components/LogoMark.astro';
+import SourceFooter from '../components/SourceFooter.astro';
+import SyntheticBanner from '../components/SyntheticBanner.astro';
+import ThemeInit from '../components/ThemeInit.astro';
+import ThemeToggle from '../components/ThemeToggle.astro';
+import { GITHUB_ICON } from '../lib/icons.ts';
+import { LANG, LOCALES, STRINGS, type Locale } from '../lib/i18n.ts';
+import { ROUKAKU_REPO, SHINKIEMU_REPO } from '../lib/site-data.ts';
+import '../styles/theme.css';
+import '../styles/product.css';
+
+type Section = 'home' | 'shinkiemu' | 'compatibility' | 'cores' | 'patches' | 'roukaku';
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  current?: Section;
+  /** Bilingual pages (404) have no counterpart to switch to. */
+  bilingual?: boolean;
+}
+
+const { locale, title, description, current, bilingual = false } = Astro.props;
+const t = STRINGS[locale].nav;
+const other: Locale = locale === 'zh-cn' ? 'en' : 'zh-cn';
+const base = `/${locale}`;
+const footer = STRINGS[locale].footer;
+// Path below the locale segment, e.g. `shinkiemu/compatibility/`.
+const rest = Astro.url.pathname.replace(/^\/(zh-cn|en)\//, '');
+const pageTitle = current === 'home' ? title : `${title} · Project-Shinkirou`;
+
+const links: { section: Section; href: string; label: string }[] = [
+  { section: 'shinkiemu', href: `${base}/shinkiemu/`, label: t.shinkiemu },
+  { section: 'compatibility', href: `${base}/shinkiemu/compatibility/`, label: t.compatibility },
+  { section: 'cores', href: `${base}/shinkiemu/cores/`, label: t.cores },
+  { section: 'patches', href: `${base}/shinkiemu/patches/`, label: t.patches },
+  { section: 'roukaku', href: `${base}/roukaku/`, label: t.roukaku },
+];
+const docs = [
+  { href: `${base}/shinkiemu/docs/`, label: t.shinkiemuDocs },
+  { href: `${base}/roukaku/docs/`, label: t.roukakuDocs },
+];
+---
+
+<!doctype html>
+<html lang={LANG[locale]} dir="ltr" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    {
+      !bilingual &&
+        LOCALES.map((l) => <link rel="alternate" hreflang={LANG[l]} href={new URL(`/${l}/${rest}`, Astro.site)} />)
+    }
+    <ThemeInit />
+  </head>
+  <body class="product">
+    <a class="skip-link" href="#main">{t.skip}</a>
+    <SyntheticBanner locale={locale} />
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a class="brand" href={`${base}/`} aria-label={t.home} aria-current={current === 'home' ? 'page' : undefined}>
+          <LogoMark />
+          <span>Project-Shinkirou</span>
+        </a>
+
+        <nav class="nav-desktop" aria-label={t.label}>
+          <ul>
+            {
+              links.map((link) => (
+                <li>
+                  <a href={link.href} aria-current={current === link.section ? 'page' : undefined}>
+                    {link.label}
+                  </a>
+                </li>
+              ))
+            }
+            <li>
+              <details class="nav-dropdown" data-dropdown>
+                <summary>{t.docs}</summary>
+                <ul>
+                  {
+                    docs.map((link) => (
+                      <li>
+                        <a href={link.href}>{link.label}</a>
+                      </li>
+                    ))
+                  }
+                </ul>
+              </details>
+            </li>
+          </ul>
+        </nav>
+
+        <div class="site-controls">
+          {
+            !bilingual && (
+              <a
+                class="control control-lang"
+                href={`/${other}/${rest}`}
+                hreflang={LANG[other]}
+                lang={LANG[other]}
+                aria-label={t.otherLanguageLabel}
+                data-keep-query
+              >
+                {t.otherLanguage}
+              </a>
+            )
+          }
+          <ThemeToggle locale={locale} />
+          <a class="control control-icon" href="https://github.com/Project-Shinkirou" aria-label={t.github}>
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+              <path fill="currentColor" d={GITHUB_ICON}></path>
+            </svg>
+          </a>
+          <details class="nav-mobile" data-dropdown>
+            <summary class="control">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+                <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+              </svg>
+              <span>{t.menu}</span>
+            </summary>
+            <nav class="nav-mobile-panel" aria-label={t.label}>
+              <ul>
+                <li>
+                  <a href={`${base}/`} aria-current={current === 'home' ? 'page' : undefined}>Project-Shinkirou</a>
+                </li>
+                {
+                  links.map((link) => (
+                    <li>
+                      <a href={link.href} aria-current={current === link.section ? 'page' : undefined}>
+                        {link.label}
+                      </a>
+                    </li>
+                  ))
+                }
+                {
+                  docs.map((link) => (
+                    <li>
+                      <a href={link.href}>{link.label}</a>
+                    </li>
+                  ))
+                }
+                <li class="nav-mobile-github">
+                  <a href="https://github.com/Project-Shinkirou">GitHub</a>
+                </li>
+              </ul>
+            </nav>
+          </details>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-top">
+          <a class="brand brand-footer" href={`${base}/`}>
+            <LogoMark size={24} />
+            <span>Project-Shinkirou</span>
+          </a>
+          <ul class="footer-links">
+            <li><a href={SHINKIEMU_REPO}>{footer.shinkiemu}</a></li>
+            <li><a href={ROUKAKU_REPO}>{footer.roukaku}</a></li>
+            <li><a href="/data/shinkiemu/v1/index.json">{footer.metadata} (JSON)</a></li>
+          </ul>
+        </div>
+        <SourceFooter locale={locale} />
+      </div>
+    </footer>
+
+    <script>
+      // The language link keeps filters and anchors of the current page.
+      for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-keep-query]')) {
+        link.addEventListener('click', () => {
+          link.href = `${link.pathname}${window.location.search}${window.location.hash}`;
+        });
+      }
+      // Dropdowns close on Escape and on clicks outside them; they still open
+      // and close without JavaScript.
+      const dropdowns = [...document.querySelectorAll<HTMLDetailsElement>('[data-dropdown]')];
+      document.addEventListener('click', (event) => {
+        for (const details of dropdowns) {
+          if (details.open && !details.contains(event.target as Node)) details.open = false;
+        }
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        for (const details of dropdowns) {
+          if (!details.open) continue;
+          details.open = false;
+          details.querySelector('summary')?.focus();
+        }
+      });
+    </script>
+  </body>
+</html>

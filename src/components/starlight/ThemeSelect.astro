@@ -1,0 +1,9 @@
+---
+// Starlight ThemeSelect override: the product header's dark/light switch.
+import ThemeToggle from '../ThemeToggle.astro';
+import { isLocale } from '../../lib/i18n.ts';
+
+const { locale } = Astro.locals.starlightRoute;
+---
+
+<ThemeToggle locale={isLocale(locale) ? locale : 'zh-cn'} />

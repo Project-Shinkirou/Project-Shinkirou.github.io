@@ -1,0 +1,31 @@
+---
+// Per-platform build state of one core as icons. The state is carried by the
+// text label (visually hidden) and by shape: blocked icons are struck through.
+import PlatformIcon from './PlatformIcon.astro';
+import { STRINGS, type Locale } from '../lib/i18n.ts';
+import { corePlatformStates } from '../lib/platforms.ts';
+import type { MatrixCore } from '../lib/site-data.ts';
+
+interface Props {
+  core: MatrixCore;
+  locale: Locale;
+}
+
+const { core, locale } = Astro.props;
+const strings = STRINGS[locale];
+const t = strings.platformState;
+---
+
+<ul class="platform-states">
+  {
+    corePlatformStates(core).map(({ platform, state }) => {
+      const label = t.label(strings.platform[platform], t[state]);
+      return (
+        <li class:list={['platform-state', `is-${state}`]} title={label}>
+          <PlatformIcon platform={platform} size={20} />
+          <span class="sr-only">{label}</span>
+        </li>
+      );
+    })
+  }
+</ul>

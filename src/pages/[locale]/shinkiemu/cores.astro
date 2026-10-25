@@ -1,6 +1,8 @@
 ---
-import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import PlatformStates from '../../../components/PlatformStates.astro';
+import ProductLayout from '../../../layouts/ProductLayout.astro';
 import { formatBytes, LOCALES, STRINGS, type Locale } from '../../../lib/i18n.ts';
+import { coreAnchor } from '../../../lib/platforms.ts';
 import { site } from '../../../lib/site.ts';
 
 export function getStaticPaths() {
@@ -13,7 +15,8 @@ const base = `/${locale}`;
 
 const cores = site.matrix.map((core) => ({
   ...core,
-  anchor: `core-${core.plugin_id.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+  anchor: coreAnchor(core.plugin_id),
+  supported: core.targets.filter((target) => target.status === 'supported').length,
   // Same original engine, different implementation (e.g. Musica and ReMinori).
   siblings: site.matrix.filter((other) => other.family === core.family && other.plugin_id !== core.plugin_id),
   releases: site.cores.filter((release) => release.plugin_id === core.plugin_id),
@@ -21,128 +24,157 @@ const cores = site.matrix.map((core) => ({
 }));
 ---
 
-<StarlightPage
-  frontmatter={{ title: t.title, description: t.description }}
-  headings={cores.map((core) => ({ depth: 2, slug: core.anchor, text: core.core }))}
->
-  <p class="portal-lead">{t.lead}</p>
-  <p class="muted">{t.supportedNote}</p>
+<ProductLayout locale={locale} title={t.title} description={t.description} current="cores">
+  <div class="container page-head">
+    <p class="breadcrumb"><a href={`${base}/shinkiemu/`}>ShinkiEMU</a></p>
+    <h1>{t.title}</h1>
+    <p class="lead">{t.lead}</p>
+    <p class="note">{t.supportedNote}</p>
+    <nav aria-label={t.jump}>
+      <ul class="jump-list">
+        {
+          cores.map((core) => (
+            <li>
+              <a href={`#${core.anchor}`}>{core.core}</a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+  </div>
 
-  {
-    cores.map((core) => (
-      <section class="core-card" aria-labelledby={core.anchor}>
-        <h2 id={core.anchor}>{core.core}</h2>
-        <dl class="facts">
-          <div>
-            <dt>{t.pluginId}</dt>
-            <dd>
-              <code>{core.plugin_id}</code>
-            </dd>
+  <div class="container core-list">
+    {
+      cores.map((core) => (
+        <section class="card core-card" id={core.anchor} aria-labelledby={`${core.anchor}-title`}>
+          <div class="core-card-head">
+            <h2 id={`${core.anchor}-title`}>{core.core}</h2>
+            {core.reports === 0 ? (
+              <span class="muted">{t.compatibility(0)}</span>
+            ) : (
+              <a href={`${base}/shinkiemu/compatibility/?core=${encodeURIComponent(core.plugin_id)}`}>
+                {t.compatibility(core.reports)}
+              </a>
+            )}
           </div>
-          <div>
-            <dt>{t.family}</dt>
-            <dd>{core.family}</dd>
-          </div>
-          <div>
-            <dt>{t.license}</dt>
-            <dd>{core.license}</dd>
-          </div>
-        </dl>
-        {core.publish_blocked && (
-          <p>
-            <span class="chip chip-blocked">{t.publishBlocked}</span> {core.publish_blocked}
-          </p>
-        )}
-        {core.static_manager_targets.length > 0 && (
-          <p class="muted">{t.staticInManager(core.static_manager_targets.join(', '))}</p>
-        )}
-        {core.siblings.length > 0 && (
-          <p class="muted">{t.sameFamily(core.siblings.map((other) => other.core).join(', '))}</p>
-        )}
-        <p>
-          {core.reports === 0 ? (
-            <span class="muted">{t.compatibility(0)}</span>
-          ) : (
-            <a href={`${base}/shinkiemu/compatibility/?core=${encodeURIComponent(core.plugin_id)}`}>
-              {t.compatibility(core.reports)}
-            </a>
+
+          <dl class="facts">
+            <div>
+              <dt>{t.family}</dt>
+              <dd>{core.family}</dd>
+            </div>
+            <div>
+              <dt>{t.pluginId}</dt>
+              <dd>
+                <code>{core.plugin_id}</code>
+              </dd>
+            </div>
+            <div>
+              <dt>{t.license}</dt>
+              <dd>{core.license}</dd>
+            </div>
+          </dl>
+
+          <PlatformStates core={core} locale={locale} />
+
+          {(core.publish_blocked || core.static_manager_targets.length > 0 || core.siblings.length > 0) && (
+            <ul class="core-notes">
+              {core.publish_blocked && (
+                <li>
+                  <span class="chip chip-blocked">{t.publishBlocked}</span>
+                  {core.publish_blocked}
+                </li>
+              )}
+              {core.static_manager_targets.length > 0 && (
+                <li>
+                  <span class="chip chip-static">{t.staticBadge}</span>
+                  {t.staticInManager(core.static_manager_targets.join(', '))}
+                </li>
+              )}
+              {core.siblings.length > 0 && <li>{t.sameFamily(core.siblings.map((other) => other.core).join(', '))}</li>}
+            </ul>
           )}
-        </p>
 
-        <h3>{t.matrix}</h3>
-        <div class="table-scroll" tabindex="0" role="region" aria-label={`${core.core} ${t.matrix}`}>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th scope="col">{t.target}</th>
-                <th scope="col">{t.targetStatus}</th>
-                <th scope="col">{t.reason}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {core.targets.map((target) => (
-                <tr>
-                  <td>
-                    <code>{target.target}</code>
-                  </td>
-                  <td>
-                    <span class={`chip chip-${target.status}`}>
-                      {target.status === 'supported' ? t.supported : t.blocked}
-                    </span>
-                  </td>
-                  <td>{target.reason}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <h3>{t.releases}</h3>
-        {core.releases.length === 0 ? (
-          <p class="muted">{t.noReleases}</p>
-        ) : (
-          <div class="table-scroll" tabindex="0" role="region" aria-label={`${core.core} ${t.releases}`}>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th scope="col">{t.version}</th>
-                  <th scope="col">{t.releasePlatform}</th>
-                  <th scope="col">{t.tag}</th>
-                  <th scope="col">{t.size}</th>
-                  <th scope="col">{t.sha256}</th>
-                  <th scope="col">{t.download}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {core.releases.map((release) => (
+          <details class="target-details">
+            <summary>{t.targetsSummary(core.supported, core.targets.length)}</summary>
+            <div class="table-scroll" tabindex="0" role="region" aria-label={`${core.core} · ${t.targets}`}>
+              <table class="data-table">
+                <thead>
                   <tr>
-                    <td>{release.version}</td>
-                    <td>
-                      <code>{release.platform}</code>
-                    </td>
-                    <td>
-                      <code>{release.release_tag}</code>
-                    </td>
-                    <td class="nowrap">{formatBytes(release.size, locale)}</td>
-                    <td>
-                      <code class="hash">{release.sha256}</code>
-                    </td>
-                    <td>
-                      <a
-                        class="portal-button"
-                        href={release.url}
-                        aria-label={t.downloadLabel(release.display_name, release.platform, release.version)}
-                      >
-                        {t.download}
-                      </a>
-                    </td>
+                    <th scope="col">{t.target}</th>
+                    <th scope="col">{t.targetStatus}</th>
+                    <th scope="col">{t.reason}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-    ))
-  }
-</StarlightPage>
+                </thead>
+                <tbody>
+                  {core.targets.map((target) => (
+                    <tr>
+                      <th scope="row">
+                        <code>{target.target}</code>
+                      </th>
+                      <td>
+                        <span class={`chip chip-${target.status}`}>
+                          {target.status === 'supported' ? t.supported : t.blocked}
+                        </span>
+                        {core.static_manager_targets.includes(target.target) && (
+                          <span class="chip chip-static">{t.staticBadge}</span>
+                        )}
+                      </td>
+                      <td>{target.reason}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+
+          <h3>{t.releases}</h3>
+          {core.releases.length === 0 ? (
+            <p class="muted">{t.noReleases}</p>
+          ) : (
+            <div class="table-scroll" tabindex="0" role="region" aria-label={`${core.core} · ${t.releases}`}>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th scope="col">{t.version}</th>
+                    <th scope="col">{t.releasePlatform}</th>
+                    <th scope="col">{t.tag}</th>
+                    <th scope="col">{t.size}</th>
+                    <th scope="col">{t.sha256}</th>
+                    <th scope="col">{t.download}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {core.releases.map((release) => (
+                    <tr>
+                      <th scope="row" class="nowrap">{release.version}</th>
+                      <td class="nowrap">
+                        <code>{release.platform}</code>
+                      </td>
+                      <td class="nowrap">
+                        <code>{release.release_tag}</code>
+                      </td>
+                      <td class="nowrap">{formatBytes(release.size, locale)}</td>
+                      <td>
+                        <code class="hash">{release.sha256}</code>
+                      </td>
+                      <td>
+                        <a
+                          class="button button-primary"
+                          href={release.url}
+                          aria-label={t.downloadLabel(release.display_name, release.platform, release.version)}
+                        >
+                          {t.download}
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ))
+    }
+  </div>
+</ProductLayout>

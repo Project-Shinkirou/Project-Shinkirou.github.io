@@ -1,0 +1,76 @@
+/* Build matrix page (src/pages/[locale]/shinkiemu/docs/platforms.astro). */
+
+.matrix-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--mn-border);
+  border-radius: 0.75rem;
+}
+.sl-markdown-content .matrix-table,
+.matrix-table {
+  display: table;
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  font-size: var(--sl-text-sm);
+  line-height: 1.5;
+}
+.matrix-table th,
+.matrix-table td {
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-bottom: 1px solid var(--mn-border);
+  text-align: start;
+  vertical-align: top;
+}
+.matrix-table thead th {
+  background: var(--mn-surface);
+  color: var(--mn-text-soft);
+  white-space: nowrap;
+}
+.matrix-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.matrix-table tbody th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.matrix-grid td {
+  min-width: 7rem;
+}
+.matrix-platform {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.matrix-state {
+  display: inline-block;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  font-size: var(--sl-text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.matrix-state.is-supported {
+  background: var(--st-perfect-bg);
+  color: var(--st-perfect-fg);
+}
+.matrix-state.is-blocked {
+  background: var(--st-unplayable-bg);
+  color: var(--st-unplayable-fg);
+}
+.matrix-sub {
+  display: block;
+  color: var(--mn-text-muted);
+  font-size: var(--sl-text-xs);
+  font-weight: 400;
+}
+.matrix-table sup a {
+  padding-inline: 0.15rem;
+}
+.matrix-reasons li + li {
+  margin-top: 0.75rem;
+}
+.matrix-reasons li > p {
+  margin: 0;
+}

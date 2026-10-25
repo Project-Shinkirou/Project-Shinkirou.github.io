@@ -1,0 +1,298 @@
+/*
+ * 蜃楼夜景 / mirage-at-night design tokens and the components shared by the
+ * product layout and the Starlight docs (chips, tables, banner, source footer).
+ * Loaded by src/layouts/ProductLayout.astro and by Starlight `customCss`, so
+ * moving between product pages and docs keeps one palette. `data-theme` on
+ * <html> follows Starlight's `starlight-theme` storage in both shells.
+ */
+
+:root {
+  color-scheme: dark;
+
+  --mn-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    'Noto Sans CJK SC', 'Noto Sans SC', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mn-font-mono: ui-monospace, SFMono-Regular, 'Cascadia Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Surfaces and text (night) */
+  --mn-bg: hsl(228 50% 7%);
+  --mn-bg-elevated: hsl(226 42% 11%);
+  --mn-bg-inset: hsl(229 52% 5%);
+  --mn-surface: hsl(224 36% 15%);
+  --mn-surface-hover: hsl(222 34% 20%);
+  --mn-border: hsl(222 28% 24%);
+  --mn-border-strong: hsl(218 24% 40%);
+  --mn-text-strong: hsl(0 0% 100%);
+  --mn-text: hsl(220 35% 93%);
+  --mn-text-soft: hsl(220 24% 82%);
+  --mn-text-muted: hsl(220 20% 72%);
+  --mn-text-faint: hsl(222 16% 50%);
+
+  /* Accents: cyan for ShinkiEMU and links, lantern gold for RoukakuEngine */
+  --mn-accent: hsl(189 78% 58%);
+  --mn-accent-strong: hsl(187 85% 76%);
+  --mn-accent-soft: hsl(196 62% 17%);
+  --mn-on-accent: hsl(226 60% 9%);
+  --mn-gold: hsl(40 88% 66%);
+  --mn-gold-strong: hsl(42 95% 80%);
+  --mn-gold-soft: hsl(36 45% 16%);
+  --mn-on-gold: hsl(30 60% 10%);
+  --mn-focus: hsl(187 90% 70%);
+
+  /* Scene */
+  --mn-sky-top: hsl(232 62% 4%);
+  --mn-sky-mid: hsl(226 58% 10%);
+  --mn-sky-low: hsl(212 56% 22%);
+  --mn-horizon: hsl(192 72% 46%);
+  --mn-glow: hsl(190 85% 55% / 0.42);
+  --mn-glow-warm: hsl(30 80% 60% / 0.1);
+  --mn-far: hsl(222 45% 15%);
+  --mn-silhouette: hsl(228 55% 6%);
+  --mn-window: hsl(42 95% 68%);
+  --mn-water-top: hsl(210 56% 16%);
+  --mn-water-bottom: hsl(228 50% 7%);
+  --mn-streak: hsl(190 80% 72% / 0.4);
+  --mn-star: hsl(210 60% 94%);
+  --mn-star-opacity: 0.9;
+  --mn-orb: hsl(48 60% 90%);
+  --mn-orb-glow: hsl(48 80% 85% / 0.16);
+  --mn-reflection-opacity: 0.4;
+
+  /* Status palettes: background, text, solid (bars). Always paired with text. */
+  --st-perfect-bg: hsl(150 45% 17%);
+  --st-perfect-fg: hsl(150 70% 80%);
+  --st-perfect-solid: hsl(150 55% 48%);
+  --st-completable-bg: hsl(198 55% 19%);
+  --st-completable-fg: hsl(195 85% 84%);
+  --st-completable-solid: hsl(195 75% 54%);
+  --st-flawed-bg: hsl(45 55% 17%);
+  --st-flawed-fg: hsl(46 90% 76%);
+  --st-flawed-solid: hsl(46 85% 56%);
+  --st-boot_only-bg: hsl(24 55% 18%);
+  --st-boot_only-fg: hsl(26 95% 80%);
+  --st-boot_only-solid: hsl(25 88% 58%);
+  --st-unplayable-bg: hsl(352 50% 20%);
+  --st-unplayable-fg: hsl(352 90% 85%);
+  --st-unplayable-solid: hsl(352 72% 60%);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* Surfaces and text (dawn haze) */
+  --mn-bg: hsl(220 40% 98%);
+  --mn-bg-elevated: hsl(0 0% 100%);
+  --mn-bg-inset: hsl(218 36% 94%);
+  --mn-surface: hsl(218 34% 94%);
+  --mn-surface-hover: hsl(218 34% 89%);
+  --mn-border: hsl(218 24% 84%);
+  --mn-border-strong: hsl(218 16% 60%);
+  --mn-text-strong: hsl(226 50% 8%);
+  --mn-text: hsl(224 40% 14%);
+  --mn-text-soft: hsl(224 28% 24%);
+  --mn-text-muted: hsl(222 18% 34%);
+  --mn-text-faint: hsl(220 12% 52%);
+
+  --mn-accent: hsl(196 88% 29%);
+  --mn-accent-strong: hsl(200 90% 21%);
+  --mn-accent-soft: hsl(192 70% 92%);
+  --mn-on-accent: hsl(0 0% 100%);
+  --mn-gold: hsl(32 85% 32%);
+  --mn-gold-strong: hsl(28 90% 24%);
+  --mn-gold-soft: hsl(40 85% 92%);
+  --mn-on-gold: hsl(0 0% 100%);
+  --mn-focus: hsl(200 95% 34%);
+
+  --mn-sky-top: hsl(214 50% 84%);
+  --mn-sky-mid: hsl(226 46% 91%);
+  --mn-sky-low: hsl(26 80% 90%);
+  --mn-horizon: hsl(22 85% 80%);
+  --mn-glow: hsl(28 95% 76% / 0.55);
+  --mn-glow-warm: hsl(340 70% 86% / 0.35);
+  --mn-far: hsl(222 25% 78%);
+  --mn-silhouette: hsl(222 28% 48%);
+  --mn-window: hsl(36 70% 84%);
+  --mn-water-top: hsl(210 38% 82%);
+  --mn-water-bottom: hsl(216 40% 93%);
+  --mn-streak: hsl(0 0% 100% / 0.65);
+  --mn-star-opacity: 0;
+  --mn-orb: hsl(32 100% 90%);
+  --mn-orb-glow: hsl(30 100% 80% / 0.45);
+  --mn-reflection-opacity: 0.32;
+
+  --st-perfect-bg: hsl(150 55% 90%);
+  --st-perfect-fg: hsl(152 70% 20%);
+  --st-perfect-solid: hsl(150 60% 36%);
+  --st-completable-bg: hsl(198 75% 91%);
+  --st-completable-fg: hsl(202 80% 24%);
+  --st-completable-solid: hsl(198 80% 40%);
+  --st-flawed-bg: hsl(46 90% 87%);
+  --st-flawed-fg: hsl(36 85% 22%);
+  --st-flawed-solid: hsl(44 90% 46%);
+  --st-boot_only-bg: hsl(26 90% 90%);
+  --st-boot_only-fg: hsl(22 80% 26%);
+  --st-boot_only-solid: hsl(24 85% 50%);
+  --st-unplayable-bg: hsl(352 80% 93%);
+  --st-unplayable-fg: hsl(352 65% 32%);
+  --st-unplayable-solid: hsl(352 65% 48%);
+}
+
+/* Focus is always visible for keyboard users. */
+:focus-visible {
+  outline: 2px solid var(--mn-focus);
+  outline-offset: 2px;
+}
+
+/* The theme toggle shows the icon of the theme it switches to. */
+.theme-toggle[hidden],
+:root[data-theme='light'] .theme-icon-sun,
+:root:not([data-theme='light']) .theme-icon-moon {
+  display: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.synthetic-banner {
+  padding: 0.5rem 1rem;
+  background: var(--st-flawed-bg);
+  color: var(--st-flawed-fg);
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.muted {
+  color: var(--mn-text-muted);
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.hash {
+  font-family: var(--mn-font-mono);
+  font-size: 0.8em;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+/* In table cells a SHA-256 wraps over a few lines instead of a narrow column. */
+td > .hash {
+  display: inline-block;
+  min-width: 16ch;
+  max-width: 34ch;
+}
+
+/* Status chips: color plus text, never color alone. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.1rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--mn-surface);
+  color: var(--mn-text-soft);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.chip-status-perfect,
+.chip-supported {
+  background: var(--st-perfect-bg);
+  color: var(--st-perfect-fg);
+}
+.chip-status-completable,
+.chip-static,
+.chip-kind-recipe {
+  background: var(--st-completable-bg);
+  color: var(--st-completable-fg);
+}
+.chip-status-flawed,
+.chip-warning,
+.chip-kind-external {
+  background: var(--st-flawed-bg);
+  color: var(--st-flawed-fg);
+}
+.chip-status-boot_only,
+.chip-kind-hosted {
+  background: var(--st-boot_only-bg);
+  color: var(--st-boot_only-fg);
+}
+.chip-status-unplayable,
+.chip-blocked {
+  background: var(--st-unplayable-bg);
+  color: var(--st-unplayable-fg);
+}
+.chip-wrap {
+  border-radius: 0.6rem;
+  white-space: normal;
+}
+
+/* Tables scroll horizontally on narrow screens instead of overflowing. */
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--mn-border);
+  border-radius: 0.75rem;
+}
+.data-table {
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+.data-table th,
+.data-table td {
+  padding: 0.6rem 0.85rem;
+  border: 0;
+  border-bottom: 1px solid var(--mn-border);
+  text-align: start;
+  vertical-align: top;
+}
+.data-table thead th {
+  background: var(--mn-surface);
+  color: var(--mn-text-soft);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.data-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.data-table code {
+  overflow-wrap: anywhere;
+}
+
+/* Source revisions under every page. */
+.source-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--mn-border);
+  color: var(--mn-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+.source-footer a {
+  color: var(--mn-accent);
+}
+.source-footer code {
+  font-family: var(--mn-font-mono);
+  font-size: inherit;
+  background: none;
+  padding: 0;
+}

@@ -1,0 +1,154 @@
+---
+// Per-platform ShinkiEMU Manager download cards: build status from the build
+// inventory, and the latest Manager release's package for that platform when
+// one exists. The visitor's own OS is highlighted client-side.
+import PlatformIcon from './PlatformIcon.astro';
+import { formatBytes, formatUtc, STRINGS, type Locale } from '../lib/i18n.ts';
+import { PLATFORM_ORDER } from '../lib/platforms.ts';
+import { RELEASES_URL, site } from '../lib/site.ts';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const strings = STRINGS[locale];
+const t = strings.download;
+const release = site.manager_release;
+const buildDocs = `/${locale}/shinkiemu/docs/build-and-release/`;
+const cards = PLATFORM_ORDER.map((platform) => {
+  const targets = site.targets.filter((target) => target.platform === platform);
+  return {
+    platform,
+    targets,
+    supported: targets.filter((target) => target.manager.status === 'supported').length,
+    assets: release ? release.assets.filter((asset) => asset.platform === platform) : [],
+  };
+});
+---
+
+<div class="release-line">
+  {
+    release ? (
+      <p>
+        <span class="release-version">
+          ShinkiEMU Manager <strong>{release.version}</strong>
+        </span>
+        {release.prerelease && <span class="chip chip-warning">{t.prerelease}</span>}
+        <span class="muted">
+          {t.published}{' '}
+          <time datetime={release.published_at}>{formatUtc(release.published_at, locale, false)}</time>
+        </span>
+        <a href={release.html_url}>{t.releaseNotes}</a>
+      </p>
+    ) : (
+      <p>
+        <strong>{t.notReleased}</strong>
+        <span>{t.notReleasedBody}</span>
+      </p>
+    )
+  }
+</div>
+
+<ul class="download-grid">
+  {
+    cards.map((card) => (
+      <li class="download-card" data-platform={card.platform}>
+        <div class="download-head">
+          <PlatformIcon platform={card.platform} size={28} class="download-icon" />
+          <h3>{strings.platform[card.platform]}</h3>
+          <span class="chip chip-current" data-current-badge hidden>
+            {t.yourDevice}
+          </span>
+        </div>
+
+        <div class="download-build">
+          <p class="download-build-summary">
+            <span class="muted">{t.buildStatus}</span> {t.targetState(card.supported, card.targets.length)}
+          </p>
+          {card.targets.length > 0 && (
+            <ul class="target-list">
+              {card.targets.map((target) => (
+                <li>
+                  <span>
+                    {strings.architecture[target.architecture]} · {strings.variant[target.variant]}
+                  </span>
+                  <span class={`chip chip-${target.manager.status}`}>
+                    {target.manager.status === 'supported' ? strings.platformState.supported : strings.platformState.blocked}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {card.assets.length > 0 ? (
+          <ul class="asset-list">
+            {card.assets.map((asset) => {
+              const title = [strings.architecture[asset.architecture], asset.variant ? strings.variant[asset.variant] : null]
+                .filter(Boolean)
+                .join(' · ');
+              const detail = asset.variant ? `${title} ${t.testPackage}` : title;
+              return (
+                <li class="asset">
+                  <p class="asset-title">
+                    {title}
+                    {asset.variant && <span class="chip chip-warning">{t.testPackage}</span>}
+                  </p>
+                  <dl class="facts facts-compact">
+                    <div>
+                      <dt>{t.version}</dt>
+                      <dd>{release?.version}</dd>
+                    </div>
+                    <div>
+                      <dt>{t.size}</dt>
+                      <dd>{formatBytes(asset.size, locale)}</dd>
+                    </div>
+                    <div class="facts-wide">
+                      <dt>{t.sha256}</dt>
+                      <dd>{asset.sha256 ? <code class="hash">{asset.sha256}</code> : <span class="muted">{t.noSha256}</span>}</dd>
+                    </div>
+                  </dl>
+                  <a
+                    class="button button-primary"
+                    href={asset.url}
+                    aria-label={t.downloadLabel(strings.platform[card.platform], detail, release?.version ?? '')}
+                  >
+                    {t.download}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div class="download-empty">
+            <p class="download-empty-title">{release ? t.noAsset(release.version) : t.notReleased}</p>
+            <p class="download-empty-links">
+              <a href={buildDocs}>{t.buildFromSource}</a>
+              <a href={RELEASES_URL}>{t.releases}</a>
+            </p>
+          </div>
+        )}
+      </li>
+    ))
+  }
+</ul>
+
+<script>
+  // Progressive enhancement: mark the card for the visitor's OS.
+  const ua = navigator.userAgent;
+  let current: string | null = null;
+  if (/OpenHarmony|HarmonyOS/i.test(ua)) current = 'ohos';
+  else if (/Android/i.test(ua)) current = 'android';
+  else if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) current = 'ios';
+  else if (/Macintosh|Mac OS X/.test(ua)) current = 'macos';
+  else if (/Windows/.test(ua)) current = 'windows';
+  else if (/Linux|X11|CrOS/.test(ua)) current = 'linux';
+
+  const card = current ? document.querySelector<HTMLElement>(`.download-card[data-platform="${current}"]`) : null;
+  if (card) {
+    card.classList.add('is-current');
+    const badge = card.querySelector<HTMLElement>('[data-current-badge]');
+    if (badge) badge.hidden = false;
+  }
+</script>

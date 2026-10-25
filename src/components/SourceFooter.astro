@@ -1,12 +1,15 @@
 ---
-// Starlight Footer override: the default footer plus the exact source
-// revisions and generation time of the data and docs this page was built from.
-import Default from '@astrojs/starlight/components/Footer.astro';
+// Exact source revisions and generation time of the data and docs this page
+// was built from.
 import { formatUtc, STRINGS, type Locale } from '../lib/i18n.ts';
 import { ROUKAKU_REPO, SHINKIEMU_REPO } from '../lib/site-data.ts';
 import { site } from '../lib/site.ts';
 
-const locale = (Astro.locals.starlightRoute.locale ?? 'zh-cn') as Locale;
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
 const t = STRINGS[locale].footer;
 const { sources, index } = site;
 const commits = [
@@ -16,7 +19,6 @@ const commits = [
 ];
 ---
 
-<Default />
 <div class="source-footer" data-pagefind-ignore>
   <span>{t.sources}:</span>
   {

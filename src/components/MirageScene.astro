@@ -1,0 +1,255 @@
+---
+// 蜃楼夜景: a night sky with a pavilion on the horizon and its heat-shimmered
+// reflection on the water. Pure SVG, colors from theme tokens, decorative only.
+// Shimmer and twinkle animations run only without `prefers-reduced-motion`.
+
+interface Props {
+  tone?: 'cyan' | 'gold';
+}
+
+const { tone = 'cyan' } = Astro.props;
+
+// Deterministic star field (same output on every build).
+let seed = 20260425;
+const random = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32;
+const stars = Array.from({ length: 90 }, (_, i) => ({
+  x: Math.round(random() * 1440),
+  y: Math.round(random() * 560),
+  r: Math.round((0.5 + random() * 1.1) * 10) / 10,
+  twinkle: i % 7 === 0,
+  delay: Math.round(random() * 60) / 10,
+}));
+
+// Water highlights under the main pavilion.
+const streaks = [
+  { x: 820, y: 372, w: 150, d: 0 },
+  { x: 990, y: 380, w: 90, d: 1.2 },
+  { x: 880, y: 392, w: 120, d: 2.1 },
+  { x: 760, y: 404, w: 70, d: 0.6 },
+  { x: 1040, y: 412, w: 110, d: 2.8 },
+  { x: 900, y: 428, w: 160, d: 1.6 },
+  { x: 700, y: 446, w: 90, d: 3.3 },
+  { x: 1080, y: 456, w: 70, d: 0.9 },
+  { x: 260, y: 378, w: 80, d: 2.4 },
+  { x: 330, y: 398, w: 50, d: 3.8 },
+];
+const windows = [
+  ...Array.from({ length: 7 }, (_, i) => ({ x: 872 + i * 28, y: 318, w: 10, h: 16 })),
+  ...Array.from({ length: 5 }, (_, i) => ({ x: 902 + i * 24, y: 258, w: 10, h: 12 })),
+  ...[930, 954, 978].map((x) => ({ x, y: 210, w: 10, h: 10 })),
+  ...[270, 292, 314, 336].map((x) => ({ x, y: 326, w: 10, h: 12 })),
+];
+---
+
+<div class:list={['mirage', `mirage-${tone}`]} aria-hidden="true">
+  <svg class="mirage-sky" viewBox="0 0 1440 800" preserveAspectRatio="xMidYMin slice" focusable="false">
+    <defs>
+      <radialGradient id="mn-orb-glow">
+        <stop offset="0" class="orb-glow-stop"></stop>
+        <stop offset="1" class="orb-glow-stop" stop-opacity="0"></stop>
+      </radialGradient>
+    </defs>
+    <circle class="orb-glow" cx="1180" cy="130" r="90" fill="url(#mn-orb-glow)"></circle>
+    <circle class="orb" cx="1180" cy="130" r="22"></circle>
+    <g class="stars">
+      {
+        stars.map((star) => (
+          <circle
+            class:list={['star', { twinkle: star.twinkle }]}
+            cx={star.x}
+            cy={star.y}
+            r={star.r}
+            style={star.twinkle ? `animation-delay: -${star.delay}s` : undefined}
+          />
+        ))
+      }
+    </g>
+  </svg>
+
+  <svg class="mirage-horizon" viewBox="0 0 1440 520" preserveAspectRatio="xMidYMax slice" focusable="false">
+    <defs>
+      <linearGradient id="mn-haze" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" class="haze-stop" stop-opacity="0"></stop>
+        <stop offset="1" class="haze-stop"></stop>
+      </linearGradient>
+      <radialGradient id="mn-glow" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" class="glow-stop"></stop>
+        <stop offset="1" class="glow-stop" stop-opacity="0"></stop>
+      </radialGradient>
+      <linearGradient id="mn-water" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" class="water-top"></stop>
+        <stop offset="1" class="water-bottom"></stop>
+      </linearGradient>
+      <linearGradient id="mn-fade" gradientUnits="userSpaceOnUse" x1="0" y1="360" x2="0" y2="520">
+        <stop offset="0" stop-color="#fff" stop-opacity="0.95"></stop>
+        <stop offset="1" stop-color="#fff" stop-opacity="0"></stop>
+      </linearGradient>
+      <mask id="mn-reflection-mask" maskUnits="userSpaceOnUse" x="0" y="360" width="1440" height="160">
+        <rect x="0" y="360" width="1440" height="160" fill="url(#mn-fade)"></rect>
+      </mask>
+      <filter id="mn-shimmer" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.003 0.07" numOctaves="2" seed="7" result="noise"></feTurbulence>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="16" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>
+      </filter>
+      <g id="mn-land">
+        <path
+          class="far"
+          d="M0 360V332C90 318 170 314 260 324S430 336 520 326 700 306 800 318 980 330 1080 322 1270 304 1360 316 1440 322V360Z"
+        ></path>
+        <g class="silhouette">
+          <rect x="232" y="346" width="156" height="14"></rect>
+          <rect x="258" y="318" width="104" height="28"></rect>
+          <path d="M222 320C246 323 262 315 274 302H346C358 315 374 323 398 320L384 330H236Z"></path>
+          <rect x="306" y="286" width="8" height="16"></rect>
+          <path d="M388 360V350H420V346H430V350H760V346H770V350H804V360Z"></path>
+          <path d="M800 360V350H820V344H1100V350H1120V360Z"></path>
+          <rect x="858" y="306" width="204" height="38"></rect>
+          <path d="M818 302C846 306 868 298 884 284H1036C1052 298 1074 306 1102 302L1086 312H834Z"></path>
+          <rect x="888" y="250" width="144" height="34"></rect>
+          <path d="M846 248C872 252 890 244 904 230H1016C1030 244 1048 252 1074 248L1060 258H860Z"></path>
+          <rect x="914" y="202" width="92" height="28"></rect>
+          <path d="M872 200C894 203 910 196 922 182H998C1010 196 1026 203 1048 200L1036 209H884Z"></path>
+          <rect x="957" y="146" width="6" height="36"></rect>
+          <circle cx="960" cy="144" r="5"></circle>
+          <path d="M1150 360C1150 338 1166 326 1180 330C1188 316 1210 316 1216 332C1232 330 1244 344 1240 360Z"></path>
+          <path d="M1300 360V318H1306V304H1312V318H1318V360Z"></path>
+        </g>
+        <g class="windows">
+          {windows.map((w) => <rect x={w.x} y={w.y} width={w.w} height={w.h} rx="1" />)}
+        </g>
+      </g>
+    </defs>
+
+    <rect x="0" y="120" width="1440" height="240" fill="url(#mn-haze)"></rect>
+    <ellipse cx="960" cy="360" rx="760" ry="110" fill="url(#mn-glow)"></ellipse>
+    <use href="#mn-land"></use>
+    <rect class="water" x="0" y="360" width="1440" height="160" fill="url(#mn-water)"></rect>
+    <g mask="url(#mn-reflection-mask)">
+      <g class="reflection">
+        <g filter="url(#mn-shimmer)">
+          <use href="#mn-land" transform="matrix(1 0 0 -1 0 720)"></use>
+        </g>
+      </g>
+    </g>
+    <rect class="horizon-line" x="0" y="359.25" width="1440" height="1.5"></rect>
+    <g class="streaks">
+      {
+        streaks.map((s) => (
+          <rect class="streak" x={s.x} y={s.y} width={s.w} height="1.5" rx="0.75" style={`animation-delay: -${s.d}s`} />
+        ))
+      }
+    </g>
+  </svg>
+</div>
+
+<style>
+  .mirage {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    --scene-glow: var(--mn-glow);
+  }
+  .mirage-gold {
+    --scene-glow: hsl(36 90% 60% / 0.36);
+  }
+  :root[data-theme='light'] .mirage-gold {
+    --scene-glow: hsl(34 95% 72% / 0.6);
+  }
+  .mirage-sky {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .mirage-horizon {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    width: 100%;
+    height: var(--band);
+  }
+  .star {
+    fill: var(--mn-star);
+    opacity: var(--mn-star-opacity);
+  }
+  .orb {
+    fill: var(--mn-orb);
+  }
+  .orb-glow-stop {
+    stop-color: var(--mn-orb-glow);
+  }
+  .haze-stop {
+    stop-color: var(--mn-sky-low);
+  }
+  .glow-stop {
+    stop-color: var(--scene-glow);
+  }
+  .water-top {
+    stop-color: var(--mn-water-top);
+  }
+  .water-bottom {
+    stop-color: var(--mn-water-bottom);
+  }
+  .far {
+    fill: var(--mn-far);
+  }
+  .silhouette {
+    fill: var(--mn-silhouette);
+  }
+  .windows {
+    fill: var(--mn-window);
+    opacity: 0.85;
+  }
+  .reflection {
+    opacity: var(--mn-reflection-opacity);
+    transform-box: view-box;
+    transform-origin: 960px 360px;
+  }
+  .horizon-line {
+    fill: var(--mn-horizon);
+    opacity: 0.75;
+  }
+  .streak {
+    fill: var(--mn-streak);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .reflection {
+      animation: mn-ripple 9s ease-in-out infinite alternate;
+    }
+    .streak {
+      animation: mn-streak 6s ease-in-out infinite alternate;
+    }
+    .twinkle {
+      animation: mn-twinkle 5s ease-in-out infinite alternate;
+    }
+  }
+
+  @keyframes mn-ripple {
+    from {
+      transform: translateX(-6px) scaleY(0.97);
+    }
+    to {
+      transform: translateX(6px) scaleY(1.02);
+    }
+  }
+  @keyframes mn-streak {
+    from {
+      transform: translateX(-18px);
+      opacity: 0.25;
+    }
+    to {
+      transform: translateX(18px);
+      opacity: 1;
+    }
+  }
+  @keyframes mn-twinkle {
+    from {
+      opacity: var(--mn-star-opacity);
+    }
+    to {
+      opacity: 0.2;
+    }
+  }
+</style>

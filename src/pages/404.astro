@@ -1,26 +1,38 @@
 ---
-import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
-
 // GitHub Pages serves this single /404.html for every unknown URL in both
 // languages, so it replaces Starlight's default-locale-only 404 route
-// (`disable404Route` in astro.config.ts).
+// (`disable404Route` in astro.config.ts) and shows both languages.
+import MirageScene from '../components/MirageScene.astro';
+import ProductLayout from '../layouts/ProductLayout.astro';
+import { LANG, LOCALES, STRINGS } from '../lib/i18n.ts';
 ---
 
-<StarlightPage
-  frontmatter={{
-    title: '404',
-    description: '页面不存在 / Page not found',
-    template: 'splash',
-    tableOfContents: false,
-    pagefind: false,
-    editUrl: false,
-  }}
-  hasSidebar={false}
->
-  <p class="portal-lead" lang="zh-CN">页面不存在。</p>
-  <p class="portal-lead" lang="en">Page not found.</p>
-  <ul class="product-links">
-    <li><a class="portal-button" href="/zh-cn/" lang="zh-CN">返回中文首页</a></li>
-    <li><a href="/en/" lang="en">English home</a></li>
-  </ul>
-</StarlightPage>
+<ProductLayout locale="zh-cn" title="404" description="页面不存在 / Page not found" bilingual>
+  <section class="hero hero-product not-found" aria-labelledby="hero-title">
+    <MirageScene />
+    <div class="container hero-inner">
+      <p class="eyebrow">404</p>
+      <h1 id="hero-title" class="hero-title">
+        <span lang="zh-CN">{STRINGS['zh-cn'].notFound.title}</span>
+        <span class="not-found-sep" aria-hidden="true">/</span>
+        <span lang="en">{STRINGS.en.notFound.title}</span>
+      </h1>
+      {
+        LOCALES.map((locale) => (
+          <p class="hero-lead" lang={LANG[locale]}>
+            {STRINGS[locale].notFound.body}
+          </p>
+        ))
+      }
+      <div class="actions">
+        {
+          LOCALES.map((locale, i) => (
+            <a class:list={['button', i === 0 ? 'button-primary' : 'button-secondary']} href={`/${locale}/`} lang={LANG[locale]}>
+              {STRINGS[locale].notFound.home}
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+</ProductLayout>

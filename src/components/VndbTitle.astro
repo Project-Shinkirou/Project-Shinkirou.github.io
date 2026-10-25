@@ -1,0 +1,19 @@
+---
+// VNDB title of a work (`v…`) or release (`r…`), the original-script title
+// as secondary text, and the ID linked to vndb.org.
+import { site } from '../lib/site.ts';
+
+interface Props {
+  id: string;
+  kind: 'vn' | 'release';
+}
+
+const { id, kind } = Astro.props;
+const { title, alttitle } = site.titles[kind][id];
+---
+
+<span class="vndb">
+  <span class="vndb-title">{title}</span>
+  {alttitle && <span class="vndb-alt">{alttitle}</span>}
+  <a class="vndb-id" href={`https://vndb.org/${id}`}>{id}</a>
+</span>

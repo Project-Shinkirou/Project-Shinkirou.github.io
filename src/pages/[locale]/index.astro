@@ -1,5 +1,6 @@
 ---
-import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import PageHero from '../../components/PageHero.astro';
+import ProductLayout from '../../layouts/ProductLayout.astro';
 import { LOCALES, STRINGS, type Locale } from '../../lib/i18n.ts';
 import { ROUKAKU_REPO } from '../../lib/site-data.ts';
 import { site } from '../../lib/site.ts';
@@ -11,39 +12,68 @@ export function getStaticPaths() {
 const locale = Astro.params.locale as Locale;
 const t = STRINGS[locale].home;
 const base = `/${locale}`;
+const stats = [
+  { value: site.compatibility.length, label: t.stats.reports, href: `${base}/shinkiemu/compatibility/` },
+  { value: site.matrix.length, label: t.stats.cores, href: `${base}/shinkiemu/cores/` },
+  { value: site.patches.length, label: t.stats.patches, href: `${base}/shinkiemu/patches/` },
+  { value: new Set(site.targets.map((target) => target.platform)).size, label: t.stats.platforms, href: `${base}/shinkiemu/docs/platforms/` },
+];
 ---
 
-<StarlightPage
-  frontmatter={{ title: t.title, description: t.tagline, template: 'splash', tableOfContents: false }}
-  hasSidebar={false}
->
-  <p class="portal-lead">{t.tagline}</p>
+<ProductLayout locale={locale} title={t.title} description={t.description} current="home">
+  <PageHero size="home" eyebrow={t.eyebrow} title="Project-Shinkirou" pitch={t.tagline} lead={t.intro}>
+    <a class="button button-primary" href={`${base}/shinkiemu/`}>ShinkiEMU</a>
+    <a class="button button-secondary" href={`${base}/roukaku/`}>RoukakuEngine</a>
+  </PageHero>
 
-  <div class="product-grid">
-    <section class="product-card" aria-labelledby="product-shinkiemu">
-      <p class="product-kicker">{t.shinkiemu.kicker}</p>
-      <h2 id="product-shinkiemu">ShinkiEMU</h2>
-      <p>{t.shinkiemu.body}</p>
-      <ul class="product-links">
-        <li><a class="portal-button" href={`${base}/shinkiemu/`}>{t.shinkiemu.overview}</a></li>
-        <li><a href={`${base}/shinkiemu/compatibility/`}>{t.shinkiemu.compatibility}</a></li>
-        <li><a href={`${base}/shinkiemu/cores/`}>{t.shinkiemu.cores}</a></li>
-        <li><a href={`${base}/shinkiemu/patches/`}>{t.shinkiemu.patches}</a></li>
-      </ul>
-    </section>
+  <section class="section container" aria-labelledby="products-title">
+    <h2 id="products-title" class="sr-only">{t.productsTitle}</h2>
+    <div class="grid grid-2">
+      <article class="card product-card tone-cyan" aria-labelledby="product-shinkiemu">
+        <p class="product-kicker">{t.shinkiemu.kicker}</p>
+        <h3 id="product-shinkiemu">ShinkiEMU</h3>
+        <p class="product-body">{t.shinkiemu.body}</p>
+        <div class="actions">
+          <a class="button button-primary" href={`${base}/shinkiemu/`}>{t.shinkiemu.cta}</a>
+        </div>
+        <ul class="link-list">
+          <li><a href={`${base}/shinkiemu/compatibility/`}>{t.shinkiemu.compatibility}</a></li>
+          <li><a href={`${base}/shinkiemu/cores/`}>{t.shinkiemu.cores}</a></li>
+          <li><a href={`${base}/shinkiemu/patches/`}>{t.shinkiemu.patches}</a></li>
+        </ul>
+      </article>
 
-    <section class="product-card" aria-labelledby="product-roukaku">
-      <p class="product-kicker">{t.roukaku.kicker}</p>
-      <h2 id="product-roukaku">RoukakuEngine</h2>
-      <p>{t.roukaku.body}</p>
-      <ul class="product-links">
-        <li><a class="portal-button" href={`${base}/roukaku/`}>{t.roukaku.docs}</a></li>
-        <li><a href={ROUKAKU_REPO}>{t.roukaku.source}</a></li>
-      </ul>
-    </section>
-  </div>
+      <article class="card product-card tone-gold" aria-labelledby="product-roukaku">
+        <p class="product-kicker">{t.roukaku.kicker}</p>
+        <h3 id="product-roukaku">RoukakuEngine</h3>
+        <p class="product-body">{t.roukaku.body}</p>
+        <div class="actions">
+          <a class="button button-gold" href={`${base}/roukaku/`}>{t.roukaku.cta}</a>
+        </div>
+        <ul class="link-list">
+          <li><a href={`${base}/roukaku/docs/`}>{t.roukaku.docs}</a></li>
+          <li><a href={ROUKAKU_REPO}>{t.roukaku.source}</a></li>
+        </ul>
+      </article>
+    </div>
+  </section>
 
-  <p class="portal-snapshot">
-    {t.snapshot}: {t.stats(site.compatibility.length, site.matrix.length, site.patches.length)}
-  </p>
-</StarlightPage>
+  <section class="section container" aria-labelledby="snapshot-title">
+    <div class="section-head">
+      <h2 id="snapshot-title">{t.snapshotTitle}</h2>
+      <p>{t.snapshotNote}</p>
+    </div>
+    <ul class="grid grid-4">
+      {
+        stats.map((stat) => (
+          <li>
+            <a class="stat" href={stat.href}>
+              <span class="stat-value">{stat.value}</span>
+              <span class="stat-label">{stat.label}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</ProductLayout>

@@ -1,0 +1,106 @@
+---
+import { getCollection } from 'astro:content';
+import PageHero from '../../../components/PageHero.astro';
+import ProductLayout from '../../../layouts/ProductLayout.astro';
+import { LOCALES, STRINGS, type Locale } from '../../../lib/i18n.ts';
+import { ROUKAKU_REPO } from '../../../lib/site-data.ts';
+import { site } from '../../../lib/site.ts';
+
+export function getStaticPaths() {
+  return LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const t = STRINGS[locale].roukaku;
+const docsBase = `/${locale}/roukaku/docs`;
+// The build guide is linked on the site when the imported docs contain it,
+// otherwise at the pinned revision in the repository.
+const buildGuideId = `${locale}/roukaku/docs/build`;
+const buildGuide = (await getCollection('docs', (entry) => entry.id === buildGuideId)).length > 0
+  ? `${docsBase}/build/`
+  : `${ROUKAKU_REPO}/blob/${site.sources.roukaku_commit}/docs/${locale}/build.md`;
+
+const parts = [
+  { name: 'RoukakuPlayer', body: t.parts.player },
+  { name: 'RoukakuVN', body: t.parts.vn },
+  { name: 'RoukakuEditor', body: t.parts.editor },
+  { name: 'roukaku CLI', body: t.parts.cli, code: true },
+];
+const buildCommands = [
+  'cargo build --locked -p roukaku-cli -p roukaku-player -p roukaku-crash-reporter',
+  'cargo run --locked -p roukaku-cli -- --help',
+  'cargo run --locked --manifest-path Editor/Cargo.toml -p roukaku-editor -- Examples/NativeVN/project.yaml',
+  'cargo xtask check --workspace engine',
+  'cargo xtask check --workspace editor',
+].join('\n');
+const installCommands = [
+  'cargo install --locked --path Engine/Source/Programs/roukaku-cli --bin roukaku',
+  'roukaku --help',
+].join('\n');
+---
+
+<ProductLayout locale={locale} title={t.title} description={t.description} current="roukaku">
+  <PageHero tone="gold" eyebrow={t.eyebrow} title="RoukakuEngine" pitch={t.pitch} lead={t.lead}>
+    <a class="button button-gold" href={`${docsBase}/quick-start/`}>{t.quickStart}</a>
+    <a class="button button-secondary" href={`${docsBase}/`}>{t.docs}</a>
+    <a class="button button-ghost" href={ROUKAKU_REPO}>{t.source}</a>
+  </PageHero>
+
+  <section class="section container" aria-labelledby="parts-title">
+    <div class="section-head">
+      <h2 id="parts-title">{t.partsTitle}</h2>
+    </div>
+    <div class="grid grid-4 parts-grid">
+      {
+        parts.map((part) => (
+          <article class="card feature-card tone-gold">
+            <h3>{part.code ? <code>roukaku</code> : part.name}</h3>
+            <p>{part.body}</p>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section container" aria-labelledby="start-title">
+    <div class="section-head">
+      <h2 id="start-title">{t.startTitle}</h2>
+      <p>
+        {t.startBody} <a href={buildGuide}>{t.buildGuide}</a>
+      </p>
+    </div>
+    <div class="grid">
+      <figure class="card code-card">
+        <figcaption>{t.commandsLabel(t.startTitle)}</figcaption>
+        <pre tabindex="0"><code>{buildCommands}</code></pre>
+      </figure>
+      <figure class="card code-card">
+        <figcaption>{t.installCli}</figcaption>
+        <pre tabindex="0"><code>{installCommands}</code></pre>
+      </figure>
+    </div>
+    <p class="section-foot">
+      {t.startMore} <a href={`${docsBase}/quick-start/`}>{t.quickStart}</a>
+    </p>
+    <p class="note">{t.noDownloads}</p>
+    <p class="note">{t.platformNote}</p>
+  </section>
+
+  <section class="section container" aria-labelledby="relation-title">
+    <div class="grid grid-2">
+      <article class="card">
+        <h2 id="relation-title">{t.relationTitle}</h2>
+        <p>{t.relationBody}</p>
+        <p><a href={`/${locale}/shinkiemu/`}>ShinkiEMU</a></p>
+      </article>
+      <article class="card" aria-labelledby="license-title">
+        <h2 id="license-title">{t.licenseTitle}</h2>
+        <p>{t.licenseBody}</p>
+        <p>
+          <a href={`${ROUKAKU_REPO}/blob/${site.sources.roukaku_commit}/LICENSE-MIT`}>LICENSE-MIT</a> ·{' '}
+          <a href={`${ROUKAKU_REPO}/blob/${site.sources.roukaku_commit}/LICENSE-APACHE`}>LICENSE-APACHE</a>
+        </p>
+      </article>
+    </div>
+  </section>
+</ProductLayout>

@@ -1,0 +1,161 @@
+---
+// Full target-triple × core build matrix. It lives in the docs (Starlight)
+// because players only need the platform icons on the product pages.
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import PlatformIcon from '../../../../components/PlatformIcon.astro';
+import { LOCALES, STRINGS, type Locale } from '../../../../lib/i18n.ts';
+import { site } from '../../../../lib/site.ts';
+import '../../../../styles/docs-matrix.css';
+
+export function getStaticPaths() {
+  return LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const strings = STRINGS[locale];
+const t = strings.platforms;
+const base = `/${locale}`;
+
+// Blocking reasons are long and repeat across cores, so cells reference a
+// numbered list instead of repeating the text.
+const reasons = new Map<string, { number: number; uses: string[] }>();
+const reasonNumber = (reason: string | null, use: string) => {
+  if (reason === null) return null;
+  let entry = reasons.get(reason);
+  if (!entry) {
+    entry = { number: reasons.size + 1, uses: [] };
+    reasons.set(reason, entry);
+  }
+  entry.uses.push(use);
+  return entry.number;
+};
+
+const manager = site.targets.map((target) => ({
+  ...target,
+  note: reasonNumber(target.manager.reason, `Manager · ${target.triple}`),
+}));
+const cores = site.matrix.map((core) => ({
+  ...core,
+  cells: core.targets.map((target) => ({
+    ...target,
+    isStatic: core.static_manager_targets.includes(target.target),
+    note: reasonNumber(target.reason, `${core.core} · ${target.target}`),
+  })),
+}));
+const combos = cores.reduce((sum, core) => sum + core.cells.length, 0);
+const supported = cores.reduce((sum, core) => sum + core.cells.filter((cell) => cell.status === 'supported').length, 0);
+---
+
+<StarlightPage
+  frontmatter={{ title: t.title, description: t.description }}
+  headings={[
+    { depth: 2, slug: 'manager', text: t.managerTitle },
+    { depth: 2, slug: 'cores', text: t.coresTitle },
+    { depth: 2, slug: 'reasons', text: t.reasonsTitle },
+  ]}
+>
+  <p>{t.lead}</p>
+  <p>{t.summary(supported, combos, site.targets.length)}</p>
+  <p>
+    <a href={`${base}/shinkiemu/`}>{t.product}</a>
+  </p>
+
+  <h2 id="manager">{t.managerTitle}</h2>
+  <div class="matrix-scroll" tabindex="0" role="region" aria-label={t.managerTitle}>
+    <table class="matrix-table">
+      <thead>
+        <tr>
+          <th scope="col">{t.target}</th>
+          <th scope="col">{t.platform}</th>
+          <th scope="col">{t.status}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          manager.map((target) => (
+            <tr>
+              <th scope="row">
+                <code>{target.triple}</code>
+              </th>
+              <td class="nowrap">
+                <span class="matrix-platform">
+                  <PlatformIcon platform={target.platform} size={16} />
+                  {strings.platform[target.platform]}
+                </span>
+              </td>
+              <td>
+                <span class={`matrix-state is-${target.manager.status}`}>
+                  {target.manager.status === 'supported' ? t.supported : t.blocked}
+                </span>
+                {target.note !== null && (
+                  <sup>
+                    <a href={`#reason-${target.note}`} aria-label={`${t.reason} ${target.note}`}>
+                      {target.note}
+                    </a>
+                  </sup>
+                )}
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="cores">{t.coresTitle}</h2>
+  <div class="matrix-scroll" tabindex="0" role="region" aria-label={t.coresTitle}>
+    <table class="matrix-table matrix-grid">
+      <thead>
+        <tr>
+          <th scope="col">{t.core}</th>
+          {
+            site.targets.map((target) => (
+              <th scope="col">
+                <code>{target.triple}</code>
+              </th>
+            ))
+          }
+        </tr>
+      </thead>
+      <tbody>
+        {
+          cores.map((core) => (
+            <tr>
+              <th scope="row">
+                {core.core}
+                <code class="matrix-sub">{core.plugin_id}</code>
+              </th>
+              {core.cells.map((cell) => (
+                <td>
+                  <span class={`matrix-state is-${cell.status}`}>{cell.status === 'supported' ? t.supported : t.blocked}</span>
+                  {cell.note !== null && (
+                    <sup>
+                      <a href={`#reason-${cell.note}`} aria-label={`${t.reason} ${cell.note}`}>
+                        {cell.note}
+                      </a>
+                    </sup>
+                  )}
+                  {cell.isStatic && <span class="matrix-sub">{t.staticNote}</span>}
+                </td>
+              ))}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="reasons">{t.reasonsTitle}</h2>
+  <ol class="matrix-reasons">
+    {
+      [...reasons].map(([reason, entry]) => (
+        <li id={`reason-${entry.number}`}>
+          <p>{reason}</p>
+          <p class="matrix-sub">
+            {t.appliesTo}: {entry.uses.join('; ')}
+          </p>
+        </li>
+      ))
+    }
+  </ol>
+</StarlightPage>

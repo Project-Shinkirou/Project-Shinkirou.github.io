@@ -1,5 +1,6 @@
 ---
-import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import ProductLayout from '../../../layouts/ProductLayout.astro';
+import VndbTitle from '../../../components/VndbTitle.astro';
 import { formatBytes, LANG, LOCALES, STRINGS, type Locale } from '../../../lib/i18n.ts';
 import { PATCH_KINDS } from '../../../lib/site-data.ts';
 import { ISSUES_URL, site } from '../../../lib/site.ts';
@@ -11,6 +12,7 @@ export function getStaticPaths() {
 const locale = Astro.params.locale as Locale;
 const lang = LANG[locale];
 const t = STRINGS[locale].patches;
+const base = `/${locale}`;
 const coreName: Record<string, string> = Object.fromEntries(site.matrix.map((core) => [core.plugin_id, core.core]));
 const groups = PATCH_KINDS.map((kind) => ({
   kind,
@@ -21,147 +23,167 @@ const groups = PATCH_KINDS.map((kind) => ({
 }));
 ---
 
-<StarlightPage
-  frontmatter={{ title: t.title, description: t.description }}
-  headings={groups.map((group) => ({ depth: 2, slug: group.anchor, text: t.kindTitles[group.kind] }))}
->
-  <p class="portal-lead">{t.lead}</p>
-  <p><a class="portal-button" href={`${ISSUES_URL}/new/choose`}>{t.submit}</a></p>
+<ProductLayout locale={locale} title={t.title} description={t.description} current="patches">
+  <div class="container page-head">
+    <p class="breadcrumb"><a href={`${base}/shinkiemu/`}>ShinkiEMU</a></p>
+    <h1>{t.title}</h1>
+    <p class="lead">{t.lead}</p>
+    <div class="actions">
+      <a class="button button-primary" href={`${ISSUES_URL}/new/choose`}>{t.submit}</a>
+    </div>
+    <nav aria-label={t.kindsNav}>
+      <ul class="kind-nav">
+        {
+          groups.map((group) => (
+            <li>
+              <a href={`#${group.anchor}`}>
+                {t.kindTitles[group.kind]}
+                <span class="kind-count">{group.entries.length}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+  </div>
 
   {
     groups.map((group) => (
-      <section aria-labelledby={group.anchor}>
-        <h2 id={group.anchor}>{t.kindTitles[group.kind]}</h2>
+      <section class="section container kind-section" id={group.anchor} aria-labelledby={`${group.anchor}-title`}>
+        <h2 id={`${group.anchor}-title`}>
+          {t.kindTitles[group.kind]}
+          <span class="heading-count">{t.count(group.entries.length)}</span>
+        </h2>
         {group.entries.length === 0 ? (
           <p class="muted">{t.empty}</p>
         ) : (
-          group.entries.map((patch) => (
-            <article class="patch-card" id={`patch-${patch.id}`} aria-labelledby={`patch-${patch.id}-title`}>
-              <h3 id={`patch-${patch.id}-title`}>
-                {patch.title[lang]} <span class={`chip chip-kind-${patch.kind}`}>{t.kinds[patch.kind]}</span>
-              </h3>
-              <p>{patch.summary[lang]}</p>
-              <dl class="facts">
-                <div>
-                  <dt>{t.version}</dt>
-                  <dd>{patch.version}</dd>
+          <div class="grid grid-2">
+            {group.entries.map((patch) => (
+              <article class="card patch-card" id={`patch-${patch.id}`} aria-labelledby={`patch-${patch.id}-title`}>
+                <div class="patch-card-head">
+                  <h3 id={`patch-${patch.id}-title`}>{patch.title[lang]}</h3>
+                  <span class={`chip chip-kind-${patch.kind}`}>{t.kinds[patch.kind]}</span>
                 </div>
-                <div>
-                  <dt>{t.works}</dt>
-                  <dd>
-                    {patch.vn_ids.map((id, i) => (
-                      <>
-                        {i > 0 && ', '}
-                        <a href={`https://vndb.org/${id}`}>{id}</a>
-                      </>
-                    ))}
-                  </dd>
-                </div>
-                <div>
-                  <dt>{t.releases}</dt>
-                  <dd>
-                    {patch.release_ids.length === 0 ? (
-                      <span class="chip chip-warning">{t.releasesUnrestricted}</span>
-                    ) : (
-                      patch.release_ids.map((id, i) => (
+                <p class="patch-summary">{patch.summary[lang]}</p>
+                <dl class="facts">
+                  <div class="facts-wide">
+                    <dt>{t.works}</dt>
+                    <dd>
+                      <ul class="work-list">
+                        {patch.vn_ids.map((id) => (
+                          <li>
+                            <VndbTitle id={id} kind="vn" />
+                          </li>
+                        ))}
+                      </ul>
+                    </dd>
+                  </div>
+                  <div class="facts-wide">
+                    <dt>{t.releases}</dt>
+                    <dd>
+                      {patch.release_ids.length === 0 ? (
+                        <span class="chip chip-warning chip-wrap">{t.releasesUnrestricted}</span>
+                      ) : (
+                        <ul class="work-list">
+                          {patch.release_ids.map((id) => (
+                            <li>
+                              <VndbTitle id={id} kind="release" />
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{t.version}</dt>
+                    <dd>{patch.version}</dd>
+                  </div>
+                  <div>
+                    <dt>{t.license}</dt>
+                    <dd>{patch.license}</dd>
+                  </div>
+                  <div class="facts-wide">
+                    <dt>{t.cores}</dt>
+                    <dd>
+                      {patch.emulators.map((id, i) => (
                         <>
                           {i > 0 && ', '}
-                          <a href={`https://vndb.org/${id}`}>{id}</a>
+                          {coreName[id]} <code>{id}</code>
                         </>
-                      ))
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt>{t.cores}</dt>
-                  <dd>
-                    {patch.emulators.map((id, i) => (
-                      <>
-                        {i > 0 && ', '}
-                        {coreName[id]} <code>{id}</code>
-                      </>
-                    ))}
-                  </dd>
-                </div>
-                <div>
-                  <dt>{t.license}</dt>
-                  <dd>{patch.license}</dd>
-                </div>
-                {patch.source_url && (
-                  <div>
-                    <dt>{t.source}</dt>
-                    <dd>
-                      <a href={patch.source_url}>{patch.source_url}</a>
+                      ))}
                     </dd>
                   </div>
-                )}
-                <div>
-                  <dt>{t.authorization}</dt>
-                  <dd>
-                    {patch.authorization_url ? (
-                      <a href={patch.authorization_url}>{patch.authorization_url}</a>
-                    ) : (
-                      <span class="muted">{t.noAuthorization}</span>
-                    )}
-                  </dd>
-                </div>
-                {patch.issue_url && (
-                  <div>
-                    <dt>{t.issue}</dt>
-                    <dd>
-                      <a href={patch.issue_url}>{patch.issue_url}</a>
-                    </dd>
-                  </div>
-                )}
-                {patch.recipe && (
-                  <div>
-                    <dt>{t.script}</dt>
-                    <dd>
-                      <code>{patch.recipe.script}</code>
-                      <br />
-                      <span class="muted">{t.recipeNote}</span>
-                    </dd>
-                  </div>
-                )}
-                {patch.artifact && (
-                  <>
-                    <div>
-                      <dt>{t.artifact}</dt>
+                  {patch.source_url && (
+                    <div class="facts-wide">
+                      <dt>{t.source}</dt>
                       <dd>
-                        <code>{patch.artifact.file_name}</code> · {formatBytes(patch.artifact.size, locale)}
+                        <a href={patch.source_url}>{patch.source_url}</a>
                       </dd>
                     </div>
-                    <div>
-                      <dt>{t.sha256}</dt>
+                  )}
+                  <div class="facts-wide">
+                    <dt>{t.authorization}</dt>
+                    <dd>
+                      {patch.authorization_url ? (
+                        <a href={patch.authorization_url}>{patch.authorization_url}</a>
+                      ) : (
+                        <span class="muted">{t.noAuthorization}</span>
+                      )}
+                    </dd>
+                  </div>
+                  {patch.issue_url && (
+                    <div class="facts-wide">
+                      <dt>{t.issue}</dt>
                       <dd>
-                        <code class="hash">{patch.artifact.sha256}</code>
+                        <a href={patch.issue_url}>{patch.issue_url}</a>
                       </dd>
                     </div>
-                  </>
+                  )}
+                  {patch.recipe && (
+                    <div class="facts-wide">
+                      <dt>{t.script}</dt>
+                      <dd>
+                        <code>{patch.recipe.script}</code>
+                        <span class="cell-sub">{t.recipeNote}</span>
+                      </dd>
+                    </div>
+                  )}
+                  {patch.artifact && (
+                    <>
+                      <div class="facts-wide">
+                        <dt>{t.artifact}</dt>
+                        <dd>
+                          <code>{patch.artifact.file_name}</code> · {formatBytes(patch.artifact.size, locale)}
+                        </dd>
+                      </div>
+                      <div class="facts-wide">
+                        <dt>{t.sha256}</dt>
+                        <dd>
+                          <code class="hash">{patch.artifact.sha256}</code>
+                        </dd>
+                      </div>
+                    </>
+                  )}
+                </dl>
+                {patch.kind === 'hosted' && patch.artifact && (
+                  <p>
+                    <a class="button button-primary" href={patch.artifact.url} aria-label={t.downloadLabel(patch.artifact.file_name)}>
+                      {t.download}
+                    </a>
+                  </p>
                 )}
-              </dl>
-              {patch.kind === 'hosted' && patch.artifact && (
-                <p>
-                  <a
-                    class="portal-button"
-                    href={patch.artifact.url}
-                    aria-label={t.downloadLabel(patch.artifact.file_name)}
-                  >
-                    {t.download}
-                  </a>
-                </p>
-              )}
-              {patch.kind === 'external' && patch.artifact && (
-                <p>
-                  <a href={patch.artifact.url} rel="nofollow noopener">
-                    {t.externalArtifact}
-                  </a>
-                </p>
-              )}
-            </article>
-          ))
+                {patch.kind === 'external' && patch.artifact && (
+                  <p>
+                    <a href={patch.artifact.url} rel="nofollow noopener">
+                      {t.externalArtifact}
+                    </a>
+                  </p>
+                )}
+              </article>
+            ))}
+          </div>
         )}
       </section>
     ))
   }
-</StarlightPage>
+</ProductLayout>

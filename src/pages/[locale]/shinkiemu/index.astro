@@ -1,72 +1,142 @@
 ---
-import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import DownloadCards from '../../../components/DownloadCards.astro';
+import PageHero from '../../../components/PageHero.astro';
+import PlatformIcon from '../../../components/PlatformIcon.astro';
+import PlatformStates from '../../../components/PlatformStates.astro';
+import ProductLayout from '../../../layouts/ProductLayout.astro';
 import { LOCALES, STRINGS, type Locale } from '../../../lib/i18n.ts';
 import { SHINKIEMU_REPO } from '../../../lib/site-data.ts';
-import { ISSUES_URL, RELEASES_URL, site } from '../../../lib/site.ts';
+import { ISSUES_URL, site } from '../../../lib/site.ts';
+import { coreAnchor } from '../../../lib/platforms.ts';
 
 export function getStaticPaths() {
   return LOCALES.map((locale) => ({ params: { locale } }));
 }
 
 const locale = Astro.params.locale as Locale;
-const t = STRINGS[locale].overview;
+const strings = STRINGS[locale];
+const t = strings.shinkiemu;
+const legend = strings.platformState;
 const base = `/${locale}`;
-const combinations = site.matrix.flatMap((core) => core.targets);
-const supported = combinations.filter((target) => target.status === 'supported').length;
-const publishedCores = new Set(site.cores.map((release) => release.plugin_id)).size;
+const reports: Record<string, number> = {};
+for (const entry of site.compatibility) reports[entry.emulator] = (reports[entry.emulator] ?? 0) + 1;
+
+const features = [
+  { title: t.managerTitle, body: t.managerBody },
+  { title: t.coresTitle, body: t.coresBody },
+  { title: t.idsTitle, body: t.idsBody },
+];
+const resources = [
+  { href: `${base}/shinkiemu/docs/`, label: t.docs },
+  { href: `${base}/shinkiemu/docs/platforms/`, label: t.platforms },
+  { href: `${base}/shinkiemu/patches/`, label: t.patches },
+  { href: `${ISSUES_URL}/new/choose`, label: t.report },
+  { href: SHINKIEMU_REPO, label: t.source },
+  { href: '/data/shinkiemu/v1/index.json', label: t.data },
+];
 ---
 
-<StarlightPage frontmatter={{ title: t.title, description: t.description }}>
-  <p class="portal-lead">{t.lead}</p>
+<ProductLayout locale={locale} title={t.title} description={t.description} current="shinkiemu">
+  <PageHero eyebrow={t.eyebrow} title="ShinkiEMU" pitch={t.pitch} lead={t.lead}>
+    <a class="button button-primary" href="#download">{t.download}</a>
+    <a class="button button-secondary" href={`${base}/shinkiemu/compatibility/`}>{t.compatibility}</a>
+    <a class="button button-ghost" href={`${base}/shinkiemu/docs/user-guide/`}>{t.guide}</a>
+  </PageHero>
 
-  <h2>{t.downloadTitle}</h2>
-  <p>{t.managerBody}</p>
-  <p>{publishedCores > 0 ? t.coresPublished(publishedCores) : t.noCoresPublished}</p>
-  <p class="portal-actions">
-    <a class="portal-button" href={RELEASES_URL}>{t.releases}</a>
-    <a href={`${base}/shinkiemu/cores/`}>{t.coresLink}</a>
-  </p>
-
-  <h2>{t.matrixTitle}</h2>
-  <p>{t.matrixBody(supported, combinations.length, site.targets.length)}</p>
-
-  <h3>{t.managerTitle}</h3>
-  <div class="table-scroll" tabindex="0" role="region" aria-label={t.managerTitle}>
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th scope="col">{t.target}</th>
-          <th scope="col">{t.targetPlatform}</th>
-          <th scope="col">{t.targetStatus}</th>
-          <th scope="col">{t.reason}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {site.targets.map((target) => (
-          <tr>
-            <td>
-              <code>{target.triple}</code>
-            </td>
-            <td>{`${target.platform} · ${target.architecture} · ${target.variant}`}</td>
-            <td>
-              <span class={`chip chip-${target.manager.status}`}>
-                {target.manager.status === 'supported' ? t.supported : t.blocked}
+  <section class="section container" aria-labelledby="what-title">
+    <div class="section-head">
+      <h2 id="what-title">{t.whatTitle}</h2>
+    </div>
+    <div class="grid grid-3">
+      {
+        features.map((feature, i) => (
+          <article class="card feature-card">
+            <h3>
+              <span class="feature-index" aria-hidden="true">
+                {i + 1}
               </span>
-            </td>
-            <td>{target.manager.reason}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
+              {feature.title}
+            </h3>
+            <p>{feature.body}</p>
+          </article>
+        ))
+      }
+    </div>
+  </section>
 
-  <h2>{t.linksTitle}</h2>
-  <ul>
-    <li><a href={`${base}/shinkiemu/docs/`}>{t.docs}</a></li>
-    <li><a href={`${base}/shinkiemu/compatibility/`}>{t.compatibility}</a></li>
-    <li><a href={`${base}/shinkiemu/patches/`}>{t.patches}</a></li>
-    <li><a href={`${ISSUES_URL}/new/choose`}>{t.report}</a></li>
-    <li><a href={SHINKIEMU_REPO}>{t.source}</a></li>
-    <li><a href="/data/shinkiemu/v1/index.json">{t.data}</a></li>
-  </ul>
-</StarlightPage>
+  <section class="section container" id="download" aria-labelledby="download-title" tabindex="-1">
+    <div class="section-head">
+      <h2 id="download-title">{t.downloadTitle}</h2>
+      <p>{t.downloadLead}</p>
+    </div>
+    <DownloadCards locale={locale} />
+  </section>
+
+  <section class="section container" aria-labelledby="cores-title">
+    <div class="section-head">
+      <h2 id="cores-title">{t.coresGridTitle}</h2>
+      <p>{t.coresGridLead}</p>
+    </div>
+    <ul class="state-legend" aria-label={legend.legend}>
+      <li>
+        <span class="platform-state is-supported" aria-hidden="true"><PlatformIcon platform="windows" /></span>
+        {legend.legendSupported}
+      </li>
+      <li>
+        <span class="platform-state is-blocked" aria-hidden="true"><PlatformIcon platform="windows" /></span>
+        {legend.legendBlocked}
+      </li>
+    </ul>
+    <ul class="grid grid-3">
+      {
+        site.matrix.map((core) => {
+          const count = reports[core.plugin_id] ?? 0;
+          return (
+            <li class="core-tile">
+              <div class="core-tile-head">
+                <h3>
+                  <a href={`${base}/shinkiemu/cores/#${coreAnchor(core.plugin_id)}`} aria-label={t.coreDetails(core.core)}>
+                    {core.core}
+                  </a>
+                </h3>
+                <span class="core-meta">{core.family}</span>
+              </div>
+              <p class="core-meta">
+                <code>{core.plugin_id}</code> · {core.license}
+              </p>
+              <PlatformStates core={core} locale={locale} />
+              <div class="core-tile-foot">
+                {count === 0 ? (
+                  <span class="muted">{t.reports(0)}</span>
+                ) : (
+                  <a href={`${base}/shinkiemu/compatibility/?core=${encodeURIComponent(core.plugin_id)}`}>{t.reports(count)}</a>
+                )}
+                {core.publish_blocked && <span class="chip chip-blocked">{t.publishBlocked}</span>}
+              </div>
+            </li>
+          );
+        })
+      }
+    </ul>
+    <p class="section-foot">
+      <a class="button button-secondary" href={`${base}/shinkiemu/cores/`}>{t.allCores}</a>
+    </p>
+  </section>
+
+  <section class="section container" aria-labelledby="links-title">
+    <div class="section-head">
+      <h2 id="links-title">{t.linksTitle}</h2>
+    </div>
+    <ul class="grid grid-3">
+      {
+        resources.map((link) => (
+          <li>
+            <a class="resource-link" href={link.href}>
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</ProductLayout>

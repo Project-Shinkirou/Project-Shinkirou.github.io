@@ -1,0 +1,12 @@
+---
+// Starlight Footer override: the default footer plus the source revisions
+// shared with the product layout.
+import Default from '@astrojs/starlight/components/Footer.astro';
+import SourceFooter from '../SourceFooter.astro';
+import { isLocale } from '../../lib/i18n.ts';
+
+const { locale } = Astro.locals.starlightRoute;
+---
+
+<Default />
+<SourceFooter locale={isLocale(locale) ? locale : 'zh-cn'} />

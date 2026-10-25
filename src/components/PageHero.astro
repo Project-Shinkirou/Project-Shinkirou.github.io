@@ -1,0 +1,26 @@
+---
+// Full-width hero over the mirage scene. Actions go in the default slot.
+import MirageScene from './MirageScene.astro';
+
+interface Props {
+  eyebrow: string;
+  title: string;
+  pitch: string;
+  lead?: string;
+  tone?: 'cyan' | 'gold';
+  size?: 'home' | 'product';
+}
+
+const { eyebrow, title, pitch, lead, tone = 'cyan', size = 'product' } = Astro.props;
+---
+
+<section class:list={['hero', `hero-${size}`, `tone-${tone}`]} aria-labelledby="hero-title">
+  <MirageScene tone={tone} />
+  <div class="container hero-inner">
+    <p class="eyebrow">{eyebrow}</p>
+    <h1 id="hero-title" class="hero-title">{title}</h1>
+    <p class="hero-pitch">{pitch}</p>
+    {lead && <p class="hero-lead">{lead}</p>}
+    {Astro.slots.has('default') && <div class="actions"><slot /></div>}
+  </div>
+</section>
