@@ -577,6 +577,9 @@ export function parseBuildInventory(targetsValue: Json, coresValue: Json, versio
   const targetList = array(targetsFile.targets, 'build-targets.toml.targets');
   if (targetList.length === 0) throw new DataError('build-targets.toml.targets', 'target list is empty');
   const triples: string[] = [];
+  // Non-empty `blocked` blocks the Manager and every core on that target,
+  // overriding `manager_supported` and each core's per-target state.
+  const targetBlocked = new Map<string, string>();
   const targets = targetList.map((raw, i): BuildTarget => {
     const where = `build-targets.toml.targets[${i}]`;
     const t = record(raw, where);
@@ -588,14 +591,19 @@ export function parseBuildInventory(targetsValue: Json, coresValue: Json, versio
     if (!t.manager_supported && managerBlocked === '') {
       throw new DataError(`${where}.manager_blocked`, 'unsupported Manager target needs a reason');
     }
+    const blocked = text(t.blocked ?? '', `${where}.blocked`, 0, 1024);
+    if (blocked !== '') targetBlocked.set(triple, blocked);
     return {
       triple,
       platform: oneOf(t.platform, `${where}.platform`, PLATFORMS),
       architecture: oneOf(t.architecture, `${where}.architecture`, ARCHITECTURES),
       variant: oneOf(t.variant, `${where}.variant`, VARIANTS),
-      manager: t.manager_supported
-        ? { target: triple, status: 'supported', reason: null }
-        : { target: triple, status: 'blocked', reason: managerBlocked },
+      manager:
+        blocked !== ''
+          ? { target: triple, status: 'blocked', reason: blocked }
+          : t.manager_supported
+            ? { target: triple, status: 'supported', reason: null }
+            : { target: triple, status: 'blocked', reason: managerBlocked },
     };
   });
 
@@ -634,6 +642,7 @@ export function parseBuildInventory(targetsValue: Json, coresValue: Json, versio
     // core there; the inventory's `blocked` reason only explains why no
     // standalone package exists.
     for (const triple of staticTargets) status[triple] = { ...status[triple], status: 'static' };
+    for (const [triple, reason] of targetBlocked) status[triple] = { target: triple, status: 'blocked', reason };
     const publishBlocked = text(core.publish_blocked ?? '', `${where}.publish_blocked`, 0, 1024);
 
     let repo = SHINKIEMU_REPO;

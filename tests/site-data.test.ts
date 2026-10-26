@@ -84,6 +84,34 @@ test('a version resolved at a different revision than the fork pin is rejected',
   );
 });
 
+test('a blocked target overrides supported_targets, static targets and manager_supported', () => {
+  const reason = 'Apple builds are excluded from current CI and releases until the cross-build toolchain is validated.';
+  const blockedTargets = {
+    ...targets,
+    targets: targets.targets.map((target) => (target.triple === 'aarch64-apple-ios' ? { ...target, blocked: reason } : target)),
+  };
+  const inventory = parseBuildInventory(blockedTargets, cores(['aarch64-apple-ios']), versions(FORK_REV));
+  assert.deepEqual(
+    inventory.targets.map((target) => target.manager),
+    [
+      { target: 'x86_64-pc-windows-msvc', status: 'supported', reason: null },
+      { target: 'aarch64-apple-ios', status: 'blocked', reason },
+    ],
+  );
+  for (const core of inventory.cores) {
+    assert.deepEqual(core.targets, [
+      { target: 'x86_64-pc-windows-msvc', status: 'supported', reason: null },
+      { target: 'aarch64-apple-ios', status: 'blocked', reason },
+    ]);
+  }
+});
+
+test('an empty blocked string leaves the target unaffected', () => {
+  const emptyBlocked = { ...targets, targets: targets.targets.map((target) => ({ ...target, blocked: '' })) };
+  const [, owned] = parseBuildInventory(emptyBlocked, cores([]), versions(FORK_REV)).cores;
+  assert.equal(owned.targets[1].status, 'supported');
+});
+
 test('Japanese text falls back to English, then Chinese', () => {
   const all = { 'zh-CN': '中文', en: 'English', ja: '日本語' };
   const noJa = { 'zh-CN': '中文', en: 'English' };

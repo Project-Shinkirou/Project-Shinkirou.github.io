@@ -40,6 +40,7 @@ variant = "desktop"
 tools = ["cargo", "xcrun"]
 manager_supported = true
 manager_blocked = ""
+blocked = "Apple builds are excluded from current CI and releases until the cross-build toolchain is validated."
 
 [[targets]]
 triple = "aarch64-linux-android"
