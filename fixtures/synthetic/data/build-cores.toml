@@ -18,7 +18,7 @@ static_manager_targets = ["aarch64-linux-android", "x86_64-linux-android", "aarc
 publish_blocked = ""
 [cores.source]
 repo = "https://github.com/Project-Shinkirou/rfvp"
-branch = "shinki-apple"
+branch = "shinki"
 rev = "7c241b477fb10efd981b20af67b1fb9745ec97fe"
 upstream = "https://github.com/xmoezzz/rfvp"
 [[cores.blocked]]
@@ -57,7 +57,7 @@ static_manager_targets = ["aarch64-apple-ios", "aarch64-apple-ios-sim", "x86_64-
 publish_blocked = ""
 [cores.source]
 repo = "https://github.com/Project-Shinkirou/siglus_rs"
-branch = "shinki-apple"
+branch = "shinki"
 rev = "2436c25fc966306e03cdada833b507eec97b51c4"
 upstream = "https://github.com/xmoezzz/siglus_rs"
 [[cores.blocked]]
@@ -179,7 +179,7 @@ static_manager_targets = ["aarch64-apple-ios", "aarch64-apple-ios-sim", "x86_64-
 publish_blocked = ""
 [cores.source]
 repo = "https://github.com/Project-Shinkirou/sena-rs"
-branch = "shinki-apple"
+branch = "shinki"
 rev = "696a83ccaf096d3dd49c3c9a7c1f948c35acfed8"
 upstream = "https://github.com/xmoezzz/sena-rs"
 [[cores.blocked]]
@@ -265,7 +265,7 @@ static_manager_targets = ["aarch64-apple-ios", "aarch64-apple-ios-sim", "x86_64-
 publish_blocked = ""
 [cores.source]
 repo = "https://github.com/Project-Shinkirou/ethornell-rs"
-branch = "shinki-apple"
+branch = "shinki"
 rev = "f8362be7d2f4d634c25a98a317dfe56ffae56346"
 upstream = "https://github.com/xmoezzz/ethornell-rs"
 [[cores.blocked]]
@@ -349,7 +349,7 @@ static_manager_targets = ["aarch64-apple-ios", "aarch64-apple-ios-sim", "x86_64-
 publish_blocked = ""
 [cores.source]
 repo = "https://github.com/Project-Shinkirou/ReMinori"
-branch = "shinki-apple"
+branch = "shinki"
 rev = "595b3e337e29fd4e3b711b45d02a7237459b01f8"
 upstream = "https://github.com/luoyily/ReMinori"
 [[cores.blocked]]
