@@ -1,0 +1,38 @@
+---
+// Supported engine families from build/cores.toml, each with its cores and
+// the best build state any of them has per platform.
+import PlatformStates from './PlatformStates.astro';
+import StateLegend from './StateLegend.astro';
+import { STRINGS, type Locale } from '../lib/i18n.ts';
+import { coreAnchor, engineFamilies } from '../lib/platforms.ts';
+import { site } from '../lib/site.ts';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = STRINGS[locale].engines;
+const base = `/${locale}`;
+const families = engineFamilies(site.matrix, site.targets);
+---
+
+<StateLegend locale={locale} />
+<ul class="grid grid-3 engine-grid">
+  {
+    families.map((family) => (
+      <li class="engine-tile">
+        <h3>{family.family}</h3>
+        <ul class="engine-cores">
+          {family.cores.map((core) => (
+            <li>
+              <a href={`${base}/shinkiemu/cores/#${coreAnchor(core.plugin_id)}`}>{core.core}</a>
+              {core.publish_blocked && <span class="chip chip-blocked">{t.publishBlocked}</span>}
+            </li>
+          ))}
+        </ul>
+        <PlatformStates states={family.states} locale={locale} label={t.platforms(family.family)} />
+      </li>
+    ))
+  }
+</ul>

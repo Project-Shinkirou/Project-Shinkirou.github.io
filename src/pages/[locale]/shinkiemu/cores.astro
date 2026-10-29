@@ -1,8 +1,9 @@
 ---
 import PlatformStates from '../../../components/PlatformStates.astro';
+import StateLegend from '../../../components/StateLegend.astro';
 import ProductLayout from '../../../layouts/ProductLayout.astro';
 import { formatBytes, LOCALES, STRINGS, type Locale } from '../../../lib/i18n.ts';
-import { coreAnchor } from '../../../lib/platforms.ts';
+import { coreAnchor, corePlatformStates } from '../../../lib/platforms.ts';
 import { site } from '../../../lib/site.ts';
 
 export function getStaticPaths() {
@@ -16,6 +17,7 @@ const base = `/${locale}`;
 const cores = site.matrix.map((core) => ({
   ...core,
   anchor: coreAnchor(core.plugin_id),
+  states: corePlatformStates(core, site.targets),
   supported: core.targets.filter((target) => target.status !== 'blocked').length,
   shortRevision: core.revision.slice(0, 12),
   repoName: core.repo.replace('https://github.com/', ''),
@@ -33,6 +35,7 @@ const cores = site.matrix.map((core) => ({
     <h1>{t.title}</h1>
     <p class="lead">{t.lead}</p>
     <p class="note">{t.supportedNote}</p>
+    <StateLegend locale={locale} />
     <nav aria-label={t.jump}>
       <ul class="jump-list">
         {
@@ -110,7 +113,7 @@ const cores = site.matrix.map((core) => ({
             </div>
           </dl>
 
-          <PlatformStates core={core} locale={locale} />
+          <PlatformStates states={core.states} locale={locale} label={`${core.core} · ${t.targets}`} />
 
           {(core.publish_blocked || core.static_manager_targets.length > 0 || core.siblings.length > 0) && (
             <ul class="core-notes">

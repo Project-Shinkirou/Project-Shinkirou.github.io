@@ -1,30 +1,33 @@
 ---
-// Per-platform build state of one core as icons. The state is carried by the
-// text label (visually hidden, also the tooltip) and by shape: blocked icons
-// are struck through, statically integrated ones are green with a dot.
+// Per-platform build state as icons, for one core or a whole engine family.
+// The state is carried by the text label (visually hidden, also the tooltip)
+// and by shape: blocked icons are struck through, statically integrated ones
+// are green with a dot.
 import PlatformIcon from './PlatformIcon.astro';
 import { STRINGS, type Locale } from '../lib/i18n.ts';
-import { corePlatformStates } from '../lib/platforms.ts';
-import type { MatrixCore } from '../lib/site-data.ts';
+import type { PlatformState } from '../lib/platforms.ts';
+import type { Platform } from '../lib/site-data.ts';
 
 interface Props {
-  core: MatrixCore;
+  states: readonly { platform: Platform; state: PlatformState }[];
   locale: Locale;
+  /** Accessible name of the list, e.g. which core or family it describes. */
+  label?: string;
 }
 
-const { core, locale } = Astro.props;
+const { states, locale, label } = Astro.props;
 const strings = STRINGS[locale];
 const t = strings.platformState;
 ---
 
-<ul class="platform-states">
+<ul class="platform-states" aria-label={label}>
   {
-    corePlatformStates(core).map(({ platform, state }) => {
-      const label = t.label(strings.platform[platform], t[state]);
+    states.map(({ platform, state }) => {
+      const text = t.label(strings.platform[platform], t[state]);
       return (
-        <li class:list={['platform-state', `is-${state}`]} title={label}>
+        <li class:list={['platform-state', `is-${state}`]} title={text}>
           <PlatformIcon platform={platform} size={20} />
-          <span class="sr-only">{label}</span>
+          <span class="sr-only">{text}</span>
         </li>
       );
     })

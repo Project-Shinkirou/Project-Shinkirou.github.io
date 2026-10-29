@@ -326,8 +326,15 @@ body.product [tabindex='-1']:focus {
   display: none;
 }
 @media (max-width: 30rem) {
+  .site-header-inner {
+    gap: 0.5rem;
+  }
   .brand span {
     font-size: 0.9375rem;
+  }
+  /* Globe-only language button on small phones; the summary keeps its aria-label. */
+  .control-lang span {
+    display: none;
   }
   /* The header GitHub icon moves into the menu on small phones. */
   .site-controls > .control-icon {
@@ -369,7 +376,9 @@ body.product [tabindex='-1']:focus {
   line-height: 1.3;
   text-align: center;
   text-decoration: none;
-  white-space: nowrap;
+  /* Labels stay on one line when they fit; long (e.g. ja) labels wrap instead of overflowing narrow screens. */
+  max-width: 100%;
+  text-wrap: balance;
   cursor: pointer;
   transition:
     background-color 0.15s,
@@ -402,6 +411,7 @@ body.product [tabindex='-1']:focus {
   color: var(--mn-text-strong);
 }
 :where(body.product) .button-ghost {
+  padding-inline: 0.25rem;
   color: var(--mn-text-strong);
   text-decoration: underline;
   text-decoration-color: var(--mn-border-strong);
@@ -622,44 +632,28 @@ body.product [tabindex='-1']:focus {
   position: relative;
   z-index: 1;
 }
-.link-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 1.25rem;
-  padding: 0;
-  list-style: none;
-  font-size: 0.9375rem;
-  position: relative;
-  z-index: 1;
-}
+/* ---------- Benefit facts ---------- */
 
-/* Snapshot numbers */
-.stat {
+.fact-card {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  height: 100%;
-  padding: 1.25rem 1.4rem;
-  background: var(--mn-bg-elevated);
-  border: 1px solid var(--mn-border);
-  border-radius: 1rem;
-  color: var(--mn-text);
-  text-decoration: none;
 }
-a.stat:hover {
-  border-color: var(--mn-accent);
-  color: var(--mn-text);
-}
-.stat-value {
+.fact-card h3 {
   color: var(--mn-text-strong);
-  font-size: clamp(2rem, 1.6rem + 1.4vw, 2.75rem);
-  font-weight: 750;
+  font-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
   font-variant-numeric: tabular-nums;
-  line-height: 1.15;
 }
-.stat-label {
-  color: var(--mn-text-muted);
+.fact-card p {
+  color: var(--mn-text-soft);
   font-size: 0.9375rem;
+}
+.fact-card .fact-link {
+  margin-top: auto;
+  padding-top: 0.85rem;
+  font-weight: 600;
+}
+.fact-card .fact-link a::after {
+  content: ' →';
 }
 
 /* Feature cards */
@@ -772,10 +766,51 @@ a.stat:hover {
   background: var(--mn-accent);
   color: var(--mn-on-accent);
 }
-.download-build {
-  display: grid;
-  gap: 0.5rem;
+.download-build-summary {
+  color: var(--mn-text-muted);
   font-size: 0.9375rem;
+}
+.release-note {
+  margin-top: 0.4rem;
+  color: var(--mn-text-muted);
+  font-size: 0.875rem;
+}
+.asset-actions {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: auto;
+  padding: 0;
+  list-style: none;
+}
+.asset-actions li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+}
+.asset-meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+.download-more {
+  border-top: 1px solid var(--mn-border);
+  padding-top: 0.75rem;
+  font-size: 0.875rem;
+}
+.download-more > summary {
+  color: var(--mn-text-soft);
+  font-weight: 600;
+  cursor: pointer;
+}
+.download-more[open] > * + * {
+  margin-top: 0.6rem;
+}
+.download-more-title {
+  color: var(--mn-text-muted);
+  font-weight: 600;
 }
 .target-list {
   display: grid;
@@ -790,28 +825,17 @@ a.stat:hover {
   justify-content: space-between;
   gap: 0.25rem 0.75rem;
 }
-.asset-list {
-  display: grid;
-  gap: 1rem;
-  margin-top: auto;
-  padding: 0;
-  list-style: none;
+.target-reason {
+  flex-basis: 100%;
+  color: var(--mn-text-muted);
+  font-size: 0.8125rem;
 }
-.asset {
-  display: grid;
+/* Home page: actions only, so the cards stay short. */
+.download-grid-compact .download-card {
   gap: 0.75rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--mn-border);
 }
-.asset-title {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem 0.5rem;
-  font-weight: 650;
-}
-.asset .button {
-  justify-self: start;
+.download-grid-compact .download-empty {
+  padding-top: 0.75rem;
 }
 .download-empty {
   display: grid;
@@ -911,9 +935,9 @@ a.stat:hover {
   height: 0.85rem;
 }
 
-/* ---------- Core tiles (ShinkiEMU page) ---------- */
+/* ---------- Engine grid ---------- */
 
-.core-tile {
+.engine-tile {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -922,63 +946,58 @@ a.stat:hover {
   border: 1px solid var(--mn-border);
   border-radius: 1rem;
 }
-.core-tile-head {
+.engine-tile h3 {
+  font-size: 1.125rem;
+}
+.engine-cores {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.25rem 0.75rem;
+  gap: 0.35rem 1rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9375rem;
 }
-.core-tile h3 {
-  font-size: 1.0625rem;
-}
-.core-tile h3 a {
-  color: var(--mn-text-strong);
-  text-decoration: none;
-}
-.core-tile h3 a:hover {
-  color: var(--mn-accent);
-  text-decoration: underline;
-}
-.core-meta {
-  color: var(--mn-text-muted);
-  font-size: 0.875rem;
-}
-.core-meta code {
-  color: var(--mn-text-soft);
-}
-.core-tile-foot {
-  display: flex;
+.engine-cores li {
+  display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.4rem;
+}
+.engine-tile .platform-states {
   margin-top: auto;
-  font-size: 0.875rem;
 }
 
-/* Resource links */
-.resource-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  height: 100%;
-  padding: 1rem 1.2rem;
-  background: var(--mn-bg-elevated);
-  border: 1px solid var(--mn-border);
-  border-radius: 0.85rem;
-  color: var(--mn-text-strong);
-  font-weight: 600;
-  text-decoration: none;
+/* ---------- Docs, community and source links ---------- */
+
+.resource-group {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--mn-border);
 }
-.resource-link::after {
-  content: '→';
-  color: var(--mn-accent);
+.resource-group h2,
+.resource-group h3 {
+  font-size: 1.0625rem;
 }
-.resource-link:hover {
-  border-color: var(--mn-accent);
-  color: var(--mn-text-strong);
+.resource-group p {
+  color: var(--mn-text-soft);
+}
+.resource-group ul {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0;
+  list-style: none;
+}
+
+.note-list {
+  display: grid;
+  gap: 0.4rem;
+  max-width: 50rem;
+  margin-top: 1.25rem;
+  padding-inline-start: 1.1rem;
+  color: var(--mn-text-muted);
+  font-size: 0.9375rem;
 }
 
 /* ---------- Compatibility ---------- */
@@ -1350,9 +1369,6 @@ button.legend-item[aria-pressed='true'] {
 }
 .core-card h3 {
   font-size: 1.0625rem;
-}
-.core-revision .hash {
-  font-size: 0.875em;
 }
 
 /* ---------- Patches ---------- */

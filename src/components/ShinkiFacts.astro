@@ -1,0 +1,70 @@
+---
+// Four short benefit cards for ShinkiEMU. Counts and platform names come from
+// the build inventory (build/targets.toml, build/cores.toml) and the metadata
+// snapshot, so they follow ShinkiEMU's main branch without copy changes.
+import { formatList, STRINGS, type Locale } from '../lib/i18n.ts';
+import { embeddedCores, engineFamilies, managerPlatforms } from '../lib/platforms.ts';
+import { site } from '../lib/site.ts';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const strings = STRINGS[locale];
+const t = strings.facts;
+const base = `/${locale}`;
+const names = (platforms: readonly (keyof typeof strings.platform)[]) =>
+  formatList(platforms.map((platform) => strings.platform[platform]), locale);
+
+const families = engineFamilies(site.matrix, site.targets);
+const platforms = managerPlatforms(site.targets);
+const embedded = embeddedCores(site.matrix, site.targets);
+
+const cards = [
+  {
+    title: t.engines.title(families.length),
+    body: [t.engines.body(site.matrix.length, formatList(families.map((family) => family.family), locale))],
+    href: `${base}/shinkiemu/cores/`,
+    link: t.engines.link,
+  },
+  {
+    title: t.platforms.title(platforms.available.length),
+    body: [
+      t.platforms.body(names(platforms.available)),
+      ...embedded.map((entry) => t.platforms.embedded(strings.platform[entry.platform], entry.cores.length)),
+      ...(platforms.blocked.length > 0 ? [t.platforms.blocked(names(platforms.blocked))] : []),
+    ],
+    href: `${base}/shinkiemu/docs/platforms/`,
+    link: t.platforms.link,
+  },
+  {
+    title: t.saves.title,
+    body: [t.saves.body],
+    href: `${base}/shinkiemu/docs/user-guide/#${t.saves.anchor}`,
+    link: t.saves.link,
+  },
+  {
+    title: t.patches.title(site.patches.length),
+    body: [t.patches.body, ...(site.patches.length === 0 ? [t.patches.empty] : [])],
+    href: `${base}/shinkiemu/patches/`,
+    link: t.patches.link,
+  },
+];
+---
+
+<ul class="grid grid-4 fact-grid">
+  {
+    cards.map((card) => (
+      <li class="card fact-card">
+        <h3>{card.title}</h3>
+        {card.body.map((line) => (
+          <p>{line}</p>
+        ))}
+        <p class="fact-link">
+          <a href={card.href}>{card.link}</a>
+        </p>
+      </li>
+    ))
+  }
+</ul>

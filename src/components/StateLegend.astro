@@ -1,0 +1,26 @@
+---
+// Legend for the platform state icons of PlatformStates.
+import PlatformIcon from './PlatformIcon.astro';
+import { STRINGS, type Locale } from '../lib/i18n.ts';
+
+interface Props {
+  locale: Locale;
+}
+
+const t = STRINGS[Astro.props.locale].platformState;
+---
+
+<ul class="state-legend" aria-label={t.legend}>
+  <li>
+    <span class="platform-state is-supported" aria-hidden="true"><PlatformIcon platform="windows" /></span>
+    {t.legendSupported}
+  </li>
+  <li>
+    <span class="platform-state is-static" aria-hidden="true"><PlatformIcon platform="android" /></span>
+    {t.legendStatic}
+  </li>
+  <li>
+    <span class="platform-state is-blocked" aria-hidden="true"><PlatformIcon platform="windows" /></span>
+    {t.legendBlocked}
+  </li>
+</ul>

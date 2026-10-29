@@ -1,0 +1,65 @@
+---
+// Docs, community and source links in three short columns. `product` limits
+// the links to one project's page.
+import { STRINGS, type Locale } from '../lib/i18n.ts';
+import { ROUKAKU_REPO, SHINKIEMU_REPO } from '../lib/site-data.ts';
+import { ISSUES_URL, ORG_URL, RELEASES_URL } from '../lib/site.ts';
+
+interface Props {
+  locale: Locale;
+  product?: 'all' | 'shinkiemu';
+}
+
+const { locale, product = 'all' } = Astro.props;
+const t = STRINGS[locale].resources;
+const docs = `/${locale}/shinkiemu/docs`;
+const all = product === 'all';
+
+const groups = [
+  {
+    title: t.docs,
+    links: [
+      { href: `${docs}/user-guide/`, label: t.userGuide },
+      { href: `${docs}/platforms/`, label: t.platforms },
+      { href: `${docs}/build-and-release/`, label: t.buildRelease },
+      { href: `${docs}/core-abi/`, label: t.coreAbi },
+      ...(all ? [{ href: `/${locale}/roukaku/docs/`, label: t.roukakuDocs }] : []),
+    ],
+  },
+  {
+    title: t.community,
+    links: [
+      { href: `${ISSUES_URL}/new/choose`, label: t.submitReport },
+      { href: `${docs}/metadata/`, label: t.contributing },
+      { href: ISSUES_URL, label: t.issues },
+    ],
+  },
+  {
+    title: t.source,
+    links: [
+      { href: SHINKIEMU_REPO, label: t.shinkiemuRepo },
+      ...(all ? [{ href: ROUKAKU_REPO, label: t.roukakuRepo }] : []),
+      { href: RELEASES_URL, label: t.releases },
+      { href: '/data/shinkiemu/v1/index.json', label: t.metadata },
+      ...(all ? [{ href: ORG_URL, label: t.organization }] : []),
+    ],
+  },
+];
+---
+
+<div class="grid grid-3 resource-groups">
+  {
+    groups.map((group) => (
+      <div class="resource-group">
+        <h3>{group.title}</h3>
+        <ul>
+          {group.links.map((link) => (
+            <li>
+              <a href={link.href}>{link.label}</a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))
+  }
+</div>

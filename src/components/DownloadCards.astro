@@ -1,30 +1,28 @@
 ---
-// Per-platform ShinkiEMU Manager download cards: build status from the build
-// inventory, and the latest Manager release's package for that platform when
-// one exists. The visitor's own OS is highlighted client-side.
+// Per-platform ShinkiEMU Manager downloads: the latest Manager release's
+// packages for each platform, with build status from the build inventory.
+// `compact` (home page) shows only the actions; the full view adds targets,
+// sizes and checksums in a collapsed panel. The visitor's own platform is
+// highlighted and moved first client-side.
 import PlatformIcon from './PlatformIcon.astro';
 import { formatBytes, formatUtc, STRINGS, type Locale } from '../lib/i18n.ts';
-import { PLATFORM_ORDER } from '../lib/platforms.ts';
+import { managerDownloads } from '../lib/platforms.ts';
+import type { ManagerAsset } from '../lib/site-data.ts';
 import { RELEASES_URL, site } from '../lib/site.ts';
 
 interface Props {
   locale: Locale;
+  compact?: boolean;
 }
 
-const { locale } = Astro.props;
+const { locale, compact = false } = Astro.props;
 const strings = STRINGS[locale];
 const t = strings.download;
 const release = site.manager_release;
 const buildDocs = `/${locale}/shinkiemu/docs/build-and-release/`;
-const cards = PLATFORM_ORDER.map((platform) => {
-  const targets = site.targets.filter((target) => target.platform === platform);
-  return {
-    platform,
-    targets,
-    supported: targets.filter((target) => target.manager.status === 'supported').length,
-    assets: release ? release.assets.filter((asset) => asset.platform === platform) : [],
-  };
-});
+const cards = managerDownloads(site.targets, release);
+const assetTitle = (asset: ManagerAsset) =>
+  [strings.architecture[asset.architecture], asset.variant ? strings.variant[asset.variant] : null].filter(Boolean).join(' · ');
 ---
 
 <div class="release-line">
@@ -48,12 +46,13 @@ const cards = PLATFORM_ORDER.map((platform) => {
       </p>
     )
   }
+  {!compact && <p class="release-note">{t.componentNote}</p>}
 </div>
 
-<ul class="download-grid">
+<ul class:list={['download-grid', { 'download-grid-compact': compact }]} data-download-grid>
   {
     cards.map((card) => (
-      <li class="download-card" data-platform={card.platform}>
+      <li class:list={['download-card', `is-${card.state}`]} data-platform={card.platform}>
         <div class="download-head">
           <PlatformIcon platform={card.platform} size={28} class="download-icon" />
           <h3>{strings.platform[card.platform]}</h3>
@@ -62,60 +61,35 @@ const cards = PLATFORM_ORDER.map((platform) => {
           </span>
         </div>
 
-        <div class="download-build">
-          <p class="download-build-summary">
-            <span class="muted">{t.buildStatus}</span> {t.targetState(card.supported, card.targets.length)}
-          </p>
-          {card.targets.length > 0 && (
-            <ul class="target-list">
-              {card.targets.map((target) => (
-                <li>
-                  <span>
-                    {strings.architecture[target.architecture]} · {strings.variant[target.variant]}
-                  </span>
-                  <span class={`chip chip-${target.manager.status}`}>
-                    {target.manager.status === 'supported' ? strings.platformState.supported : strings.platformState.blocked}
-                  </span>
-                </li>
-              ))}
-            </ul>
+        <p class="download-build-summary">
+          {t.targetState(card.supported, card.targets.length)}
+          {card.state === 'test' && (
+            <>
+              {' '}
+              <span class="chip chip-warning">{t.testOnly}</span>
+            </>
           )}
-        </div>
+        </p>
 
         {card.assets.length > 0 ? (
-          <ul class="asset-list">
+          <ul class="asset-actions">
             {card.assets.map((asset) => {
-              const title = [strings.architecture[asset.architecture], asset.variant ? strings.variant[asset.variant] : null]
-                .filter(Boolean)
-                .join(' · ');
+              const title = assetTitle(asset);
               const detail = asset.variant ? `${title} ${t.testPackage}` : title;
               return (
-                <li class="asset">
-                  <p class="asset-title">
-                    {title}
-                    {asset.variant && <span class="chip chip-warning">{t.testPackage}</span>}
-                  </p>
-                  <dl class="facts facts-compact">
-                    <div>
-                      <dt>{t.version}</dt>
-                      <dd>{release?.version}</dd>
-                    </div>
-                    <div>
-                      <dt>{t.size}</dt>
-                      <dd>{formatBytes(asset.size, locale)}</dd>
-                    </div>
-                    <div class="facts-wide">
-                      <dt>{t.sha256}</dt>
-                      <dd>{asset.sha256 ? <code class="hash">{asset.sha256}</code> : <span class="muted">{t.noSha256}</span>}</dd>
-                    </div>
-                  </dl>
+                <li>
                   <a
-                    class="button button-primary"
+                    class:list={['button', asset.variant ? 'button-secondary' : 'button-primary']}
                     href={asset.url}
                     aria-label={t.downloadLabel(strings.platform[card.platform], detail, release?.version ?? '')}
                   >
                     {t.download}
                   </a>
+                  <span class="asset-meta">
+                    {title}
+                    {asset.variant && <span class="chip chip-warning">{t.testPackage}</span>}
+                    <span class="muted">{formatBytes(asset.size, locale)}</span>
+                  </span>
                 </li>
               );
             })}
@@ -129,26 +103,63 @@ const cards = PLATFORM_ORDER.map((platform) => {
             </p>
           </div>
         )}
+
+        {!compact && (card.targets.length > 0 || card.assets.length > 0) && (
+          <details class="download-more">
+            <summary>{t.details}</summary>
+            {card.targets.length > 0 && (
+              <>
+                <p class="download-more-title">{t.buildStatus}</p>
+                <ul class="target-list">
+                  {card.targets.map((target) => (
+                    <li>
+                      <span>
+                        {strings.architecture[target.architecture]} · {strings.variant[target.variant]}
+                      </span>
+                      <span class={`chip chip-${target.manager.status}`}>
+                        {target.manager.status === 'supported' ? strings.platformState.supported : strings.platformState.blocked}
+                      </span>
+                      {target.manager.reason && <span class="target-reason">{target.manager.reason}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {card.assets.map((asset) => (
+              <dl class="facts facts-compact">
+                <div class="facts-wide">
+                  <dt>{t.version}</dt>
+                  <dd>
+                    {release?.version} · {assetTitle(asset)}
+                  </dd>
+                </div>
+                <div class="facts-wide">
+                  <dt>{t.sha256}</dt>
+                  <dd>{asset.sha256 ? <code class="hash">{asset.sha256}</code> : <span class="muted">{t.noSha256}</span>}</dd>
+                </div>
+              </dl>
+            ))}
+          </details>
+        )}
       </li>
     ))
   }
 </ul>
 
 <script>
-  // Progressive enhancement: mark the card for the visitor's OS.
-  const ua = navigator.userAgent;
-  let current: string | null = null;
-  if (/OpenHarmony|HarmonyOS/i.test(ua)) current = 'ohos';
-  else if (/Android/i.test(ua)) current = 'android';
-  else if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) current = 'ios';
-  else if (/Macintosh|Mac OS X/.test(ua)) current = 'macos';
-  else if (/Windows/.test(ua)) current = 'windows';
-  else if (/Linux|X11|CrOS/.test(ua)) current = 'linux';
+  import { detectPlatform } from '../lib/detect-platform.ts';
 
-  const card = current ? document.querySelector<HTMLElement>(`.download-card[data-platform="${current}"]`) : null;
-  if (card) {
-    card.classList.add('is-current');
-    const badge = card.querySelector<HTMLElement>('[data-current-badge]');
-    if (badge) badge.hidden = false;
+  // Progressive enhancement: highlight the card for the visitor's platform
+  // and move it to the front of its grid.
+  const current = detectPlatform();
+  if (current) {
+    for (const grid of document.querySelectorAll<HTMLElement>('[data-download-grid]')) {
+      const card = grid.querySelector<HTMLElement>(`.download-card[data-platform="${current}"]`);
+      if (!card) continue;
+      card.classList.add('is-current');
+      grid.prepend(card);
+      const badge = card.querySelector<HTMLElement>('[data-current-badge]');
+      if (badge) badge.hidden = false;
+    }
   }
 </script>

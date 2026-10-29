@@ -1,0 +1,58 @@
+---
+// Primary download action. Server-rendered it links to the download section;
+// client-side it names the visitor's platform and, when the latest Manager
+// release has exactly one regular package for it, links to that package.
+// Platforms without a regular package keep the generic label and link.
+import { STRINGS, type Locale } from '../lib/i18n.ts';
+import { managerDownloads } from '../lib/platforms.ts';
+import { site } from '../lib/site.ts';
+
+interface Props {
+  locale: Locale;
+  /** Where the generic action points: the page's download section. */
+  href: string;
+}
+
+const { locale, href } = Astro.props;
+const strings = STRINGS[locale];
+const t = strings.download;
+// Serialized into a data attribute for the client script, hence a plain object.
+const perPlatform = Object.fromEntries(
+  managerDownloads(site.targets, site.manager_release)
+    .filter((card) => card.state === 'download')
+    .map((card) => {
+      const label = t.ctaFor(strings.platform[card.platform]);
+      const choice = card.direct
+        ? {
+            label,
+            href: card.direct.url,
+            aria: t.downloadLabel(
+              strings.platform[card.platform],
+              strings.architecture[card.direct.architecture],
+              site.manager_release?.version ?? '',
+            ),
+          }
+        : { label, href, aria: `${label} · ${t.choose}` };
+      return [card.platform, choice];
+    }),
+);
+---
+
+<a class="button button-primary" href={href} data-download-button data-platforms={JSON.stringify(perPlatform)}>
+  {t.cta}
+</a>
+
+<script>
+  import { detectPlatform } from '../lib/detect-platform.ts';
+
+  const current = detectPlatform();
+  for (const button of document.querySelectorAll<HTMLAnchorElement>('[data-download-button]')) {
+    const choice = current
+      ? (JSON.parse(button.dataset.platforms ?? '{}') as Record<string, { label: string; href: string; aria: string }>)[current]
+      : undefined;
+    if (!choice) continue;
+    button.textContent = choice.label;
+    button.href = choice.href;
+    button.setAttribute('aria-label', choice.aria);
+  }
+</script>

@@ -1,13 +1,14 @@
 ---
+import DownloadButton from '../../../components/DownloadButton.astro';
 import DownloadCards from '../../../components/DownloadCards.astro';
+import EngineGrid from '../../../components/EngineGrid.astro';
 import PageHero from '../../../components/PageHero.astro';
-import PlatformIcon from '../../../components/PlatformIcon.astro';
-import PlatformStates from '../../../components/PlatformStates.astro';
+import ResourceLinks from '../../../components/ResourceLinks.astro';
+import ShinkiFacts from '../../../components/ShinkiFacts.astro';
 import ProductLayout from '../../../layouts/ProductLayout.astro';
 import { LOCALES, STRINGS, type Locale } from '../../../lib/i18n.ts';
-import { SHINKIEMU_REPO } from '../../../lib/site-data.ts';
-import { ISSUES_URL, site } from '../../../lib/site.ts';
-import { coreAnchor } from '../../../lib/platforms.ts';
+import { engineFamilies } from '../../../lib/platforms.ts';
+import { site } from '../../../lib/site.ts';
 
 export function getStaticPaths() {
   return LOCALES.map((locale) => ({ params: { locale } }));
@@ -16,53 +17,58 @@ export function getStaticPaths() {
 const locale = Astro.params.locale as Locale;
 const strings = STRINGS[locale];
 const t = strings.shinkiemu;
-const legend = strings.platformState;
-const coreText = strings.cores;
 const base = `/${locale}`;
-const reports: Record<string, number> = {};
-for (const entry of site.compatibility) reports[entry.emulator] = (reports[entry.emulator] ?? 0) + 1;
-
-const features = [
-  { title: t.managerTitle, body: t.managerBody },
-  { title: t.coresTitle, body: t.coresBody },
-  { title: t.idsTitle, body: t.idsBody },
-];
-const resources = [
-  { href: `${base}/shinkiemu/docs/`, label: t.docs },
-  { href: `${base}/shinkiemu/docs/platforms/`, label: t.platforms },
-  { href: `${base}/shinkiemu/patches/`, label: t.patches },
-  { href: `${ISSUES_URL}/new/choose`, label: t.report },
-  { href: SHINKIEMU_REPO, label: t.source },
-  { href: '/data/shinkiemu/v1/index.json', label: t.data },
-];
+const families = engineFamilies(site.matrix, site.targets).length;
 ---
 
 <ProductLayout locale={locale} title={t.title} description={t.description} current="shinkiemu">
   <PageHero eyebrow={t.eyebrow} title="ShinkiEMU" pitch={t.pitch} lead={t.lead}>
-    <a class="button button-primary" href="#download">{t.download}</a>
-    <a class="button button-secondary" href={`${base}/shinkiemu/compatibility/`}>{t.compatibility}</a>
-    <a class="button button-ghost" href={`${base}/shinkiemu/docs/user-guide/`}>{t.guide}</a>
+    <DownloadButton locale={locale} href="#download" />
+    <a class="button button-secondary" href="#download">{strings.download.allPlatforms}</a>
+    <a class="button button-ghost" href={`${base}/shinkiemu/compatibility/`}>{t.compatibility}</a>
   </PageHero>
 
-  <section class="section container" aria-labelledby="what-title">
+  <section class="section container" aria-labelledby="facts-title">
     <div class="section-head">
-      <h2 id="what-title">{t.whatTitle}</h2>
+      <h2 id="facts-title">{strings.facts.title}</h2>
     </div>
-    <div class="grid grid-3">
+    <ShinkiFacts locale={locale} />
+  </section>
+
+  <section class="section container" aria-labelledby="steps-title">
+    <div class="section-head">
+      <h2 id="steps-title">{t.stepsTitle}</h2>
+    </div>
+    <ol class="grid grid-3 step-list">
       {
-        features.map((feature, i) => (
-          <article class="card feature-card">
+        t.steps.map((step, i) => (
+          <li class="card feature-card">
             <h3>
               <span class="feature-index" aria-hidden="true">
                 {i + 1}
               </span>
-              {feature.title}
+              {step.title}
             </h3>
-            <p>{feature.body}</p>
-          </article>
+            <p>{step.body}</p>
+          </li>
         ))
       }
+    </ol>
+    <p class="section-foot">
+      <a href={`${base}/shinkiemu/docs/user-guide/`}>{t.guide}</a>
+    </p>
+  </section>
+
+  <section class="section container" aria-labelledby="engines-title">
+    <div class="section-head">
+      <h2 id="engines-title">{strings.engines.title}</h2>
+      <p><strong>{strings.engines.summary(families, site.matrix.length)}</strong></p>
+      <p>{strings.engines.lead}</p>
     </div>
+    <EngineGrid locale={locale} />
+    <p class="section-foot">
+      <a class="button button-secondary" href={`${base}/shinkiemu/cores/`}>{strings.engines.allCores}</a>
+    </p>
   </section>
 
   <section class="section container" id="download" aria-labelledby="download-title" tabindex="-1">
@@ -73,89 +79,10 @@ const resources = [
     <DownloadCards locale={locale} />
   </section>
 
-  <section class="section container" aria-labelledby="cores-title">
+  <section class="section container" aria-labelledby="resources-title">
     <div class="section-head">
-      <h2 id="cores-title">{t.coresGridTitle}</h2>
-      <p>{t.coresGridLead}</p>
+      <h2 id="resources-title">{strings.resources.title}</h2>
     </div>
-    <ul class="state-legend" aria-label={legend.legend}>
-      <li>
-        <span class="platform-state is-supported" aria-hidden="true"><PlatformIcon platform="windows" /></span>
-        {legend.legendSupported}
-      </li>
-      <li>
-        <span class="platform-state is-static" aria-hidden="true"><PlatformIcon platform="ios" /></span>
-        {legend.legendStatic}
-      </li>
-      <li>
-        <span class="platform-state is-blocked" aria-hidden="true"><PlatformIcon platform="windows" /></span>
-        {legend.legendBlocked}
-      </li>
-    </ul>
-    <ul class="grid grid-3">
-      {
-        site.matrix.map((core) => {
-          const count = reports[core.plugin_id] ?? 0;
-          return (
-            <li class="core-tile">
-              <div class="core-tile-head">
-                <h3>
-                  <a href={`${base}/shinkiemu/cores/#${coreAnchor(core.plugin_id)}`} aria-label={t.coreDetails(core.core)}>
-                    {core.core}
-                  </a>
-                </h3>
-                <span class="core-meta">{core.family}</span>
-              </div>
-              <p class="core-meta">
-                <code>{core.plugin_id}</code> · {core.license}
-              </p>
-              <p class="core-meta core-revision">
-                {coreText.coreVersion} <code>{core.version}</code> ·{' '}
-                <a href={`${core.repo}/tree/${core.revision}`} aria-label={coreText.revisionLabel(core.revision.slice(0, 12), core.repo.replace('https://github.com/', ''))}>
-                  <code class="hash">{core.revision.slice(0, 12)}</code>
-                </a>
-                {core.upstream && (
-                  <>
-                    {' · '}
-                    <a href={core.upstream} aria-label={coreText.upstreamLabel(core.core)}>
-                      {coreText.upstream}
-                    </a>
-                  </>
-                )}
-              </p>
-              <PlatformStates core={core} locale={locale} />
-              <div class="core-tile-foot">
-                {count === 0 ? (
-                  <span class="muted">{t.reports(0)}</span>
-                ) : (
-                  <a href={`${base}/shinkiemu/compatibility/?core=${encodeURIComponent(core.plugin_id)}`}>{t.reports(count)}</a>
-                )}
-                {core.publish_blocked && <span class="chip chip-blocked">{t.publishBlocked}</span>}
-              </div>
-            </li>
-          );
-        })
-      }
-    </ul>
-    <p class="section-foot">
-      <a class="button button-secondary" href={`${base}/shinkiemu/cores/`}>{t.allCores}</a>
-    </p>
-  </section>
-
-  <section class="section container" aria-labelledby="links-title">
-    <div class="section-head">
-      <h2 id="links-title">{t.linksTitle}</h2>
-    </div>
-    <ul class="grid grid-3">
-      {
-        resources.map((link) => (
-          <li>
-            <a class="resource-link" href={link.href}>
-              {link.label}
-            </a>
-          </li>
-        ))
-      }
-    </ul>
+    <ResourceLinks locale={locale} product="shinkiemu" />
   </section>
 </ProductLayout>

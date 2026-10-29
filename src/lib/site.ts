@@ -5,5 +5,6 @@ import type { SiteData } from './site-data.ts';
 
 export const site = generated as SiteData;
 
+export const ORG_URL = 'https://github.com/Project-Shinkirou';
 export const ISSUES_URL = 'https://github.com/Project-Shinkirou/ShinkiEMU/issues';
 export const RELEASES_URL = 'https://github.com/Project-Shinkirou/ShinkiEMU/releases';

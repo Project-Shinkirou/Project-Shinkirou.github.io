@@ -11,7 +11,8 @@ export function getStaticPaths() {
 }
 
 const locale = Astro.params.locale as Locale;
-const t = STRINGS[locale].roukaku;
+const strings = STRINGS[locale];
+const t = strings.roukaku;
 const docsBase = `/${locale}/roukaku/docs`;
 // The build guide is linked on the site when the imported docs contain it,
 // otherwise at the pinned revision in the repository.
@@ -50,16 +51,16 @@ const installCommands = [
     <div class="section-head">
       <h2 id="parts-title">{t.partsTitle}</h2>
     </div>
-    <div class="grid grid-4 parts-grid">
+    <ul class="grid grid-4 parts-grid">
       {
         parts.map((part) => (
-          <article class="card feature-card tone-gold">
+          <li class="card feature-card tone-gold">
             <h3>{part.code ? <code>roukaku</code> : part.name}</h3>
             <p>{part.body}</p>
-          </article>
+          </li>
         ))
       }
-    </div>
+    </ul>
   </section>
 
   <section class="section container" aria-labelledby="start-title">
@@ -69,7 +70,7 @@ const installCommands = [
         {t.startBody} <a href={buildGuide}>{t.buildGuide}</a>
       </p>
     </div>
-    <div class="grid">
+    <div class="grid grid-2">
       <figure class="card code-card">
         <figcaption>{t.commandsLabel(t.startTitle)}</figcaption>
         <pre tabindex="0"><code>{buildCommands}</code></pre>
@@ -79,28 +80,40 @@ const installCommands = [
         <pre tabindex="0"><code>{installCommands}</code></pre>
       </figure>
     </div>
-    <p class="section-foot">
-      {t.startMore} <a href={`${docsBase}/quick-start/`}>{t.quickStart}</a>
-    </p>
-    <p class="note">{t.noDownloads}</p>
-    <p class="note">{t.platformNote}</p>
+    <ul class="note-list">
+      <li>
+        {t.startMore} <a href={`${docsBase}/quick-start/`}>{t.quickStart}</a>
+      </li>
+      <li>{t.noDownloads}</li>
+      <li>{t.platformNote}</li>
+    </ul>
   </section>
 
   <section class="section container" aria-labelledby="relation-title">
-    <div class="grid grid-2">
-      <article class="card">
+    <div class="grid grid-3 resource-groups">
+      <div class="resource-group">
         <h2 id="relation-title">{t.relationTitle}</h2>
         <p>{t.relationBody}</p>
         <p><a href={`/${locale}/shinkiemu/`}>ShinkiEMU</a></p>
-      </article>
-      <article class="card" aria-labelledby="license-title">
+      </div>
+      <div class="resource-group">
         <h2 id="license-title">{t.licenseTitle}</h2>
         <p>{t.licenseBody}</p>
-        <p>
-          <a href={`${ROUKAKU_REPO}/blob/${site.sources.roukaku_commit}/LICENSE-MIT`}>LICENSE-MIT</a> ·{' '}
-          <a href={`${ROUKAKU_REPO}/blob/${site.sources.roukaku_commit}/LICENSE-APACHE`}>LICENSE-APACHE</a>
-        </p>
-      </article>
+        <ul>
+          <li><a href={`${ROUKAKU_REPO}/blob/${site.sources.roukaku_commit}/LICENSE-MIT`}>LICENSE-MIT</a></li>
+          <li><a href={`${ROUKAKU_REPO}/blob/${site.sources.roukaku_commit}/LICENSE-APACHE`}>LICENSE-APACHE</a></li>
+        </ul>
+      </div>
+      <div class="resource-group">
+        <h2 id="roukaku-links-title">{strings.resources.title}</h2>
+        <ul>
+          <li><a href={`${docsBase}/`}>{strings.resources.roukakuDocs}</a></li>
+          <li><a href={`${docsBase}/quick-start/`}>{strings.resources.quickStart}</a></li>
+          <li><a href={buildGuide}>{t.buildGuide}</a></li>
+          <li><a href={ROUKAKU_REPO}>{strings.resources.roukakuRepo}</a></li>
+          <li><a href={`${ROUKAKU_REPO}/issues`}>{strings.resources.issues}</a></li>
+        </ul>
+      </div>
     </div>
   </section>
 </ProductLayout>
