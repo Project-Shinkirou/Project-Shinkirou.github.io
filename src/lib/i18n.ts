@@ -85,13 +85,13 @@ const zh = {
     downloadLead: 'Manager 最新版本在各平台的安装包和构建状态。',
   },
   facts: {
-    title: 'ShinkiEMU 能做什么',
+    title: 'ShinkiEMU 概览',
     engines: {
       title: (n: number) => `${n} 个引擎家族`,
       body: (total: string, share: string, recorded: string) =>
         `VNDB 里用这些引擎制作的版本共 ${total} 个，占登记了引擎的 ${recorded} 个版本的 ${share}。`,
       listLabel: '各引擎家族在 VNDB 的版本数',
-      note: '按 VNDB 的版本（release）条目计数。有对应核心不代表每部作品都能运行，请以兼容性报告为准。',
+      note: '按 VNDB 的版本（release）条目计数。占比的分母是登记了引擎的版本，没有登记引擎的版本不计入。有对应核心不代表每部作品都能运行，请以兼容性报告为准。',
       source: (date: string) => `数据来源：VNDB，${date}`,
       link: '查看核心',
     },
@@ -113,10 +113,13 @@ const zh = {
           name: '存档位置',
           body: '外部核心沿用原引擎的存档位置，例如 siglus-rs 写入 <game>/savedata，ReMinori 写入 <game>/userdata。',
         },
-        { name: '设置清理', body: '核心更新后废弃的设置会自动清除，并提示一次。' },
         {
-          name: '文本翻译',
-          body: '游戏文本可以通过 OpenAI、Anthropic 或 Google 的 API 翻译，API 密钥保存在系统凭据库里。',
+          name: '界面语言',
+          body: 'Manager 界面提供简体中文、英文和日文，自带中日文字体，可以跟随系统语言。',
+        },
+        {
+          name: '实时翻译',
+          body: '游戏运行时，文本可以经 OpenAI、Anthropic 或 Google 的 API 翻译后显示，API 密钥保存在系统凭据库里。',
         },
       ],
       link: '用户指南',
@@ -125,7 +128,10 @@ const zh = {
       title: '商店下载',
       stores: [
         { name: 'Steam', body: '登录商店账号后选择 depot 和分支下载，支持增量更新和校验修复。' },
-        { name: 'DLsite', body: '登录商店账号后下载已购作品的 PC 文件。ZIP 会自动解压，RAR 和安装程序需要自己处理。' },
+        {
+          name: 'DLsite',
+          body: '在 Manager 内嵌的网页里登录，登录信息直接交给 Manager，然后下载已购作品的 PC 文件。ZIP 会自动解压，RAR 和安装程序需要自己处理。',
+        },
         { name: 'DMM GAMES / FANZA', body: '可以登录商店账号，下载功能暂未提供。' },
       ],
       note: '只能下载账号已购买的 PC 版本，Manager 不会绕过 DRM。',
@@ -496,13 +502,13 @@ const en: Strings = {
     downloadLead: 'The latest Manager packages and build status for each platform.',
   },
   facts: {
-    title: 'What ShinkiEMU does',
+    title: 'ShinkiEMU at a glance',
     engines: {
       title: (n: number) => `${n} engine ${n === 1 ? 'family' : 'families'}`,
       body: (total: string, share: string, recorded: string) =>
         `VNDB lists ${total} releases made with these engines, ${share} of the ${recorded} releases that have an engine recorded.`,
       listLabel: 'VNDB releases per engine family',
-      note: 'Counts are VNDB release entries. A core for the engine does not mean every work runs; check the compatibility reports.',
+      note: 'Counts are VNDB release entries. The share is taken over releases with an engine recorded; releases without one are left out. A core for the engine does not mean every work runs; check the compatibility reports.',
       source: (date: string) => `Source: VNDB, ${date}`,
       link: 'Browse cores',
     },
@@ -524,10 +530,13 @@ const en: Strings = {
           name: 'Save locations',
           body: 'External cores keep the original engine’s save location, such as <game>/savedata for siglus-rs and <game>/userdata for ReMinori.',
         },
-        { name: 'Settings cleanup', body: 'Settings retired by a core update are removed automatically, with a one-time notice.' },
         {
-          name: 'Text translation',
-          body: 'Game text can be translated through the OpenAI, Anthropic or Google API. The API key is kept in the system credential store.',
+          name: 'Interface language',
+          body: 'The Manager UI is available in Simplified Chinese, English and Japanese, bundles CJK fonts and can follow the system language.',
+        },
+        {
+          name: 'Live translation',
+          body: 'While a game runs, its text can be translated through the OpenAI, Anthropic or Google API before it is shown. The API key is kept in the system credential store.',
         },
       ],
       link: 'User guide',
@@ -536,7 +545,10 @@ const en: Strings = {
       title: 'Store downloads',
       stores: [
         { name: 'Steam', body: 'Sign in with your store account, pick depots and a branch, and download. Delta updates and verify/repair are included.' },
-        { name: 'DLsite', body: 'Sign in with your store account and download the PC files of works you own. ZIPs are extracted; RAR parts and installers are left for you.' },
+        {
+          name: 'DLsite',
+          body: 'Sign in on a store page embedded in the Manager, which takes the session from there, then download the PC files of works you own. ZIPs are extracted; RAR parts and installers are left for you.',
+        },
         { name: 'DMM GAMES / FANZA', body: 'You can sign in with your store account. Downloads are not available yet.' },
       ],
       note: 'Only PC downloads your account has purchased. Manager does not bypass DRM.',
@@ -910,13 +922,13 @@ const ja: Strings = {
     downloadLead: 'プラットフォームごとの Manager 最新パッケージとビルド状況です。',
   },
   facts: {
-    title: 'ShinkiEMU でできること',
+    title: 'ShinkiEMU の概要',
     engines: {
       title: (n: number) => `${n} のエンジン系統`,
       body: (total: string, share: string, recorded: string) =>
         `VNDB に登録された、これらのエンジンで作られたリリースは ${total} 件です。エンジンが記録されている ${recorded} 件の ${share} にあたります。`,
       listLabel: 'エンジン系統ごとの VNDB リリース数',
-      note: 'VNDB のリリース項目の件数です。対応コアがあっても、すべての作品が動くとは限りません。互換性レポートで確認してください。',
+      note: 'VNDB のリリース項目の件数です。割合の分母はエンジンが記録されているリリースで、記録のないリリースは含みません。対応コアがあっても、すべての作品が動くとは限りません。互換性レポートで確認してください。',
       source: (date: string) => `出典：VNDB、${date}`,
       link: 'コアを見る',
     },
@@ -938,10 +950,13 @@ const ja: Strings = {
           name: 'セーブの場所',
           body: '外部コアは元のエンジンのセーブ場所をそのまま使います。たとえば siglus-rs は <game>/savedata、ReMinori は <game>/userdata です。',
         },
-        { name: '設定の整理', body: 'コアの更新で廃止された設定は自動的に削除され、1 回だけ通知されます。' },
         {
-          name: 'テキスト翻訳',
-          body: 'ゲームのテキストを OpenAI、Anthropic、Google の API で翻訳できます。API キーはシステムの資格情報ストアに保存されます。',
+          name: '表示言語',
+          body: 'Manager の画面は簡体字中国語、英語、日本語に対応し、中国語と日本語のフォントを同梱しています。システムの言語に合わせることもできます。',
+        },
+        {
+          name: 'リアルタイム翻訳',
+          body: 'ゲームの実行中に、テキストを OpenAI、Anthropic、Google の API で翻訳して表示できます。API キーはシステムの資格情報ストアに保存されます。',
         },
       ],
       link: 'ユーザーガイド',
@@ -950,7 +965,10 @@ const ja: Strings = {
       title: 'ストアからのダウンロード',
       stores: [
         { name: 'Steam', body: 'ストアのアカウントでサインインし、depot とブランチを選んでダウンロードします。差分更新と検証・修復にも対応します。' },
-        { name: 'DLsite', body: 'ストアのアカウントでサインインし、購入済み作品の PC 版ファイルをダウンロードします。ZIP は自動で展開し、RAR とインストーラーは手動で処理します。' },
+        {
+          name: 'DLsite',
+          body: 'Manager に埋め込まれたストアのページでサインインすると、Manager がそのままセッションを受け取ります。購入済み作品の PC 版ファイルをダウンロードでき、ZIP は自動で展開します。RAR とインストーラーは手動で処理します。',
+        },
         { name: 'DMM GAMES / FANZA', body: 'ストアのアカウントでサインインできます。ダウンロードにはまだ対応していません。' },
       ],
       note: 'ダウンロードできるのはアカウントで購入済みの PC 版だけです。Manager は DRM を回避しません。',

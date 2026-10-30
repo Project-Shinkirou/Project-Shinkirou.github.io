@@ -642,6 +642,8 @@ body.product [tabindex='-1']:focus {
   color: var(--mn-text-strong);
   font-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
   font-variant-numeric: tabular-nums;
+  /* Break Japanese headings between phrases, not inside a katakana word. */
+  word-break: auto-phrase;
 }
 .fact-card p {
   color: var(--mn-text-soft);
