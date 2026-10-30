@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { localizedText } from '../src/lib/i18n.ts';
-import { BUILD_CORES_SCHEMA, BUILD_TARGETS_SCHEMA, CORE_VERSIONS_SCHEMA, parseBuildInventory } from '../src/lib/site-data.ts';
+import { BUILD_CORES_SCHEMA, BUILD_TARGETS_SCHEMA, CORE_VERSIONS_SCHEMA, parseBuildInventory, parseManagerRelease } from '../src/lib/site-data.ts';
 
 const FORK_REV = 'a'.repeat(40);
 const OWNED_REV = 'b'.repeat(40);
@@ -119,4 +119,21 @@ test('Japanese text falls back to English, then Chinese', () => {
   assert.deepEqual(localizedText(noJa, 'ja'), { text: 'English', lang: 'en' });
   assert.deepEqual(localizedText(all, 'en'), { text: 'English', lang: 'en' });
   assert.deepEqual(localizedText(all, 'zh-cn'), { text: '中文', lang: 'zh-CN' });
+});
+
+test('a universal Android APK is downloadable while its sources ZIP is excluded', () => {
+  const version = '0.1.0-beta.4';
+  const tag = `manager-v${version}`;
+  const names = [`shinki-emu-manager-manager-${version}-android-universal.apk`, `shinki-emu-manager-${version}-android-aarch64-sources.zip`];
+  const release = parseManagerRelease({
+    schema: 'shinki.portal.manager_release.v1',
+    release: {
+      tag, version, prerelease: true, published_at: '2026-10-30T00:00:00Z',
+      html_url: `https://github.com/Project-Shinkirou/ShinkiEMU/releases/tag/${tag}`,
+      assets: names.map(name => ({ name, url: `https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/${tag}/${name}`, size: 1, sha256: null })),
+    },
+  }, tag);
+  assert.equal(release?.assets.length, 1);
+  assert.equal(release?.assets[0].architecture, 'universal');
+  assert.equal(release?.assets[0].url.endsWith('.apk'), true);
 });

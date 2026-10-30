@@ -28,7 +28,7 @@ const perPlatform = Object.fromEntries(
             href: card.direct.url,
             aria: t.downloadLabel(
               strings.platform[card.platform],
-              strings.architecture[card.direct.architecture],
+              card.direct.architecture === 'universal' ? t.universal : strings.architecture[card.direct.architecture],
               site.manager_release?.version ?? '',
             ),
           }

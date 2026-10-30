@@ -20,8 +20,8 @@
         "sha256": "b42e7eaacb25f934ced1992ed3002181691f74c5e4894314197488fffdacec6d"
       },
       {
-        "name": "shinki-emu-manager-manager-0.1.0-beta.2-android-aarch64.zip",
-        "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/manager-v0.1.0-beta.2/shinki-emu-manager-manager-0.1.0-beta.2-android-aarch64.zip",
+        "name": "shinki-emu-manager-manager-0.1.0-beta.2-android-universal.apk",
+        "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/manager-v0.1.0-beta.2/shinki-emu-manager-manager-0.1.0-beta.2-android-universal.apk",
         "size": 155221017,
         "sha256": null
       },

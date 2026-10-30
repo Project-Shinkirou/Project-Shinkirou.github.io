@@ -188,7 +188,7 @@ export interface ManagerAsset {
   size: number;
   sha256: string | null;
   platform: Platform;
-  architecture: Architecture;
+  architecture: Architecture | 'universal';
   /** Set for iOS test packages (`device` or `simulator`). */
   variant: Variant | null;
 }
@@ -741,7 +741,7 @@ function classifyAsset(name: string, version: string): Pick<ManagerAsset, 'platf
   const prefix = `shinki-emu-manager-manager-${version}-`;
   if (!name.startsWith(prefix)) return null;
   if (name === `${prefix}android-universal.apk`) {
-    return { platform: 'android', architecture: 'aarch64', variant: null };
+    return { platform: 'android', architecture: 'universal', variant: null };
   }
   if (!name.endsWith('.zip')) return null;
   const rest = name.slice(prefix.length, -'.zip'.length);
