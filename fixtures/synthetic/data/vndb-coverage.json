@@ -1,0 +1,17 @@
+{
+  "schema": "shinki.portal.vndb_coverage.v1",
+  "fetched_at": "2026-01-01T00:00:00Z",
+  "engine_releases": 10000,
+  "families": [
+    { "family": "FVP", "engines": ["FVP"], "releases": 10 },
+    { "family": "SiglusEngine", "engines": ["SiglusEngine"], "releases": 20 },
+    { "family": "Artemis", "engines": ["Artemis Engine"], "releases": 30 },
+    { "family": "Musica", "engines": ["Musica"], "releases": 40 },
+    { "family": "SoftPAL", "engines": ["Softpal ADV System"], "releases": 50 },
+    { "family": "KiriKiri", "engines": ["KiriKiri"], "releases": 600 },
+    { "family": "Ethornell / BGI", "engines": ["BGI/Ethornell"], "releases": 70 },
+    { "family": "CMVS", "engines": ["CMVS"], "releases": 80 },
+    { "family": "MAGES.", "engines": ["MAGES. Engine"], "releases": 90 },
+    { "family": "Ren’Py", "engines": ["Ren'Py"], "releases": 2000 }
+  ]
+}

@@ -9,7 +9,8 @@
 //
 // Environment:
 //   SHINKI_DATA_DIR     metadata snapshot, plus site-sources.json, vndb.json,
-//                       manager-release.json, core-versions.json (from
+//                       vndb-coverage.json, manager-release.json,
+//                       core-versions.json (from
 //                       `xtask site prepare`) and verbatim copies of ShinkiEMU
 //                       build/targets.toml and build/cores.toml as
 //                       build-targets.toml and build-cores.toml
@@ -34,6 +35,7 @@ import {
   parseIndex,
   parseBuildInventory,
   parseManagerRelease,
+  parseVndbCoverage,
   parseVndbTitles,
   parsePatches,
   parseSources,
@@ -154,6 +156,10 @@ function loadData(dataDir: string): LoadedSnapshot {
     new Set([...compatibility.map((entry) => entry.vn_id), ...patches.flatMap((patch) => patch.vn_ids)]),
     new Set([...compatibility.map((entry) => entry.release_id), ...patches.flatMap((patch) => patch.release_ids)]),
   );
+  const coverage = parseVndbCoverage(
+    json('vndb-coverage.json'),
+    [...new Set(inventory.cores.map((core) => core.family))],
+  );
   const data: SiteData = {
     synthetic,
     index: {
@@ -163,6 +169,7 @@ function loadData(dataDir: string): LoadedSnapshot {
     },
     sources,
     titles,
+    coverage,
     manager_release: parseManagerRelease(json('manager-release.json'), sources.manager_release_tag),
     compatibility,
     cores: parseCores(json('cores.json'), known),

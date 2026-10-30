@@ -1,9 +1,10 @@
 ---
-// Four short benefit cards for ShinkiEMU. Counts and platform names come from
-// the build inventory (build/targets.toml, build/cores.toml) and the metadata
-// snapshot, so they follow ShinkiEMU's main branch without copy changes.
-import { formatList, STRINGS, type Locale } from '../lib/i18n.ts';
-import { embeddedCores, engineFamilies, managerPlatforms } from '../lib/platforms.ts';
+// Four cards for ShinkiEMU: engine families with their VNDB release counts
+// (fetched at build time into vndb-coverage.json), Manager platforms from the
+// build inventory (build/targets.toml, build/cores.toml), enhancements that
+// ship in the published Manager, and store downloads.
+import { formatList, formatPercent, formatUtc, LANG, STRINGS, type Locale } from '../lib/i18n.ts';
+import { embeddedCores, managerPlatforms } from '../lib/platforms.ts';
 import { site } from '../lib/site.ts';
 
 interface Props {
@@ -14,57 +15,84 @@ const { locale } = Astro.props;
 const strings = STRINGS[locale];
 const t = strings.facts;
 const base = `/${locale}`;
+const guide = `${base}/shinkiemu/docs/user-guide/`;
+const number = new Intl.NumberFormat(LANG[locale]);
 const names = (platforms: readonly (keyof typeof strings.platform)[]) =>
   formatList(platforms.map((platform) => strings.platform[platform]), locale);
 
-const families = engineFamilies(site.matrix, site.targets);
+const coverage = site.coverage;
 const platforms = managerPlatforms(site.targets);
 const embedded = embeddedCores(site.matrix, site.targets);
-
-const cards = [
-  {
-    title: t.engines.title(families.length),
-    body: [t.engines.body(site.matrix.length, formatList(families.map((family) => family.family), locale))],
-    href: `${base}/shinkiemu/cores/`,
-    link: t.engines.link,
-  },
-  {
-    title: t.platforms.title(platforms.available.length),
-    body: [
-      t.platforms.body(names(platforms.available)),
-      ...embedded.map((entry) => t.platforms.embedded(strings.platform[entry.platform], entry.cores.length)),
-      ...(platforms.blocked.length > 0 ? [t.platforms.blocked(names(platforms.blocked))] : []),
-    ],
-    href: `${base}/shinkiemu/docs/platforms/`,
-    link: t.platforms.link,
-  },
-  {
-    title: t.saves.title,
-    body: [t.saves.body],
-    href: `${base}/shinkiemu/docs/user-guide/#${t.saves.anchor}`,
-    link: t.saves.link,
-  },
-  {
-    title: t.patches.title(site.patches.length),
-    body: [t.patches.body, ...(site.patches.length === 0 ? [t.patches.empty] : [])],
-    href: `${base}/shinkiemu/patches/`,
-    link: t.patches.link,
-  },
-];
 ---
 
 <ul class="grid grid-4 fact-grid">
-  {
-    cards.map((card) => (
-      <li class="card fact-card">
-        <h3>{card.title}</h3>
-        {card.body.map((line) => (
-          <p>{line}</p>
-        ))}
-        <p class="fact-link">
-          <a href={card.href}>{card.link}</a>
-        </p>
-      </li>
-    ))
-  }
+  <li class="card fact-card">
+    <h3>{t.engines.title(coverage.families.length)}</h3>
+    <p>
+      {t.engines.body(
+        number.format(coverage.total),
+        formatPercent(coverage.total, coverage.engine_releases, locale) ?? '',
+        number.format(coverage.engine_releases),
+      )}
+    </p>
+    <dl class="coverage-list" aria-label={t.engines.listLabel}>
+      {
+        coverage.families.map((family) => (
+          <div>
+            <dt>{family.family}</dt>
+            <dd>{number.format(family.releases)}</dd>
+          </div>
+        ))
+      }
+    </dl>
+    <p class="fact-note">{t.engines.note}</p>
+    <p class="fact-note">
+      <a href="https://vndb.org/r">{t.engines.source(formatUtc(coverage.fetched_at, locale, false))}</a>
+    </p>
+    <p class="fact-link">
+      <a href={`${base}/shinkiemu/cores/`}>{t.engines.link}</a>
+    </p>
+  </li>
+  <li class="card fact-card">
+    <h3>{t.platforms.title(platforms.available.length)}</h3>
+    <p>{t.platforms.body(names(platforms.available))}</p>
+    {embedded.map((entry) => <p>{t.platforms.embedded(strings.platform[entry.platform], entry.cores.length)}</p>)}
+    {platforms.blocked.length > 0 && <p>{t.platforms.blocked(names(platforms.blocked))}</p>}
+    <p class="fact-link">
+      <a href={`${base}/shinkiemu/docs/platforms/`}>{t.platforms.link}</a>
+    </p>
+  </li>
+  <li class="card fact-card">
+    <h3>{t.enhancements.title}</h3>
+    <dl class="fact-items">
+      {
+        t.enhancements.items.map((item) => (
+          <div>
+            <dt>{item.name}</dt>
+            <dd>{item.body}</dd>
+          </div>
+        ))
+      }
+    </dl>
+    <p class="fact-link">
+      <a href={guide}>{t.enhancements.link}</a>
+    </p>
+  </li>
+  <li class="card fact-card">
+    <h3>{t.download.title}</h3>
+    <dl class="fact-items">
+      {
+        t.download.stores.map((store) => (
+          <div>
+            <dt>{store.name}</dt>
+            <dd>{store.body}</dd>
+          </div>
+        ))
+      }
+    </dl>
+    <p class="fact-note">{t.download.note}</p>
+    <p class="fact-link">
+      <a href={`${guide}#${t.download.anchor}`}>{t.download.link}</a>
+    </p>
+  </li>
 </ul>

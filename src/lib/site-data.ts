@@ -181,6 +181,24 @@ export interface VndbTitles {
   release: Record<string, VndbTitle>;
 }
 
+/** VNDB releases made with one engine family (exact VNDB `engine` strings). */
+export interface FamilyCoverage {
+  family: string;
+  engines: string[];
+  releases: number;
+}
+
+/** VNDB release counts per engine family, fetched at build time. */
+export interface VndbCoverage {
+  fetched_at: string;
+  /** VNDB releases with any engine recorded. */
+  engine_releases: number;
+  /** Families in `build/cores.toml` order. */
+  families: FamilyCoverage[];
+  /** Sum of the family counts; engine strings are disjoint, so no release counts twice. */
+  total: number;
+}
+
 /** A Manager release archive for one platform. */
 export interface ManagerAsset {
   name: string;
@@ -213,6 +231,7 @@ export interface SiteData {
   };
   sources: SiteSources;
   titles: VndbTitles;
+  coverage: VndbCoverage;
   manager_release: ManagerRelease | null;
   compatibility: CompatibilityEntry[];
   cores: CoreRelease[];
@@ -731,6 +750,49 @@ export function parseVndbTitles(value: Json, vnIds: ReadonlySet<string>, release
     vn: titleMap(object.vn, 'vndb.json.vn', VN_ID, vnIds),
     release: titleMap(object.release, 'vndb.json.release', RELEASE_ID, releaseIds),
   };
+}
+
+export const VNDB_COVERAGE_SCHEMA = 'shinki.portal.vndb_coverage.v1';
+
+/**
+ * VNDB release counts for exactly the engine families of `build/cores.toml`
+ * (written by `xtask site prepare`). A missing or extra family, a family with
+ * no releases, or counts above the denominator fail the build.
+ */
+export function parseVndbCoverage(value: Json, families: readonly string[]): VndbCoverage {
+  const where = 'vndb-coverage.json';
+  const object = record(value, where);
+  only(object, where, ['schema', 'fetched_at', 'engine_releases', 'families']);
+  if (object.schema !== VNDB_COVERAGE_SCHEMA) throw new DataError(`${where}.schema`, `must be ${VNDB_COVERAGE_SCHEMA}`);
+  const fetched_at = text(object.fetched_at, `${where}.fetched_at`, 1, 64);
+  if (Number.isNaN(Date.parse(fetched_at))) throw new DataError(`${where}.fetched_at`, 'must be an ISO 8601 timestamp');
+  const engine_releases = integer(object.engine_releases, `${where}.engine_releases`, 1);
+  const engines = new Set<string>();
+  const entries = array(object.families, `${where}.families`).map((raw, i): FamilyCoverage => {
+    const w = `${where}.families[${i}]`;
+    const entry = record(raw, w);
+    only(entry, w, ['family', 'engines', 'releases']);
+    const family = text(entry.family, `${w}.family`, 1, 128);
+    const strings = uniqueList(entry.engines, `${w}.engines`, (item, iw) => text(item, iw, 1, 128));
+    if (strings.length === 0) throw new DataError(`${w}.engines`, 'needs at least one VNDB engine string');
+    for (const engine of strings) {
+      if (engines.has(engine)) throw new DataError(`${w}.engines`, `"${engine}" is mapped to two families`);
+      engines.add(engine);
+    }
+    return { family, engines: strings, releases: integer(entry.releases, `${w}.releases`, 1) };
+  });
+  const listed = entries.map((entry) => entry.family);
+  const duplicate = listed.find((family, i) => listed.indexOf(family) !== i);
+  if (duplicate !== undefined) throw new DataError(`${where}.families`, `duplicate family "${duplicate}"`);
+  const missing = families.filter((family) => !listed.includes(family));
+  if (missing.length > 0) throw new DataError(`${where}.families`, `no counts for ${missing.join(', ')}`);
+  const extra = listed.filter((family) => !families.includes(family));
+  if (extra.length > 0) throw new DataError(`${where}.families`, `not in build-cores.toml: ${extra.join(', ')}`);
+  const total = entries.reduce((sum, entry) => sum + entry.releases, 0);
+  if (total > engine_releases) {
+    throw new DataError(`${where}.engine_releases`, `family counts (${total}) exceed releases with an engine (${engine_releases})`);
+  }
+  return { fetched_at: new Date(fetched_at).toISOString(), engine_releases, families: entries, total };
 }
 
 /**

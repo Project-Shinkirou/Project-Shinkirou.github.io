@@ -88,7 +88,11 @@ const zh = {
     title: 'ShinkiEMU 能做什么',
     engines: {
       title: (n: number) => `${n} 个引擎家族`,
-      body: (cores: number, names: string) => `${cores} 个核心，覆盖 ${names}。`,
+      body: (total: string, share: string, recorded: string) =>
+        `VNDB 里用这些引擎制作的版本共 ${total} 个，占登记了引擎的 ${recorded} 个版本的 ${share}。`,
+      listLabel: '各引擎家族在 VNDB 的版本数',
+      note: '按 VNDB 的版本（release）条目计数。有对应核心不代表每部作品都能运行，请以兼容性报告为准。',
+      source: (date: string) => `数据来源：VNDB，${date}`,
       link: '查看核心',
     },
     platforms: {
@@ -98,18 +102,36 @@ const zh = {
       embedded: (platform: string, n: number) => `${platform} 版 Manager 内置 ${n} 个核心。`,
       link: '平台与构建矩阵',
     },
-    saves: {
-      title: '存档留在原处',
-      body: '外部核心沿用原引擎的存档和密钥位置，例如 siglus-rs 写入 <game>/savedata，ReMinori 写入 <game>/userdata。核心更新后废弃的设置会自动清除，并提示一次。',
-      link: '数据与存档说明',
-      /** Heading id of "数据与存档" in the imported user guide. */
-      anchor: '数据与存档',
+    enhancements: {
+      title: '增强',
+      items: [
+        {
+          name: '补丁库',
+          body: '经过审查的 Luau 配方默认输出到新目录。选择原地覆盖时会先备份原文件，还原时不会覆盖你改过的文件。',
+        },
+        {
+          name: '存档位置',
+          body: '外部核心沿用原引擎的存档位置，例如 siglus-rs 写入 <game>/savedata，ReMinori 写入 <game>/userdata。',
+        },
+        { name: '设置清理', body: '核心更新后废弃的设置会自动清除，并提示一次。' },
+        {
+          name: '文本翻译',
+          body: '游戏文本可以通过 OpenAI、Anthropic 或 Google 的 API 翻译，API 密钥保存在系统凭据库里。',
+        },
+      ],
+      link: '用户指南',
     },
-    patches: {
-      title: (n: number) => (n === 0 ? '补丁库' : `${n} 个补丁条目`),
-      body: '经过审查的配方、外部补丁链接和获授权托管的附件。配方只在 Manager 中对你自备的文件执行。',
-      empty: '目前还没有条目。',
-      link: '浏览补丁',
+    download: {
+      title: '商店下载',
+      stores: [
+        { name: 'Steam', body: '登录商店账号后选择 depot 和分支下载，支持增量更新和校验修复。' },
+        { name: 'DLsite', body: '登录商店账号后下载已购作品的 PC 文件。ZIP 会自动解压，RAR 和安装程序需要自己处理。' },
+        { name: 'DMM GAMES / FANZA', body: '可以登录商店账号，下载功能暂未提供。' },
+      ],
+      note: '只能下载账号已购买的 PC 版本，Manager 不会绕过 DRM。',
+      link: '商店下载说明',
+      /** Heading id of "商店下载" in the imported user guide. */
+      anchor: '商店下载',
     },
   },
   engines: {
@@ -477,7 +499,11 @@ const en: Strings = {
     title: 'What ShinkiEMU does',
     engines: {
       title: (n: number) => `${n} engine ${n === 1 ? 'family' : 'families'}`,
-      body: (cores: number, names: string) => `${cores} ${cores === 1 ? 'core' : 'cores'} covering ${names}.`,
+      body: (total: string, share: string, recorded: string) =>
+        `VNDB lists ${total} releases made with these engines, ${share} of the ${recorded} releases that have an engine recorded.`,
+      listLabel: 'VNDB releases per engine family',
+      note: 'Counts are VNDB release entries. A core for the engine does not mean every work runs; check the compatibility reports.',
+      source: (date: string) => `Source: VNDB, ${date}`,
       link: 'Browse cores',
     },
     platforms: {
@@ -487,17 +513,35 @@ const en: Strings = {
       embedded: (platform: string, n: number) => `The ${platform} Manager has ${n} ${n === 1 ? 'core' : 'cores'} built in.`,
       link: 'Platform and build matrix',
     },
-    saves: {
-      title: 'Saves stay where they were',
-      body: 'External cores keep the original engine’s save and key locations, such as <game>/savedata for siglus-rs and <game>/userdata for ReMinori. Settings retired by a core update are removed automatically, with a one-time notice.',
-      link: 'Data and saves',
-      anchor: 'data-and-saves',
+    enhancements: {
+      title: 'Enhancements',
+      items: [
+        {
+          name: 'Patch library',
+          body: 'Reviewed Luau recipes write to a new directory by default. In-place mode backs up the originals first, and restoring never overwrites a file you edited.',
+        },
+        {
+          name: 'Save locations',
+          body: 'External cores keep the original engine’s save location, such as <game>/savedata for siglus-rs and <game>/userdata for ReMinori.',
+        },
+        { name: 'Settings cleanup', body: 'Settings retired by a core update are removed automatically, with a one-time notice.' },
+        {
+          name: 'Text translation',
+          body: 'Game text can be translated through the OpenAI, Anthropic or Google API. The API key is kept in the system credential store.',
+        },
+      ],
+      link: 'User guide',
     },
-    patches: {
-      title: (n: number) => (n === 0 ? 'Patch library' : `${n} patch ${n === 1 ? 'entry' : 'entries'}`),
-      body: 'Reviewed recipes, links to external patches, and attachments hosted with permission. Recipes run only inside the Manager, on files you supply.',
-      empty: 'No entries yet.',
-      link: 'Browse patches',
+    download: {
+      title: 'Store downloads',
+      stores: [
+        { name: 'Steam', body: 'Sign in with your store account, pick depots and a branch, and download. Delta updates and verify/repair are included.' },
+        { name: 'DLsite', body: 'Sign in with your store account and download the PC files of works you own. ZIPs are extracted; RAR parts and installers are left for you.' },
+        { name: 'DMM GAMES / FANZA', body: 'You can sign in with your store account. Downloads are not available yet.' },
+      ],
+      note: 'Only PC downloads your account has purchased. Manager does not bypass DRM.',
+      link: 'Store downloads',
+      anchor: 'store-downloads',
     },
   },
   engines: {
@@ -869,7 +913,11 @@ const ja: Strings = {
     title: 'ShinkiEMU でできること',
     engines: {
       title: (n: number) => `${n} のエンジン系統`,
-      body: (cores: number, names: string) => `${cores} 個のコアで ${names} に対応します。`,
+      body: (total: string, share: string, recorded: string) =>
+        `VNDB に登録された、これらのエンジンで作られたリリースは ${total} 件です。エンジンが記録されている ${recorded} 件の ${share} にあたります。`,
+      listLabel: 'エンジン系統ごとの VNDB リリース数',
+      note: 'VNDB のリリース項目の件数です。対応コアがあっても、すべての作品が動くとは限りません。互換性レポートで確認してください。',
+      source: (date: string) => `出典：VNDB、${date}`,
       link: 'コアを見る',
     },
     platforms: {
@@ -879,17 +927,35 @@ const ja: Strings = {
       embedded: (platform: string, n: number) => `${platform} 版 Manager には ${n} 個のコアが組み込まれています。`,
       link: 'プラットフォームとビルドマトリクス',
     },
-    saves: {
-      title: 'セーブは元の場所に',
-      body: '外部コアは元のエンジンのセーブと鍵の場所をそのまま使います。たとえば siglus-rs は <game>/savedata、ReMinori は <game>/userdata です。コアの更新で廃止された設定は自動的に削除され、1 回だけ通知されます。',
-      link: 'データとセーブ',
-      anchor: 'データとセーブ',
+    enhancements: {
+      title: '拡張機能',
+      items: [
+        {
+          name: 'パッチライブラリ',
+          body: '審査済みの Luau レシピは、標準では新しいディレクトリに書き出します。上書きモードでは先に元のファイルをバックアップし、復元時に編集済みのファイルは上書きしません。',
+        },
+        {
+          name: 'セーブの場所',
+          body: '外部コアは元のエンジンのセーブ場所をそのまま使います。たとえば siglus-rs は <game>/savedata、ReMinori は <game>/userdata です。',
+        },
+        { name: '設定の整理', body: 'コアの更新で廃止された設定は自動的に削除され、1 回だけ通知されます。' },
+        {
+          name: 'テキスト翻訳',
+          body: 'ゲームのテキストを OpenAI、Anthropic、Google の API で翻訳できます。API キーはシステムの資格情報ストアに保存されます。',
+        },
+      ],
+      link: 'ユーザーガイド',
     },
-    patches: {
-      title: (n: number) => (n === 0 ? 'パッチライブラリ' : `パッチ ${n} 件`),
-      body: '審査済みのレシピ、外部パッチへのリンク、許諾を得てホストしている添付ファイル。レシピは Manager の中で、ユーザーが用意したファイルに対してのみ実行されます。',
-      empty: '項目はまだありません。',
-      link: 'パッチを見る',
+    download: {
+      title: 'ストアからのダウンロード',
+      stores: [
+        { name: 'Steam', body: 'ストアのアカウントでサインインし、depot とブランチを選んでダウンロードします。差分更新と検証・修復にも対応します。' },
+        { name: 'DLsite', body: 'ストアのアカウントでサインインし、購入済み作品の PC 版ファイルをダウンロードします。ZIP は自動で展開し、RAR とインストーラーは手動で処理します。' },
+        { name: 'DMM GAMES / FANZA', body: 'ストアのアカウントでサインインできます。ダウンロードにはまだ対応していません。' },
+      ],
+      note: 'ダウンロードできるのはアカウントで購入済みの PC 版だけです。Manager は DRM を回避しません。',
+      link: 'ストアからのダウンロード',
+      anchor: 'ストアからのダウンロード',
     },
   },
   engines: {

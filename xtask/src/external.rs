@@ -1,6 +1,7 @@
 //! Build-time facts from outside the product checkouts: the latest published
-//! ShinkiEMU Manager release (GitHub Releases) and VNDB titles for every work
-//! and release the metadata snapshot refers to. Both are fetched once by
+//! ShinkiEMU Manager release (GitHub Releases), VNDB titles for every work
+//! and release the metadata snapshot refers to, and VNDB release counts for
+//! every engine family in `build/cores.toml`. All are fetched once by
 //! `site prepare`; a failure fails the build instead of shipping guessed data.
 
 use anyhow::{Context, Result, bail, ensure};
@@ -17,6 +18,24 @@ const VNDB_PAGE: usize = 100;
 
 pub const MANAGER_RELEASE_SCHEMA: &str = "shinki.portal.manager_release.v1";
 pub const VNDB_SCHEMA: &str = "shinki.portal.vndb_titles.v1";
+pub const VNDB_COVERAGE_SCHEMA: &str = "shinki.portal.vndb_coverage.v1";
+
+/// VNDB release `engine` strings for each `family_name` in ShinkiEMU
+/// `build/cores.toml`. The strings must match vndb.org/r/engines exactly:
+/// lookalikes such as `Siglus`, `Artemis`, `SoftPAL`, `BGI` or `MAGES.` match
+/// no release. `RealLive` is Key's older engine, not SiglusEngine, and stays out.
+const VNDB_ENGINES: &[(&str, &[&str])] = &[
+    ("FVP", &["FVP"]),
+    ("SiglusEngine", &["SiglusEngine"]),
+    ("Artemis", &["Artemis Engine"]),
+    ("Musica", &["Musica"]),
+    ("SoftPAL", &["Softpal ADV System"]),
+    ("KiriKiri", &["KiriKiri"]),
+    ("Ethornell / BGI", &["BGI/Ethornell"]),
+    ("CMVS", &["CMVS"]),
+    ("MAGES.", &["MAGES. Engine"]),
+    ("Ren’Py", &["Ren'Py"]),
+];
 
 #[derive(Serialize)]
 pub struct ManagerReleaseFile {
@@ -272,6 +291,146 @@ pub fn vndb_titles(
     })
 }
 
+#[derive(Serialize)]
+pub struct VndbCoverage {
+    schema: &'static str,
+    fetched_at: String,
+    /// VNDB releases with any engine recorded; the share's denominator.
+    engine_releases: u64,
+    families: Vec<FamilyCoverage>,
+}
+
+#[derive(Serialize, Debug, PartialEq)]
+pub struct FamilyCoverage {
+    family: String,
+    engines: Vec<String>,
+    releases: u64,
+}
+
+#[derive(Deserialize)]
+struct InventoryFamilies {
+    cores: Vec<InventoryFamily>,
+}
+
+#[derive(Deserialize)]
+struct InventoryFamily {
+    family_name: String,
+}
+
+/// Engine families of `build/cores.toml` in order of first appearance, each
+/// with its VNDB engine strings. A family without a mapping fails the build.
+fn family_engines(inventory: &str) -> Result<Vec<(String, &'static [&'static str])>> {
+    let inventory: InventoryFamilies =
+        toml::from_str(inventory).context("parsing build/cores.toml family names")?;
+    let mut families: Vec<(String, &'static [&'static str])> = Vec::new();
+    for core in inventory.cores {
+        if families
+            .iter()
+            .any(|(family, _)| *family == core.family_name)
+        {
+            continue;
+        }
+        let Some((_, engines)) = VNDB_ENGINES
+            .iter()
+            .find(|(family, _)| *family == core.family_name)
+        else {
+            bail!(
+                "engine family {:?} in build/cores.toml has no VNDB engine strings; add it to VNDB_ENGINES in xtask/src/external.rs",
+                core.family_name
+            );
+        };
+        families.push((core.family_name, engines));
+    }
+    ensure!(
+        !families.is_empty(),
+        "build/cores.toml lists no engine families"
+    );
+    Ok(families)
+}
+
+fn engine_filter(engines: &[&str]) -> Value {
+    let filters: Vec<Value> = engines
+        .iter()
+        .map(|engine| json!(["engine", "=", engine]))
+        .collect();
+    if filters.len() == 1 {
+        filters.into_iter().next().unwrap()
+    } else {
+        let mut or = vec![json!("or")];
+        or.extend(filters);
+        Value::Array(or)
+    }
+}
+
+#[derive(Deserialize)]
+struct VndbCount {
+    count: u64,
+    results: Vec<Value>,
+}
+
+fn vndb_release_count(client: &Client, filters: &Value) -> Result<u64> {
+    let response = client
+        .post(format!("{VNDB_API}/release"))
+        .json(&json!({ "filters": filters, "count": true, "results": 0 }))
+        .send()
+        .with_context(|| format!("querying VNDB /release count for {filters}"))?
+        .error_for_status()
+        .with_context(|| format!("VNDB /release count request failed for {filters}"))?;
+    let page: VndbCount =
+        serde_json::from_slice(&crate::snapshot::read_bounded(response, 64 * 1024)?).with_context(
+            || format!("VNDB /release count response for {filters} has an unexpected shape"),
+        )?;
+    ensure!(
+        page.results.is_empty(),
+        "VNDB /release returned results for a count-only query ({filters})"
+    );
+    Ok(page.count)
+}
+
+/// VNDB release counts for every engine family in `build/cores.toml`, and the
+/// number of VNDB releases with any engine recorded.
+pub fn vndb_coverage(client: &Client, inventory: &str) -> Result<VndbCoverage> {
+    let engine_releases = vndb_release_count(client, &json!(["engine", "!=", ""]))?;
+    let mut families = Vec::new();
+    for (family, engines) in family_engines(inventory)? {
+        let releases = vndb_release_count(client, &engine_filter(engines))?;
+        // A renamed or mistyped engine string matches nothing instead of failing the query.
+        ensure!(
+            releases > 0,
+            "VNDB has no release with engine {engines:?} (family {family:?}); the engine string no longer matches VNDB"
+        );
+        families.push(FamilyCoverage {
+            family,
+            engines: engines.iter().map(|engine| (*engine).to_owned()).collect(),
+            releases,
+        });
+    }
+    let total: u64 = families.iter().map(|family| family.releases).sum();
+    ensure!(
+        total <= engine_releases,
+        "VNDB family release counts ({total}) exceed releases with an engine ({engine_releases})"
+    );
+    Ok(VndbCoverage {
+        schema: VNDB_COVERAGE_SCHEMA,
+        fetched_at: fetch_time()?,
+        engine_releases,
+        families,
+    })
+}
+
+fn fetch_time() -> Result<String> {
+    let seconds = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .context("system clock is before 1970")?
+        .as_secs();
+    let time = chrono::DateTime::<chrono::Utc>::from_timestamp(
+        i64::try_from(seconds).context("system clock out of range")?,
+        0,
+    )
+    .context("system clock out of range")?;
+    Ok(time.to_rfc3339_opts(chrono::SecondsFormat::Secs, true))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -289,5 +448,40 @@ mod tests {
     fn referenced_ids_reject_malformed_entries() {
         let compatibility = json!({"entries": [{"vn_id": 7, "release_id": "r3"}]});
         assert!(referenced_ids(&compatibility, &json!({"entries": []})).is_err());
+    }
+
+    #[test]
+    fn family_engines_follow_inventory_order_once_per_family() {
+        let inventory = r#"
+            [[cores]]
+            family_name = "Musica"
+            [[cores]]
+            family_name = "Ren’Py"
+            [[cores]]
+            family_name = "Musica"
+        "#;
+        let families = family_engines(inventory).unwrap();
+        assert_eq!(
+            families,
+            [
+                ("Musica".to_owned(), &["Musica"][..]),
+                ("Ren’Py".to_owned(), &["Ren'Py"][..])
+            ]
+        );
+    }
+
+    #[test]
+    fn family_engines_reject_an_unmapped_family() {
+        let error = family_engines("[[cores]]\nfamily_name = \"RealLive\"\n").unwrap_err();
+        assert!(error.to_string().contains("RealLive"));
+    }
+
+    #[test]
+    fn engine_filter_ors_several_strings() {
+        assert_eq!(engine_filter(&["CMVS"]), json!(["engine", "=", "CMVS"]));
+        assert_eq!(
+            engine_filter(&["A", "B"]),
+            json!(["or", ["engine", "=", "A"], ["engine", "=", "B"]])
+        );
     }
 }

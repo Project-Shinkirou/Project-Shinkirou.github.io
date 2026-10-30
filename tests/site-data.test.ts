@@ -4,7 +4,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { localizedText } from '../src/lib/i18n.ts';
-import { BUILD_CORES_SCHEMA, BUILD_TARGETS_SCHEMA, CORE_VERSIONS_SCHEMA, parseBuildInventory, parseManagerRelease } from '../src/lib/site-data.ts';
+import {
+  BUILD_CORES_SCHEMA,
+  BUILD_TARGETS_SCHEMA,
+  CORE_VERSIONS_SCHEMA,
+  VNDB_COVERAGE_SCHEMA,
+  parseBuildInventory,
+  parseManagerRelease,
+  parseVndbCoverage,
+} from '../src/lib/site-data.ts';
 
 const FORK_REV = 'a'.repeat(40);
 const OWNED_REV = 'b'.repeat(40);
@@ -136,4 +144,38 @@ test('a universal Android APK is downloadable while its sources ZIP is excluded'
   assert.equal(release?.assets.length, 1);
   assert.equal(release?.assets[0].architecture, 'universal');
   assert.equal(release?.assets[0].url.endsWith('.apk'), true);
+});
+
+const coverage = (families: unknown[], engine_releases = 1000) => ({
+  schema: VNDB_COVERAGE_SCHEMA,
+  fetched_at: '2026-10-30T00:00:00Z',
+  engine_releases,
+  families,
+});
+const family = (name: string, engine: string, releases: number) => ({ family: name, engines: [engine], releases });
+
+test('VNDB coverage sums the family counts against releases with an engine', () => {
+  const parsed = parseVndbCoverage(coverage([family('CMVS', 'CMVS', 70), family('Ren’Py', "Ren'Py", 300)]), ['CMVS', 'Ren’Py']);
+  assert.equal(parsed.total, 370);
+  assert.equal(parsed.engine_releases, 1000);
+  assert.deepEqual(parsed.families.map((entry) => entry.family), ['CMVS', 'Ren’Py']);
+});
+
+test('VNDB coverage must list exactly the inventory families', () => {
+  assert.throws(() => parseVndbCoverage(coverage([family('CMVS', 'CMVS', 70)]), ['CMVS', 'FVP']), /no counts for FVP/);
+  assert.throws(
+    () => parseVndbCoverage(coverage([family('CMVS', 'CMVS', 70), family('FVP', 'FVP', 60)]), ['CMVS']),
+    /not in build-cores\.toml: FVP/,
+  );
+});
+
+test('VNDB coverage rejects zero counts, shared engine strings, inflated totals and unknown fields', () => {
+  assert.throws(() => parseVndbCoverage(coverage([family('CMVS', 'CMVS', 0)]), ['CMVS']), /releases: must be an integer/);
+  assert.throws(
+    () => parseVndbCoverage(coverage([family('A', 'X', 1), family('B', 'X', 1)]), ['A', 'B']),
+    /"X" is mapped to two families/,
+  );
+  assert.throws(() => parseVndbCoverage(coverage([family('CMVS', 'CMVS', 70)], 10), ['CMVS']), /exceed releases with an engine/);
+  assert.throws(() => parseVndbCoverage({ ...coverage([]), share: 0.5 }, []), /unknown field "share"/);
+  assert.throws(() => parseVndbCoverage({ ...coverage([]), schema: 'v0' }, []), /schema: must be/);
 });

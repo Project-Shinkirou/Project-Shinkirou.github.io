@@ -206,6 +206,10 @@ pub fn prepare(roukaku: &Path, shinkiemu: &Path, out: &Path) -> Result<()> {
             &crate::external::vndb_titles(&client, &vn_ids, &release_ids)?,
         )?;
         write_json(
+            &data.join("vndb-coverage.json"),
+            &crate::external::vndb_coverage(&client, &inventory)?,
+        )?;
+        write_json(
             &data.join("site-sources.json"),
             &SiteSources {
                 commits: Sources {
