@@ -22,7 +22,9 @@ const release = site.manager_release;
 const buildDocs = `/${locale}/shinkiemu/docs/build-and-release/`;
 const cards = managerDownloads(site.targets, release);
 const assetTitle = (asset: ManagerAsset) =>
-  [strings.architecture[asset.architecture], asset.variant ? strings.variant[asset.variant] : null].filter(Boolean).join(' · ');
+  asset.platform === 'android'
+    ? strings.download.universal
+    : [strings.architecture[asset.architecture], asset.variant ? strings.variant[asset.variant] : null].filter(Boolean).join(' · ');
 ---
 
 <div class="release-line">

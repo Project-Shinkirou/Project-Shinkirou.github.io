@@ -166,6 +166,7 @@ const zh = {
     size: '大小',
     sha256: 'SHA-256',
     noSha256: '发布页未提供',
+    universal: '通用版',
     download: '下载',
     downloadLabel: (platform: string, detail: string, version: string) =>
       `下载 ShinkiEMU Manager ${version}（${platform} ${detail}）`,
@@ -555,6 +556,7 @@ const en: Strings = {
     size: 'Size',
     sha256: 'SHA-256',
     noSha256: 'Not provided by the release',
+    universal: 'Universal',
     download: 'Download',
     downloadLabel: (platform: string, detail: string, version: string) =>
       `Download ShinkiEMU Manager ${version} (${platform} ${detail})`,
@@ -945,6 +947,7 @@ const ja: Strings = {
     size: 'サイズ',
     sha256: 'SHA-256',
     noSha256: 'リリースに記載なし',
+    universal: 'ユニバーサル',
     download: 'ダウンロード',
     downloadLabel: (platform: string, detail: string, version: string) =>
       `ShinkiEMU Manager ${version}（${platform} ${detail}）をダウンロード`,
