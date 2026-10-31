@@ -32,6 +32,18 @@
         "sha256": "fda147a9ded297d1c62d771f5237bd5f70f49a7734f6a6cd119cd251198ef700"
       },
       {
+        "name": "shinki-emu-manager-manager-0.1.0-beta.2-ohos-aarch64-debug-test-signed.hap",
+        "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/manager-v0.1.0-beta.2/shinki-emu-manager-manager-0.1.0-beta.2-ohos-aarch64-debug-test-signed.hap",
+        "size": 73400320,
+        "sha256": null
+      },
+      {
+        "name": "shinki-emu-manager-0.1.0-beta.2-ohos-aarch64-debug-test-signed-sources.zip",
+        "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/manager-v0.1.0-beta.2/shinki-emu-manager-0.1.0-beta.2-ohos-aarch64-debug-test-signed-sources.zip",
+        "size": 419430400,
+        "sha256": null
+      },
+      {
         "name": "shinki-emu-manager-0.1.0-beta.2-windows-x86_64-sources.zip",
         "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/manager-v0.1.0-beta.2/shinki-emu-manager-0.1.0-beta.2-windows-x86_64-sources.zip",
         "size": 912441344,

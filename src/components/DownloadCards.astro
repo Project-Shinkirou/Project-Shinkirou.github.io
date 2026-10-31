@@ -25,6 +25,8 @@ const assetTitle = (asset: ManagerAsset) =>
   asset.architecture === 'universal'
     ? strings.download.universal
     : [strings.architecture[asset.architecture], asset.variant ? strings.variant[asset.variant] : null].filter(Boolean).join(' · ');
+const assetBadge = (asset: ManagerAsset) =>
+  asset.platform === 'ohos' ? t.ohosTestPackage : asset.variant ? t.testPackage : null;
 ---
 
 <div class="release-line">
@@ -74,28 +76,32 @@ const assetTitle = (asset: ManagerAsset) =>
         </p>
 
         {card.assets.length > 0 ? (
-          <ul class="asset-actions">
-            {card.assets.map((asset) => {
-              const title = assetTitle(asset);
-              const detail = asset.variant ? `${title} ${t.testPackage}` : title;
-              return (
-                <li>
-                  <a
-                    class:list={['button', asset.variant ? 'button-secondary' : 'button-primary']}
-                    href={asset.url}
-                    aria-label={t.downloadLabel(strings.platform[card.platform], detail, release?.version ?? '')}
-                  >
-                    {t.download}
-                  </a>
-                  <span class="asset-meta">
-                    {title}
-                    {asset.variant && <span class="chip chip-warning">{t.testPackage}</span>}
-                    <span class="muted">{formatBytes(asset.size, locale)}</span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            {card.platform === 'ohos' && <p class="download-test-note">{t.ohosTestNote}</p>}
+            <ul class="asset-actions">
+              {card.assets.map((asset) => {
+                const title = assetTitle(asset);
+                const badge = assetBadge(asset);
+                const detail = badge ? `${title} ${badge}` : title;
+                return (
+                  <li>
+                    <a
+                      class:list={['button', asset.variant ? 'button-secondary' : 'button-primary']}
+                      href={asset.url}
+                      aria-label={t.downloadLabel(strings.platform[card.platform], detail, release?.version ?? '')}
+                    >
+                      {t.download}
+                    </a>
+                    <span class="asset-meta">
+                      {title}
+                      {badge && <span class="chip chip-warning">{badge}</span>}
+                      <span class="muted">{formatBytes(asset.size, locale)}</span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         ) : (
           <div class="download-empty">
             <p class="download-empty-title">{release ? t.noAsset(release.version) : t.notReleased}</p>
@@ -127,20 +133,24 @@ const assetTitle = (asset: ManagerAsset) =>
                 </ul>
               </>
             )}
-            {card.assets.map((asset) => (
-              <dl class="facts facts-compact">
-                <div class="facts-wide">
-                  <dt>{t.version}</dt>
-                  <dd>
-                    {release?.version} · {assetTitle(asset)}
-                  </dd>
-                </div>
-                <div class="facts-wide">
-                  <dt>{t.sha256}</dt>
-                  <dd>{asset.sha256 ? <code class="hash">{asset.sha256}</code> : <span class="muted">{t.noSha256}</span>}</dd>
-                </div>
-              </dl>
-            ))}
+            {card.assets.map((asset) => {
+              const badge = assetBadge(asset);
+              return (
+                <dl class="facts facts-compact">
+                  <div class="facts-wide">
+                    <dt>{t.version}</dt>
+                    <dd>
+                      {release?.version} · {assetTitle(asset)}
+                      {badge && <> · {badge}</>}
+                    </dd>
+                  </div>
+                  <div class="facts-wide">
+                    <dt>{t.sha256}</dt>
+                    <dd>{asset.sha256 ? <code class="hash">{asset.sha256}</code> : <span class="muted">{t.noSha256}</span>}</dd>
+                  </div>
+                </dl>
+              );
+            })}
           </details>
         )}
       </li>

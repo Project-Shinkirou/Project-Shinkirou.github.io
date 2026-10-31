@@ -199,6 +199,9 @@ const zh = {
     downloadLabel: (platform: string, detail: string, version: string) =>
       `下载 ShinkiEMU Manager ${version}（${platform} ${detail}）`,
     testPackage: '测试包',
+    ohosTestPackage: '实验性 · 测试签名 HAP',
+    ohosTestNote:
+      '使用 OpenHarmony SDK 测试证书签名（debug-test-signed），尚未在真机或模拟器上验证启动；在零售版 HarmonyOS 设备上安装可能需要重新签名。',
     buildStatus: '构建状态',
     targetState: (supported: number, total: number) =>
       total === 0 ? '构建清单中没有这个平台' : `${total} 个构建目标中 ${supported} 个可构建`,
@@ -617,6 +620,9 @@ const en: Strings = {
     downloadLabel: (platform: string, detail: string, version: string) =>
       `Download ShinkiEMU Manager ${version} (${platform} ${detail})`,
     testPackage: 'test package',
+    ohosTestPackage: 'experimental · test-signed HAP',
+    ohosTestNote:
+      'Signed with the OpenHarmony SDK test PKI (debug-test-signed); device launch has not been validated, and retail HarmonyOS devices may require re-signing.',
     buildStatus: 'Build status',
     targetState: (supported: number, total: number) =>
       total === 0 ? 'Not in the build manifest' : `${supported} of ${total} build ${total === 1 ? 'target' : 'targets'} buildable`,
@@ -1036,6 +1042,9 @@ const ja: Strings = {
     downloadLabel: (platform: string, detail: string, version: string) =>
       `ShinkiEMU Manager ${version}（${platform} ${detail}）をダウンロード`,
     testPackage: 'テストパッケージ',
+    ohosTestPackage: '実験的・テスト署名 HAP',
+    ohosTestNote:
+      'OpenHarmony SDK のテスト証明書で署名された実験的パッケージ（debug-test-signed）です。実機・エミュレーターでの起動は未検証であり、市販の HarmonyOS 端末では再署名が必要になる場合があります。',
     buildStatus: 'ビルド状況',
     targetState: (supported: number, total: number) =>
       total === 0 ? 'ビルドマニフェストにこのプラットフォームはありません' : `${total} 個のビルドターゲットのうち ${supported} 個がビルド可能`,

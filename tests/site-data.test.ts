@@ -4,6 +4,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { localizedText } from '../src/lib/i18n.ts';
+import { readFileSync } from 'node:fs';
+import { managerDownloads } from '../src/lib/platforms.ts';
 import {
   BUILD_CORES_SCHEMA,
   BUILD_TARGETS_SCHEMA,
@@ -144,6 +146,116 @@ test('a universal Android APK is downloadable while its sources ZIP is excluded'
   assert.equal(release?.assets.length, 1);
   assert.equal(release?.assets[0].architecture, 'universal');
   assert.equal(release?.assets[0].url.endsWith('.apk'), true);
+});
+
+test('an OHOS test-signed HAP is classified as a device test package while preserving APK/desktop entries and rejecting malformed HAPs', () => {
+  const version = '0.1.0-beta.5';
+  const tag = `manager-v${version}`;
+  const names = [
+    `shinki-emu-manager-manager-${version}-windows-x86_64.zip`,
+    `shinki-emu-manager-manager-${version}-linux-x86_64.zip`,
+    `shinki-emu-manager-manager-${version}-macos-aarch64.zip`,
+    `shinki-emu-manager-manager-${version}-android-universal.apk`,
+    `shinki-emu-manager-manager-${version}-ios-aarch64-device-test.zip`,
+    `shinki-emu-manager-manager-${version}-ohos-aarch64-debug-test-signed.hap`,
+    `shinki-emu-manager-${version}-ohos-aarch64-debug-test-signed-sources.zip`,
+    `shinki-emu-manager-${version}-android-aarch64-sources.zip`,
+    `shinki-emu-manager-manager-${version}-ohos-aarch64.hap`,
+    `shinki-emu-manager-manager-${version}-ohos-x86_64-debug-test-signed.hap`,
+    `shinki-emu-manager-manager-${version}-ohos-aarch64.zip`,
+    `shinki-emu-manager-${version}-ohos-aarch64-debug-test-signed.hap`,
+    'unrelated-package.hap',
+  ];
+  const release = parseManagerRelease(
+    {
+      schema: 'shinki.portal.manager_release.v1',
+      release: {
+        tag,
+        version,
+        prerelease: true,
+        published_at: '2026-10-31T00:00:00Z',
+        html_url: `https://github.com/Project-Shinkirou/ShinkiEMU/releases/tag/${tag}`,
+        assets: names.map((name) => ({
+          name,
+          url: `https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/${tag}/${name}`,
+          size: 1,
+          sha256: null,
+        })),
+      },
+    },
+    tag,
+  );
+  assert.deepEqual(
+    release?.assets.map(({ name, platform, architecture, variant }) => ({ name, platform, architecture, variant })),
+    [
+      {
+        name: `shinki-emu-manager-manager-${version}-windows-x86_64.zip`,
+        platform: 'windows',
+        architecture: 'x86_64',
+        variant: null,
+      },
+      {
+        name: `shinki-emu-manager-manager-${version}-linux-x86_64.zip`,
+        platform: 'linux',
+        architecture: 'x86_64',
+        variant: null,
+      },
+      {
+        name: `shinki-emu-manager-manager-${version}-macos-aarch64.zip`,
+        platform: 'macos',
+        architecture: 'aarch64',
+        variant: null,
+      },
+      {
+        name: `shinki-emu-manager-manager-${version}-android-universal.apk`,
+        platform: 'android',
+        architecture: 'universal',
+        variant: null,
+      },
+      {
+        name: `shinki-emu-manager-manager-${version}-ios-aarch64-device-test.zip`,
+        platform: 'ios',
+        architecture: 'aarch64',
+        variant: 'device',
+      },
+      {
+        name: `shinki-emu-manager-manager-${version}-ohos-aarch64-debug-test-signed.hap`,
+        platform: 'ohos',
+        architecture: 'aarch64',
+        variant: 'device',
+      },
+    ],
+  );
+
+  const downloads = managerDownloads(
+    [
+      {
+        triple: 'aarch64-unknown-linux-ohos',
+        platform: 'ohos',
+        architecture: 'aarch64',
+        variant: 'device',
+        manager: { target: 'aarch64-unknown-linux-ohos', status: 'supported', reason: null },
+      },
+    ],
+    release,
+  );
+  const ohos = downloads.find((card) => card.platform === 'ohos');
+  assert.equal(ohos?.state, 'test');
+  assert.equal(ohos?.direct, null);
+  assert.equal(ohos?.assets.length, 1);
+
+  const fixture = JSON.parse(readFileSync(new URL('../fixtures/synthetic/data/manager-release.json', import.meta.url), 'utf8'));
+  const parsedFixture = parseManagerRelease(fixture, 'manager-v0.1.0-beta.2');
+  assert.deepEqual(
+    parsedFixture?.assets.map(({ platform, architecture, variant }) => ({ platform, architecture, variant })),
+    [
+      { platform: 'windows', architecture: 'x86_64', variant: null },
+      { platform: 'linux', architecture: 'x86_64', variant: null },
+      { platform: 'android', architecture: 'universal', variant: null },
+      { platform: 'ios', architecture: 'aarch64', variant: 'device' },
+      { platform: 'ohos', architecture: 'aarch64', variant: 'device' },
+    ],
+  );
 });
 
 const coverage = (families: unknown[], engine_releases = 1000) => ({

@@ -207,7 +207,7 @@ export interface ManagerAsset {
   sha256: string | null;
   platform: Platform;
   architecture: Architecture | 'universal';
-  /** Set for iOS test packages (`device` or `simulator`). */
+  /** Set for test packages (iOS `-test.zip` and OpenHarmony `-debug-test-signed.hap`). */
   variant: Variant | null;
 }
 
@@ -796,8 +796,9 @@ export function parseVndbCoverage(value: Json, families: readonly string[]): Vnd
 }
 
 /**
- * Manager binary assets use ZIPs for desktop/Apple and one universal APK for Android.
- * Source bundles end in `-sources.zip` and do not match.
+ * Manager binary assets use ZIPs for desktop/Apple, one universal APK for
+ * Android, and an OpenHarmony test-signed HAP for OHOS. Source bundles end in
+ * `-sources.zip` and do not match.
  */
 function classifyAsset(name: string, version: string): Pick<ManagerAsset, 'platform' | 'architecture' | 'variant'> | null {
   const prefix = `shinki-emu-manager-manager-${version}-`;
@@ -805,11 +806,14 @@ function classifyAsset(name: string, version: string): Pick<ManagerAsset, 'platf
   if (name === `${prefix}android-universal.apk`) {
     return { platform: 'android', architecture: 'universal', variant: null };
   }
+  if (name === `${prefix}ohos-aarch64-debug-test-signed.hap`) {
+    return { platform: 'ohos', architecture: 'aarch64', variant: 'device' };
+  }
   if (!name.endsWith('.zip')) return null;
   const rest = name.slice(prefix.length, -'.zip'.length);
   const ios = /^ios-(x86_64|aarch64)-(device|simulator)-test$/.exec(rest);
   if (ios) return { platform: 'ios', architecture: ios[1] as Architecture, variant: ios[2] as Variant };
-  const desktop = /^(windows|linux|macos|ohos)-(x86_64|aarch64)$/.exec(rest);
+  const desktop = /^(windows|linux|macos)-(x86_64|aarch64)$/.exec(rest);
   if (desktop) return { platform: desktop[1] as Platform, architecture: desktop[2] as Architecture, variant: null };
   return null;
 }

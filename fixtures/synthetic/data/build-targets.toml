@@ -94,10 +94,11 @@ manager_blocked = ""
 
 [[targets]]
 triple = "aarch64-unknown-linux-ohos"
-runner = "ubuntu-24.04"
+runner = "local-only"
 platform = "ohos"
 architecture = "aarch64"
 variant = "device"
 tools = ["cargo"]
-manager_supported = false
-manager_blocked = "Native Manager host and packaging integration are not adapted for this target."
+manager_supported = true
+manager_blocked = ""
+manager_local_build = true
