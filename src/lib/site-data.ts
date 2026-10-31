@@ -380,26 +380,41 @@ const SEMVER =
 const ORG_REPO_PREFIX = 'https://github.com/Project-Shinkirou/';
 const GITHUB_REPO = /^https:\/\/github\.com\/[A-Za-z0-9._-]{1,100}\/[A-Za-z0-9._-]{1,100}$/;
 const CORE_COMMIT = /^[0-9a-f]{40}$/;
-/** A raw Git ref: printable ASCII without spaces, length bounded for display. */
-const CORE_REF_NAME = /^[\x21-\x7e]{1,255}$/;
+/** Backend `is_git_ref` character set; the structural rules follow below. */
+const CORE_REF_NAME = /^[A-Za-z0-9._+\/-]{1,256}$/;
 const CORE_RELEASE_SEQUENCE_MAX = 9007199254740991;
 const CORE_REF_KINDS = ['tag', 'branch'] as const;
 
 function coreRepo(value: Json, where: string, role: 'upstream' | 'adapter'): string {
   const repo = pattern(value, where, GITHUB_REPO);
-  if (repo.endsWith('.git')) throw new DataError(where, 'must not end with .git');
+  const [owner, name] = repo.slice('https://github.com/'.length).split('/');
+  if (owner === '.' || owner === '..' || name === '.' || name === '..') {
+    throw new DataError(where, 'must name an owner and repository, not a path segment');
+  }
+  const lower = repo.toLowerCase();
+  if (lower.endsWith('.git')) throw new DataError(where, 'must not end with .git');
   if (role === 'adapter' && !repo.startsWith(ORG_REPO_PREFIX)) {
     throw new DataError(where, 'must be an organization fork');
   }
-  if (role === 'upstream' && repo.startsWith(ORG_REPO_PREFIX)) {
+  if (role === 'upstream' && lower.startsWith(ORG_REPO_PREFIX.toLowerCase())) {
     throw new DataError(where, 'must be the original project, not the fork');
   }
   return repo;
 }
 
 function coreRefName(value: Json, where: string): string {
-  const name = text(value, where, 1, 255);
-  if (!CORE_REF_NAME.test(name)) throw new DataError(where, 'must be a printable ASCII Git ref');
+  const name = text(value, where, 1, 256);
+  const segments = name.split('/');
+  if (
+    !CORE_REF_NAME.test(name) ||
+    name.includes('..') ||
+    name.includes('@{') ||
+    name.includes('@') ||
+    name.endsWith('.') ||
+    segments.some((segment) => segment === '' || segment.startsWith('.') || segment.endsWith('.lock'))
+  ) {
+    throw new DataError(where, 'must be a valid Git ref');
+  }
   return name;
 }
 
@@ -595,6 +610,7 @@ export function parseCores(value: Json, cores: ReadonlySet<string>): CoreRelease
     const versionText = text(entry.version, `${where}.version`, 1, 512);
     let version: string;
     if (identity === null) {
+      if (versionText.length > 64) throw new DataError(`${where}.version`, 'legacy core version exceeds 64 characters');
       version = pattern(versionText, `${where}.version`, SEMVER);
     } else {
       const expected = `${identity.upstream.ref_kind}-${coreRefSlug(identity.upstream.ref_name)}-${coreIdentityDigest(identity)}`;
@@ -932,8 +948,15 @@ export function parseBuildInventory(targetsValue: Json, coresValue: Json, versio
       }
       if (source.upstream_identity !== undefined) {
         if (adapterBranch === null) throw new DataError(`${where}.source.branch`, 'an external release needs an adapter branch');
+        const upstreamIdentity = parseCoreUpstream(source.upstream_identity, `${where}.source.upstream_identity`);
+        if (upstreamIdentity.repo !== upstream) {
+          throw new DataError(
+            `${where}.source.upstream_identity.repo`,
+            'must match [cores.source].upstream',
+          );
+        }
         identity = {
-          upstream: parseCoreUpstream(source.upstream_identity, `${where}.source.upstream_identity`),
+          upstream: upstreamIdentity,
           adapter: { repo, branch: adapterBranch, commit: pattern(pin, `${where}.source.rev`, CORE_COMMIT) },
           release_sequence: integer(
             source.release_sequence,
@@ -953,6 +976,9 @@ export function parseBuildInventory(targetsValue: Json, coresValue: Json, versio
     }
     const versionText = text(version.version, `${versionWhere}.version`, 1, 512);
     if (identity === null) {
+      if (versionText.length > 64) {
+        throw new DataError(`${versionWhere}.version`, 'legacy core version exceeds 64 characters');
+      }
       pattern(versionText, `${versionWhere}.version`, SEMVER);
     } else if (versionText !== coreIdentityLabel(identity)) {
       throw new DataError(`${versionWhere}.version`, `must be ${coreIdentityLabel(identity)}`);

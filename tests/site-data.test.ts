@@ -297,10 +297,76 @@ test('identity fields reject unsupported refs, repos, commits and sequences', ()
     parseCores(catalogV2([externalEntry('rfvp', identity)]), new Set(['rfvp']));
   assert.throws(() => invalid(coreIdentity({ upstream: upstreamIdentity({ ref_kind: 'commit' as 'tag' }) })), /ref_kind/);
   assert.throws(() => invalid(coreIdentity({ upstream: upstreamIdentity({ commit: 'A'.repeat(40) }) })), /upstream\.commit/);
-  assert.throws(() => invalid(coreIdentity({ upstream: upstreamIdentity({ ref_name: 'feature branch' }) })), /printable ASCII/);
+  assert.throws(() => invalid(coreIdentity({ upstream: upstreamIdentity({ ref_name: 'feature branch' }) })), /valid Git ref/);
   assert.throws(() => invalid(coreIdentity({ upstream: upstreamIdentity({ repo: 'https://github.com/Project-Shinkirou/rfvp' }) })), /original project/);
   assert.throws(() => invalid(coreIdentity({ adapter: adapterIdentity({ repo: 'https://github.com/other/rfvp' }) })), /organization fork/);
   assert.throws(() => invalid(coreIdentity({ release_sequence: 0 })), /release_sequence/);
+});
+
+test('Git refs accept the backend charset and reject unsafe segments', () => {
+  const valid = coreIdentity({ upstream: upstreamIdentity({ ref_name: 'A-1_2.3+4/abc' }) });
+  const [release] = parseCores(catalogV2([externalEntry('rfvp', valid)]), new Set(['rfvp']));
+  assert.equal(release.identity?.upstream.ref_name, 'A-1_2.3+4/abc');
+  const invalidRef = (ref: string) =>
+    parseCores(catalogV2([externalEntry('rfvp', coreIdentity({ upstream: upstreamIdentity({ ref_name: ref }) }))]), new Set(['rfvp']));
+  for (const ref of [
+    '../evil',
+    '.hidden',
+    'foo/.hidden',
+    'foo.lock',
+    'foo/bar.lock',
+    'foo//bar',
+    '/foo',
+    'foo/',
+    'foo@bar',
+    'foo\\bar',
+    'foo.',
+    'foo@{bar',
+    'foo bar',
+  ]) {
+    assert.throws(() => invalidRef(ref), /valid Git ref/, ref);
+  }
+});
+
+test('core repositories reject dot segments, forks and .git suffixes', () => {
+  const invalid = (identity: CoreIdentity) =>
+    parseCores(catalogV2([externalEntry('rfvp', identity)]), new Set(['rfvp']));
+  for (const repo of ['https://github.com/./rfvp', 'https://github.com/../rfvp', 'https://github.com/xmoezzz/..']) {
+    assert.throws(
+      () => invalid(coreIdentity({ upstream: upstreamIdentity({ repo }) })),
+      /owner and repository/,
+      repo,
+    );
+  }
+  assert.throws(
+    () => invalid(coreIdentity({ upstream: upstreamIdentity({ repo: 'https://github.com/project-shinkirou/rfvp' }) })),
+    /original project/,
+  );
+  assert.throws(
+    () => invalid(coreIdentity({ adapter: adapterIdentity({ repo: 'https://github.com/Project-Shinkirou/rfvp.git' }) })),
+    /\.git/,
+  );
+});
+
+test('legacy core versions stay within 64 characters', () => {
+  const version = `0.1.0-${'a'.repeat(60)}`;
+  assert.throws(
+    () =>
+      parseCores(
+        {
+          schema: CORES_SCHEMA,
+          entries: [
+            legacyEntry({
+              version,
+              release_tag: 'core-rfvp-long',
+              url: `${RELEASE_DOWNLOAD_PREFIX}core-rfvp-long/a.zip`,
+            }),
+          ],
+        },
+        new Set(['rfvp']),
+      ),
+    /legacy core version exceeds 64 characters/,
+  );
 });
 
 test('external core slugs stay inside the 32-byte release tag budget', () => {
@@ -402,6 +468,24 @@ test('build inventory carries the adapter branch and validates the readable labe
   assert.throws(
     () => parseBuildInventory(targets, inventory, versionsFile),
     /core-versions\.json\.cores\.forked\.version: must be v0\.2\.0@111111111111 \(adapter aaaaaaaaaaaa\)/,
+  );
+
+  versionsFile.cores.forked.version = 'v0.2.0@111111111111 (adapter aaaaaaaaaaaa)';
+  const source = inventory.cores[0].source!;
+  (source.upstream_identity as Record<string, unknown>).repo = 'https://github.com/other/forked';
+  assert.throws(
+    () => parseBuildInventory(targets, inventory, versionsFile),
+    /source\.upstream_identity\.repo: must match \[cores\.source\]\.upstream/,
+  );
+
+  const legacyVersions = versions(FORK_REV) as {
+    schema: string;
+    cores: Record<string, { version: string; rev: string }>;
+  };
+  legacyVersions.cores.forked.version = `1.2.3-${'a'.repeat(60)}`;
+  assert.throws(
+    () => parseBuildInventory(targets, cores([]), legacyVersions),
+    /legacy core version exceeds 64 characters/,
   );
 });
 
