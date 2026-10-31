@@ -7,6 +7,8 @@
 //! Cargo version would hide which upstream ref the adapter actually builds.
 //! Workspace-inherited versions are resolved like Cargo does; a manifest
 //! without a version fails the build instead of publishing a guess.
+//! Typed source declarations must agree with `source.upstream`, and use the
+//! same bounded Git-ref/repository validation as the metadata consumer.
 
 use anyhow::{Context, Result, bail, ensure};
 use reqwest::{StatusCode, blocking::Client};
@@ -35,6 +37,7 @@ struct InventorySource {
     repo: String,
     rev: String,
     branch: Option<String>,
+    upstream: Option<String>,
     upstream_identity: Option<UpstreamIdentity>,
     release_sequence: Option<u64>,
 }
@@ -50,7 +53,7 @@ struct UpstreamIdentity {
 #[derive(Serialize, Debug, PartialEq)]
 pub struct CoreVersion {
     pub version: String,
-    /// Commit the manifest was read at: the fork pin, or the ShinkiEMU commit for owned cores.
+    /// Exact adapter fork pin, or the ShinkiEMU commit for owned cores.
     pub rev: String,
 }
 
@@ -80,14 +83,25 @@ fn github_repo(value: &str) -> bool {
     let Some(rest) = value.strip_prefix("https://github.com/") else {
         return false;
     };
-    if rest.ends_with(".git") {
-        return false;
-    }
     let mut parts = rest.split('/');
+    let safe = |part: &str| {
+        !part.is_empty() && part != "." && part != ".." && part.len() <= 100
+            && part.bytes().all(|byte| byte.is_ascii_alphanumeric() || b"._-".contains(&byte))
+    };
     matches!(
         (parts.next(), parts.next(), parts.next()),
-        (Some(owner), Some(name), None) if !owner.is_empty() && !name.is_empty()
+        (Some(owner), Some(name), None) if safe(owner) && safe(name)
+            && !name.get(name.len().saturating_sub(4)..).is_some_and(|suffix| suffix.eq_ignore_ascii_case(".git"))
     )
+}
+
+fn git_ref(value: &str) -> bool {
+    !value.is_empty() && value.len() <= 256 && !value.contains("..") && !value.contains("@{")
+        && value != "@" && !value.ends_with('.')
+        && value.split('/').all(|part| {
+            !part.is_empty() && !part.starts_with('.') && !part.ends_with(".lock")
+                && part.bytes().all(|byte| byte.is_ascii_alphanumeric() || b"._-+".contains(&byte))
+        })
 }
 
 /// Readable label for a third-party release: the raw upstream ref, both short
@@ -111,13 +125,13 @@ fn external_version(
         "core {core_id} upstream ref_kind is not tag or branch"
     );
     ensure!(
-        !upstream.ref_name.is_empty()
-            && upstream.ref_name.len() <= 255
-            && upstream.ref_name.bytes().all(|byte| byte.is_ascii_graphic()),
-        "core {core_id} upstream ref_name is not printable ASCII"
+        git_ref(&upstream.ref_name),
+        "core {core_id} upstream ref_name is not a safe Git ref"
     );
     ensure!(
-        github_repo(&upstream.repo) && !upstream.repo.starts_with(FORK_PREFIX),
+        github_repo(&upstream.repo) && !upstream.repo.strip_prefix("https://github.com/")
+            .and_then(|path| path.split_once('/'))
+            .is_some_and(|(owner, _)| owner.eq_ignore_ascii_case("Project-Shinkirou")),
         "core {core_id} upstream repo is not an original GitHub repository"
     );
     ensure!(
@@ -131,10 +145,8 @@ fn external_version(
     let branch =
         branch.with_context(|| format!("core {core_id} upstream_identity needs source.branch"))?;
     ensure!(
-        !branch.is_empty()
-            && branch.len() <= 255
-            && branch.bytes().all(|byte| byte.is_ascii_graphic()),
-        "core {core_id} adapter branch is not printable ASCII"
+        git_ref(branch),
+        "core {core_id} adapter branch is not a safe Git ref"
     );
     Ok(format!(
         "{}@{} (adapter {})",
@@ -150,6 +162,11 @@ fn location(core: &InventoryCore) -> Result<Location<'_>> {
             manifest: &core.manifest,
         });
     };
+    ensure!(github_repo(&source.repo), "core {} source is not a safe GitHub repository", core.id);
+    if let Some(upstream) = &source.upstream_identity {
+        ensure!(source.upstream.as_deref() == Some(upstream.repo.as_str()),
+            "core {} upstream identity disagrees with source.upstream", core.id);
+    }
     let repo = source
         .repo
         .strip_prefix(FORK_PREFIX)
@@ -441,6 +458,7 @@ mod tests {
                 repo: "https://github.com/Project-Shinkirou/rfvp".into(),
                 rev: "7c241b477fb10efd981b20af67b1fb9745ec97fe".into(),
                 branch: Some("shinki".into()),
+                upstream: Some("https://github.com/xmoezzz/rfvp".into()),
                 upstream_identity: None,
                 release_sequence: None,
             }),
@@ -461,6 +479,7 @@ mod tests {
                 repo: "https://github.com/xmoezzz/rfvp".into(),
                 rev: core.source.as_ref().unwrap().rev.clone(),
                 branch: None,
+                upstream: None,
                 upstream_identity: None,
                 release_sequence: None,
             }),
@@ -469,41 +488,85 @@ mod tests {
         assert!(location(&foreign).is_err());
     }
 
-    #[test]
-    fn external_labels_keep_the_raw_ref_and_both_short_commits() {
-        let upstream = UpstreamIdentity {
-            repo: "https://github.com/xmoezzz/rfvp".into(),
-            ref_kind: "branch".into(),
-            ref_name: "feature/save-load".into(),
-            commit: "1".repeat(40),
-        };
-        assert_eq!(
-            external_version(
-                "rfvp",
-                &upstream,
-                Some("shinki"),
-                &"2".repeat(40),
-                Some(7)
-            )
-            .unwrap(),
-            format!("feature/save-load@{} (adapter {})", "1".repeat(12), "2".repeat(12))
-        );
+    fn external_inventory() -> Value {
+        toml::from_str(r#"
+[[cores]]
+id = "rfvp"
+manifest = "ThirdParty/rfvp/crates/shinki-emu-rfvp/Cargo.toml"
+[cores.source]
+repo = "https://github.com/Project-Shinkirou/rfvp"
+branch = "shinki"
+rev = "9a5c20026e3638ef5714c2ad7062634648c8dfcf"
+upstream = "https://github.com/xmoezzz/rfvp"
+release_sequence = 1
+upstream_identity = { repo = "https://github.com/xmoezzz/rfvp", ref_kind = "tag", ref_name = "0.7.0", commit = "99435f22e94eaec27c0c1b9f22cc2a6b1910d7d1" }
+"#).unwrap()
+    }
+
+    fn produce(inventory: &Value) -> Result<CoreVersions> {
+        let core = &inventory["cores"][0];
+        let source = core["source"].as_table().unwrap();
+        let mut input = format!("[[cores]]\nid = {}\nmanifest = {}\n[cores.source]\n",
+            serde_json::to_string(&core["id"])?, serde_json::to_string(&core["manifest"])?);
+        for (name, value) in source {
+            if name != "upstream_identity" {
+                input.push_str(&format!("{name} = {}\n", serde_json::to_string(value)?));
+            }
+        }
+        input.push_str("[cores.source.upstream_identity]\n");
+        for (name, value) in source["upstream_identity"].as_table().unwrap() {
+            input.push_str(&format!("{name} = {}\n", serde_json::to_string(value)?));
+        }
+        core_versions(Path::new("."), &"f".repeat(40), &input, &Client::new(), None)
     }
 
     #[test]
-    fn external_labels_require_matching_provenance() {
-        let upstream = UpstreamIdentity {
-            repo: "https://github.com/xmoezzz/rfvp".into(),
-            ref_kind: "tag".into(),
-            ref_name: "v0.2.0".into(),
-            commit: "1".repeat(40),
-        };
-        let rev = "2".repeat(40);
-        assert!(external_version("rfvp", &upstream, Some("shinki"), &rev, None).is_err());
-        assert!(external_version("rfvp", &upstream, None, &rev, Some(1)).is_err());
-        assert!(external_version("rfvp", &upstream, Some("shinki"), &rev, Some(0)).is_err());
-        let mut bad_kind = upstream;
-        bad_kind.ref_kind = "commit".into();
-        assert!(external_version("rfvp", &bad_kind, Some("shinki"), &rev, Some(1)).is_err());
+    fn inventory_producer_preserves_tag_branch_and_adapter_only_changes() {
+        let mut inventory = external_inventory();
+        let tagged = produce(&inventory).unwrap();
+        let source = &mut inventory["cores"][0]["source"];
+        source["rev"] = "3".repeat(40).into();
+        source["release_sequence"] = 2_i64.into();
+        let updated = produce(&inventory).unwrap();
+        assert_eq!(tagged.cores["rfvp"].rev, "9a5c20026e3638ef5714c2ad7062634648c8dfcf");
+        assert!(tagged.cores["rfvp"].version.starts_with("0.7.0@99435f22e94e"));
+        assert_eq!(updated.cores["rfvp"].rev, "3".repeat(40));
+        assert_ne!(tagged.cores["rfvp"].version, updated.cores["rfvp"].version);
+        let source = &mut inventory["cores"][0]["source"];
+        source["upstream_identity"]["ref_kind"] = "branch".into();
+        source["upstream_identity"]["ref_name"] = "feature/save-load".into();
+        let branch = produce(&inventory).unwrap();
+        assert!(branch.cores["rfvp"].version.starts_with("feature/save-load@99435f22e94e"));
+    }
+
+    #[test]
+    fn inventory_producer_rejects_invalid_or_conflicting_provenance() {
+        for reference in ["../next", "main/../../other", "/main", "main.lock", ".hidden/next", "main\\next", "@", "main@{1}", "main\nnext"] {
+            let mut inventory = external_inventory();
+            inventory["cores"][0]["source"]["upstream_identity"]["ref_name"] = reference.into();
+            assert!(produce(&inventory).is_err(), "{reference}");
+        }
+        let mut inventory = external_inventory();
+        inventory["cores"][0]["source"]["upstream_identity"]["ref_name"] = "x".repeat(256).into();
+        produce(&inventory).unwrap();
+        inventory["cores"][0]["source"]["upstream_identity"]["ref_name"] = "x".repeat(257).into();
+        assert!(produce(&inventory).is_err());
+        let mut inventory = external_inventory();
+        inventory["cores"][0]["source"]["upstream"] = "https://github.com/other/engine".into();
+        assert!(produce(&inventory).is_err());
+        for repository in ["https://github.com/project-shinkirou/rfvp", "https://github.com/./engine", "https://github.com/example/..", "https://github.com/example/engine.git", "https://github.com/example/engine.GIT"] {
+            let mut inventory = external_inventory();
+            inventory["cores"][0]["source"]["upstream"] = repository.into();
+            inventory["cores"][0]["source"]["upstream_identity"]["repo"] = repository.into();
+            assert!(produce(&inventory).is_err(), "{repository}");
+        }
+        for sequence in [0_i64, 9_007_199_254_740_992] {
+            let mut inventory = external_inventory();
+            inventory["cores"][0]["source"]["release_sequence"] = sequence.into();
+            assert!(produce(&inventory).is_err());
+        }
+        let mut inventory = external_inventory();
+        inventory["cores"][0]["source"]["rev"] = "main".into();
+        assert!(produce(&inventory).is_err());
     }
 }
