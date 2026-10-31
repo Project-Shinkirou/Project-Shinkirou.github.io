@@ -10,6 +10,8 @@ import { managerDownloads } from '../src/lib/platforms.ts';
 import {
   BUILD_CORES_SCHEMA,
   BUILD_TARGETS_SCHEMA,
+  COMPATIBILITY_SCHEMA,
+  COMPATIBILITY_V5_SCHEMA,
   CORES_SCHEMA,
   CORES_V2_SCHEMA,
   CORE_VERSIONS_SCHEMA,
@@ -18,6 +20,7 @@ import {
   coreReleaseLabel,
   latestCoreRelease,
   parseBuildInventory,
+  parseCompatibility,
   parseCores,
   parseManagerRelease,
   parseVndbCoverage,
@@ -366,6 +369,39 @@ test('legacy core versions stay within 64 characters', () => {
         new Set(['rfvp']),
       ),
     /legacy core version exceeds 64 characters/,
+  );
+});
+
+test('compatibility v4 caps emulator versions at 64 and v5 allows 88', () => {
+  const snapshot = (schema: string, emulatorVersion: string, managerVersion = '1.0.0') => ({
+    schema,
+    generated_at_unix_ms: 0,
+    entries: [
+      {
+        vn_id: 'v1',
+        release_id: 'r1',
+        emulator: 'rfvp',
+        status: 'perfect',
+        notes: null,
+        emulator_version: emulatorVersion,
+        manager_version: managerVersion,
+        platform: 'windows',
+        architecture: 'x86_64',
+        variant: 'desktop',
+        issue: null,
+        updated_at_unix_ms: 0,
+      },
+    ],
+  });
+  const parse = (value: unknown) => parseCompatibility(value, new Set(['rfvp']));
+  assert.equal(parse(snapshot(COMPATIBILITY_SCHEMA, 'a'.repeat(64)))[0].emulator_version, 'a'.repeat(64));
+  assert.throws(() => parse(snapshot(COMPATIBILITY_SCHEMA, 'a'.repeat(65))), /emulator_version/);
+  assert.throws(() => parse(snapshot(COMPATIBILITY_SCHEMA, 'a'.repeat(88))), /emulator_version/);
+  assert.equal(parse(snapshot(COMPATIBILITY_V5_SCHEMA, 'a'.repeat(88)))[0].emulator_version, 'a'.repeat(88));
+  assert.throws(() => parse(snapshot(COMPATIBILITY_V5_SCHEMA, 'a'.repeat(89))), /emulator_version/);
+  assert.throws(
+    () => parse(snapshot(COMPATIBILITY_V5_SCHEMA, 'a'.repeat(64), 'b'.repeat(65))),
+    /manager_version/,
   );
 });
 

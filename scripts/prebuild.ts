@@ -148,7 +148,10 @@ function loadData(dataDir: string): LoadedSnapshot {
       throw new DataError(`core-versions.json.cores.${core.plugin_id}.rev`, 'owned core must use the prepared ShinkiEMU commit');
     }
   }
-  const compatibility = parseCompatibility(json('compatibility.json'), known);
+  const compatibility = parseCompatibility(
+    json(files.has('compatibility-v5.json') ? 'compatibility-v5.json' : 'compatibility.json'),
+    known,
+  );
   const patches = parsePatches(json('patches.json'), known);
   // Fetched by `xtask site prepare`; not part of the indexed metadata snapshot.
   const titles = parseVndbTitles(

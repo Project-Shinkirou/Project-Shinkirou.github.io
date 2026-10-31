@@ -12,6 +12,7 @@ import { createHash } from 'node:crypto';
 
 export const INDEX_SCHEMA = 'shinki.emu.metadata.index.v1';
 export const COMPATIBILITY_SCHEMA = 'shinki.emu.compatibility.v4';
+export const COMPATIBILITY_V5_SCHEMA = 'shinki.emu.compatibility.v5';
 export const CORES_SCHEMA = 'shinki.emu.cores.v1';
 export const CORES_V2_SCHEMA = 'shinki.emu.cores.v2';
 export const PATCHES_SCHEMA = 'shinki.emu.patches.v1';
@@ -525,13 +526,16 @@ export function parseIndex(value: Json): MetadataIndex {
 
 export function parseCompatibility(value: Json, cores: ReadonlySet<string>): CompatibilityEntry[] {
   const object = record(value, 'compatibility.json');
-  only(object, 'compatibility.json', ['schema', 'generated_at_unix_ms', 'entries']);
-  if (object.schema !== COMPATIBILITY_SCHEMA) {
-    throw new DataError('compatibility.json.schema', `expected ${COMPATIBILITY_SCHEMA}`);
+  const v5 = object.schema === COMPATIBILITY_V5_SCHEMA;
+  const name = v5 ? 'compatibility-v5.json' : 'compatibility.json';
+  only(object, name, ['schema', 'generated_at_unix_ms', 'entries']);
+  if (!v5 && object.schema !== COMPATIBILITY_SCHEMA) {
+    throw new DataError(`${name}.schema`, `expected ${COMPATIBILITY_SCHEMA} or ${COMPATIBILITY_V5_SCHEMA}`);
   }
+  const emulatorVersionMax = v5 ? 88 : 64;
   const keys = new Set<string>();
-  return array(object.entries, 'compatibility.json.entries').map((raw, i) => {
-    const where = `compatibility.json.entries[${i}]`;
+  return array(object.entries, `${name}.entries`).map((raw, i) => {
+    const where = `${name}.entries[${i}]`;
     const entry = record(raw, where);
     only(entry, where, [
       'vn_id', 'release_id', 'emulator', 'status', 'notes', 'emulator_version', 'manager_version',
@@ -551,7 +555,7 @@ export function parseCompatibility(value: Json, cores: ReadonlySet<string>): Com
       emulator,
       status: oneOf(entry.status, `${where}.status`, STATUSES),
       notes: optionalText(entry.notes, `${where}.notes`, 0, 1024),
-      emulator_version: optionalText(entry.emulator_version, `${where}.emulator_version`, 1, 64),
+      emulator_version: optionalText(entry.emulator_version, `${where}.emulator_version`, 1, emulatorVersionMax),
       manager_version: optionalText(entry.manager_version, `${where}.manager_version`, 1, 64),
       platform,
       architecture: oneOf(entry.architecture, `${where}.architecture`, ARCHITECTURES),
