@@ -26,7 +26,7 @@
       "rev": "3b7c96bdd79bcf445dab33e44c64dc59332c32d3"
     },
     "rfvp": {
-      "version": "0.6.0",
+      "version": "v0.2.0@111111111111 (adapter 7c241b477fb1)",
       "rev": "7c241b477fb10efd981b20af67b1fb9745ec97fe"
     },
     "sena-rs": {
@@ -42,7 +42,7 @@
       "rev": "5e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e"
     },
     "siglus_rs": {
-      "version": "1.0.0",
+      "version": "feature/save-load@222222222222 (adapter 2436c25fc966)",
       "rev": "2436c25fc966306e03cdada833b507eec97b51c4"
     }
   }

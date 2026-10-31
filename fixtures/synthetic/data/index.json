@@ -14,6 +14,11 @@
       "size": 1223
     },
     {
+      "path": "cores-v2.json",
+      "sha256": "d3067ff2217c53e50943946ab738f46f05db93cee4f786e0f577ff42aef98cee",
+      "size": 3835
+    },
+    {
       "path": "patches.json",
       "sha256": "da3eae38ab57d5e67853090d6bf35073cf92a0eb0c648cd5aa6cb51437e6747b",
       "size": 3792

@@ -1420,6 +1420,28 @@ button.legend-item[aria-pressed='true'] {
   font-size: 1.0625rem;
 }
 
+/* Upstream refs and digests are long and must wrap, never clip. */
+.core-version,
+.release-source,
+.release-source code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.release-version {
+  min-width: 14rem;
+}
+.release-version .chip {
+  margin-inline-start: 0.4rem;
+}
+.hash-short {
+  white-space: nowrap;
+  word-break: normal;
+}
+.release-tag {
+  min-width: 18rem;
+}
+
 /* ---------- Patches ---------- */
 
 .kind-nav {

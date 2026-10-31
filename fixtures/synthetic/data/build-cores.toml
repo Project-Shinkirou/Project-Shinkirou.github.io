@@ -21,6 +21,12 @@ repo = "https://github.com/Project-Shinkirou/rfvp"
 branch = "shinki"
 rev = "7c241b477fb10efd981b20af67b1fb9745ec97fe"
 upstream = "https://github.com/xmoezzz/rfvp"
+release_sequence = 2
+[cores.source.upstream_identity]
+repo = "https://github.com/xmoezzz/rfvp"
+ref_kind = "tag"
+ref_name = "v0.2.0"
+commit = "1111111111111111111111111111111111111111"
 [[cores.blocked]]
 target = "aarch64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."
@@ -60,6 +66,12 @@ repo = "https://github.com/Project-Shinkirou/siglus_rs"
 branch = "shinki"
 rev = "2436c25fc966306e03cdada833b507eec97b51c4"
 upstream = "https://github.com/xmoezzz/siglus_rs"
+release_sequence = 7
+[cores.source.upstream_identity]
+repo = "https://github.com/xmoezzz/siglus_rs"
+ref_kind = "branch"
+ref_name = "feature/save-load"
+commit = "2222222222222222222222222222222222222222"
 [[cores.blocked]]
 target = "aarch64-linux-android"
 reason = "Only the existing rfvp static-in-Manager integration is adapted; no standalone dynamic-core Android packaging path."

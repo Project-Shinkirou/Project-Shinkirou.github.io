@@ -4,6 +4,7 @@ import StateLegend from '../../../components/StateLegend.astro';
 import ProductLayout from '../../../layouts/ProductLayout.astro';
 import { formatBytes, LOCALES, STRINGS, type Locale } from '../../../lib/i18n.ts';
 import { coreAnchor, corePlatformStates } from '../../../lib/platforms.ts';
+import { coreReleaseLabel, latestCoreRelease, sortCoreReleases } from '../../../lib/site-data.ts';
 import { site } from '../../../lib/site.ts';
 
 export function getStaticPaths() {
@@ -14,19 +15,25 @@ const locale = Astro.params.locale as Locale;
 const t = STRINGS[locale].cores;
 const base = `/${locale}`;
 
-const cores = site.matrix.map((core) => ({
-  ...core,
-  anchor: coreAnchor(core.plugin_id),
-  states: corePlatformStates(core, site.targets),
-  supported: core.targets.filter((target) => target.status !== 'blocked').length,
-  shortRevision: core.revision.slice(0, 12),
-  repoName: core.repo.replace('https://github.com/', ''),
-  upstreamName: core.upstream?.replace('https://github.com/', '') ?? null,
-  // Same original engine, different implementation (e.g. Musica and ReMinori).
-  siblings: site.matrix.filter((other) => other.family === core.family && other.plugin_id !== core.plugin_id),
-  releases: site.cores.filter((release) => release.plugin_id === core.plugin_id),
-  reports: site.compatibility.filter((entry) => entry.emulator === core.plugin_id).length,
-}));
+const cores = site.matrix.map((core) => {
+  const releases = sortCoreReleases(site.cores.filter((release) => release.plugin_id === core.plugin_id));
+  return {
+    ...core,
+    anchor: coreAnchor(core.plugin_id),
+    states: corePlatformStates(core, site.targets),
+    supported: core.targets.filter((target) => target.status !== 'blocked').length,
+    shortRevision: core.revision.slice(0, 12),
+    repoName: core.repo.replace('https://github.com/', ''),
+    upstreamName: core.upstream?.replace('https://github.com/', '') ?? null,
+    upstreamIdentityName: core.identity?.upstream.repo.replace('https://github.com/', '') ?? null,
+    upstreamCommitShort: core.identity?.upstream.commit.slice(0, 12) ?? null,
+    // Same original engine, different implementation (e.g. Musica and ReMinori).
+    siblings: site.matrix.filter((other) => other.family === core.family && other.plugin_id !== core.plugin_id),
+    releases,
+    latestVersion: latestCoreRelease(releases)?.version ?? null,
+    reports: site.compatibility.filter((entry) => entry.emulator === core.plugin_id).length,
+  };
+});
 ---
 
 <ProductLayout locale={locale} title={t.title} description={t.description} current="cores">
@@ -82,14 +89,14 @@ const cores = site.matrix.map((core) => ({
             <div>
               <dt>{t.coreVersion}</dt>
               <dd>
-                <code>{core.version}</code>
+                <code class="core-version">{core.version}</code>
               </dd>
             </div>
             <div>
               <dt>{t.revision}</dt>
               <dd>
                 <a href={`${core.repo}/tree/${core.revision}`} aria-label={t.revisionLabel(core.shortRevision, core.repoName)}>
-                  <code class="hash">{core.shortRevision}</code>
+                  <code class="hash hash-short">{core.shortRevision}</code>
                 </a>
               </dd>
             </div>
@@ -97,6 +104,17 @@ const cores = site.matrix.map((core) => ({
               <dt>{t.sourceRepo}</dt>
               <dd>
                 <a href={core.repo}>{core.repoName}</a>
+                {core.adapter_branch && (
+                  <>
+                    <span class="muted"> · </span>
+                    <a
+                      href={`${core.repo}/tree/${core.adapter_branch}`}
+                      aria-label={t.adapterBranchLabel(core.adapter_branch, core.repoName)}
+                    >
+                      <code>{core.adapter_branch}</code>
+                    </a>
+                  </>
+                )}
               </dd>
             </div>
             <div>
@@ -111,6 +129,28 @@ const cores = site.matrix.map((core) => ({
                 )}
               </dd>
             </div>
+            {core.identity && (
+              <div>
+                <dt>{t.upstreamRef}</dt>
+                <dd>
+                  <span class="chip chip-static">
+                    {core.identity.upstream.ref_kind === 'tag' ? t.tagRef : t.branchRef}
+                  </span>{' '}
+                  <a
+                    href={`${core.identity.upstream.repo}/tree/${core.identity.upstream.commit}`}
+                    aria-label={t.upstreamRefLabel(
+                      core.identity.upstream.ref_name,
+                      core.upstreamCommitShort ?? '',
+                      core.upstreamIdentityName ?? '',
+                    )}
+                  >
+                    <code class="ref-name">{core.identity.upstream.ref_name}</code>
+                    <span class="muted">@</span>
+                    <code class="hash hash-short">{core.upstreamCommitShort}</code>
+                  </a>
+                </dd>
+              </div>
+            )}
           </dl>
 
           <PlatformStates states={core.states} locale={locale} label={`${core.core} · ${t.targets}`} />
@@ -183,11 +223,44 @@ const cores = site.matrix.map((core) => ({
                 <tbody>
                   {core.releases.map((release) => (
                     <tr>
-                      <th scope="row" class="nowrap">{release.version}</th>
+                      <th scope="row" class="release-version">
+                        {release.identity ? (
+                          <span class="release-source">
+                            <a
+                              href={`${release.identity.upstream.repo}/tree/${release.identity.upstream.commit}`}
+                              aria-label={t.upstreamRefLabel(
+                                release.identity.upstream.ref_name,
+                                release.identity.upstream.commit.slice(0, 12),
+                                release.identity.upstream.repo.replace('https://github.com/', ''),
+                              )}
+                            >
+                              <code class="ref-name">{release.identity.upstream.ref_name}</code>
+                              <span class="muted">@</span>
+                              <code class="hash hash-short">{release.identity.upstream.commit.slice(0, 12)}</code>
+                            </a>
+                            <span class="muted"> (adapter </span>
+                            <a
+                              href={`${release.identity.adapter.repo}/tree/${release.identity.adapter.commit}`}
+                              aria-label={t.revisionLabel(
+                                release.identity.adapter.commit.slice(0, 12),
+                                release.identity.adapter.repo.replace('https://github.com/', ''),
+                              )}
+                            >
+                              <code class="hash hash-short">{release.identity.adapter.commit.slice(0, 12)}</code>
+                            </a>
+                            <span class="muted">)</span>
+                          </span>
+                        ) : (
+                          <code>{release.version}</code>
+                        )}
+                        {core.latestVersion === release.version && (
+                          <span class="chip chip-supported">{t.latest}</span>
+                        )}
+                      </th>
                       <td class="nowrap">
                         <code>{release.platform}</code>
                       </td>
-                      <td class="nowrap">
+                      <td class="release-tag">
                         <code>{release.release_tag}</code>
                       </td>
                       <td class="nowrap">{formatBytes(release.size, locale)}</td>
@@ -198,7 +271,11 @@ const cores = site.matrix.map((core) => ({
                         <a
                           class="button button-primary"
                           href={release.url}
-                          aria-label={t.downloadLabel(release.display_name, release.platform, release.version)}
+                          aria-label={t.downloadLabel(
+                            release.display_name,
+                            release.platform,
+                            coreReleaseLabel(release),
+                          )}
                         >
                           {t.download}
                         </a>

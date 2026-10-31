@@ -2,6 +2,7 @@
 // `npm test` (Node's built-in runner; Node strips the TypeScript types).
 
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import { localizedText } from '../src/lib/i18n.ts';
 import { readFileSync } from 'node:fs';
@@ -9,11 +10,19 @@ import { managerDownloads } from '../src/lib/platforms.ts';
 import {
   BUILD_CORES_SCHEMA,
   BUILD_TARGETS_SCHEMA,
+  CORES_SCHEMA,
+  CORES_V2_SCHEMA,
   CORE_VERSIONS_SCHEMA,
+  RELEASE_DOWNLOAD_PREFIX,
   VNDB_COVERAGE_SCHEMA,
+  coreReleaseLabel,
+  latestCoreRelease,
   parseBuildInventory,
+  parseCores,
   parseManagerRelease,
   parseVndbCoverage,
+  sortCoreReleases,
+  type CoreIdentity,
 } from '../src/lib/site-data.ts';
 
 const FORK_REV = 'a'.repeat(40);
@@ -120,6 +129,301 @@ test('an empty blocked string leaves the target unaffected', () => {
   const emptyBlocked = { ...targets, targets: targets.targets.map((target) => ({ ...target, blocked: '' })) };
   const [, owned] = parseBuildInventory(emptyBlocked, cores([]), versions(FORK_REV)).cores;
   assert.equal(owned.targets[1].status, 'supported');
+});
+
+const UPSTREAM_COMMIT = '1'.repeat(40);
+const ADAPTER_COMMIT = '7c241b477fb10efd981b20af67b1fb9745ec97fe';
+
+function upstreamIdentity(overrides: Partial<CoreIdentity['upstream']> = {}): CoreIdentity['upstream'] {
+  return {
+    repo: 'https://github.com/xmoezzz/rfvp',
+    ref_kind: 'tag',
+    ref_name: 'v0.2.0',
+    commit: UPSTREAM_COMMIT,
+    ...overrides,
+  };
+}
+
+function adapterIdentity(overrides: Partial<CoreIdentity['adapter']> = {}): CoreIdentity['adapter'] {
+  return {
+    repo: 'https://github.com/Project-Shinkirou/rfvp',
+    branch: 'shinki',
+    commit: ADAPTER_COMMIT,
+    ...overrides,
+  };
+}
+
+function coreIdentity(overrides: Partial<CoreIdentity> = {}): CoreIdentity {
+  return {
+    upstream: upstreamIdentity(overrides.upstream),
+    adapter: adapterIdentity(overrides.adapter),
+    release_sequence: overrides.release_sequence ?? 2,
+  };
+}
+
+/** Mirror of the metadata contract, used to build and cross-check test vectors. */
+function catalogVersion(identity: CoreIdentity): string {
+  const canonical = [
+    identity.upstream.repo,
+    identity.upstream.ref_kind,
+    identity.upstream.ref_name,
+    identity.upstream.commit,
+    identity.adapter.repo,
+    identity.adapter.branch,
+    identity.adapter.commit,
+    String(identity.release_sequence),
+  ]
+    .map((field) => `${field}\n`)
+    .join('');
+  const digest = createHash('sha256').update(canonical, 'utf8').digest('hex');
+  const slug = identity.upstream.ref_name.slice(0, 16).replace(/[^A-Za-z0-9]/g, '-').toLowerCase();
+  return `${identity.upstream.ref_kind}-${slug}-${digest}`;
+}
+
+function legacyEntry(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    plugin_id: 'rfvp',
+    display_name: 'RFVP',
+    family_name: 'FVP',
+    version: '0.1.0-beta.1',
+    abi: 'shinki.emu.native.c.v3',
+    platform: 'windows-x86_64',
+    url: `${RELEASE_DOWNLOAD_PREFIX}core-rfvp-v0.1.0-beta.1/shinki-emu-core-rfvp-0.1.0-beta.1-windows-x86_64.zip`,
+    sha256: 'f'.repeat(64),
+    size: 1024,
+    license: 'MPL-2.0',
+    release_tag: 'core-rfvp-v0.1.0-beta.1',
+    ...overrides,
+  };
+}
+
+function externalEntry(
+  pluginId: string,
+  identity: CoreIdentity,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  const version = catalogVersion(identity);
+  const release_tag = `core-${pluginId.toLowerCase().replace(/[._]/g, '-')}-${version}`;
+  const platform = String(overrides.platform ?? 'windows-x86_64');
+  return {
+    plugin_id: pluginId,
+    display_name: 'RFVP',
+    family_name: 'FVP',
+    version,
+    abi: 'shinki.emu.native.c.v3',
+    platform,
+    url: `${RELEASE_DOWNLOAD_PREFIX}${release_tag}/shinki-emu-core-${pluginId}-${version}-${platform}.zip`,
+    sha256: 'a'.repeat(64),
+    size: 2048,
+    license: 'MPL-2.0',
+    release_tag,
+    identity,
+    ...overrides,
+  };
+}
+
+function catalogV2(entries: unknown[]): unknown {
+  return { schema: CORES_V2_SCHEMA, entries };
+}
+
+test('legacy cores.v1 entries stay SemVer and carry no identity', () => {
+  const [release] = parseCores({ schema: CORES_SCHEMA, entries: [legacyEntry()] }, new Set(['rfvp']));
+  assert.equal(release.version, '0.1.0-beta.1');
+  assert.equal(release.identity, null);
+  assert.equal(coreReleaseLabel(release), '0.1.0-beta.1');
+});
+
+test('cores-v2 keeps legacy history and validates a tag identity digest', () => {
+  const identity = coreIdentity();
+  const version = 'tag-v0-2-0-c905156a27f88c96c23ed0e2b4248dc9d6edbaaa8cc2c525a7d6844422e1d3b8';
+  assert.equal(catalogVersion(identity), version);
+  const releases = parseCores(catalogV2([legacyEntry(), externalEntry('rfvp', identity, { version })]), new Set(['rfvp']));
+  assert.equal(releases.length, 2);
+  assert.equal(releases[1].version, version);
+  assert.deepEqual(releases[1].identity, identity);
+  assert.equal(releases[1].release_tag, `core-rfvp-${version}`);
+  assert.equal(coreReleaseLabel(releases[1]), 'v0.2.0@111111111111 (adapter 7c241b477fb1)');
+});
+
+test('a slash branch keeps its raw ref and a 16-byte digest slug', () => {
+  const identity = coreIdentity({
+    upstream: upstreamIdentity({
+      repo: 'https://github.com/xmoezzz/siglus_rs',
+      ref_kind: 'branch',
+      ref_name: 'feature/save-load',
+      commit: '2'.repeat(40),
+    }),
+    adapter: adapterIdentity({
+      repo: 'https://github.com/Project-Shinkirou/siglus_rs',
+      commit: '2436c25fc966306e03cdada833b507eec97b51c4',
+    }),
+    release_sequence: 7,
+  });
+  const version = catalogVersion(identity);
+  assert.match(version, /^branch-feature-save-loa-[0-9a-f]{64}$/);
+  assert.equal(version.length, 88);
+  const [release] = parseCores(catalogV2([externalEntry('siglus_rs', identity)]), new Set(['siglus_rs']));
+  assert.equal(release.identity?.upstream.ref_name, 'feature/save-load');
+  assert.equal(release.version, version);
+  assert.equal(coreReleaseLabel(release), 'feature/save-load@222222222222 (adapter 2436c25fc966)');
+});
+
+test('cores.v1 rejects identity and v2 rejects a null identity', () => {
+  const identity = coreIdentity();
+  assert.throws(
+    () => parseCores({ schema: CORES_SCHEMA, entries: [externalEntry('rfvp', identity)] }, new Set(['rfvp'])),
+    /only shinki\.emu\.cores\.v2 entries carry identity/,
+  );
+  assert.throws(
+    () => parseCores(catalogV2([{ ...legacyEntry(), identity: null }]), new Set(['rfvp'])),
+    /identity: must be omitted, not null/,
+  );
+});
+
+test('identity version and release tag must match the provenance digest', () => {
+  const identity = coreIdentity();
+  assert.throws(
+    () => parseCores(catalogV2([externalEntry('rfvp', identity, { version: `tag-v0-2-0-${'0'.repeat(64)}` })]), new Set(['rfvp'])),
+    /does not match the provenance digest/,
+  );
+  assert.throws(
+    () => parseCores(catalogV2([externalEntry('rfvp', identity, { release_tag: 'core-other-wrong' })]), new Set(['rfvp'])),
+    /release_tag: must be core-rfvp-/,
+  );
+});
+
+test('identity fields reject unsupported refs, repos, commits and sequences', () => {
+  const invalid = (identity: CoreIdentity) =>
+    parseCores(catalogV2([externalEntry('rfvp', identity)]), new Set(['rfvp']));
+  assert.throws(() => invalid(coreIdentity({ upstream: upstreamIdentity({ ref_kind: 'commit' as 'tag' }) })), /ref_kind/);
+  assert.throws(() => invalid(coreIdentity({ upstream: upstreamIdentity({ commit: 'A'.repeat(40) }) })), /upstream\.commit/);
+  assert.throws(() => invalid(coreIdentity({ upstream: upstreamIdentity({ ref_name: 'feature branch' }) })), /printable ASCII/);
+  assert.throws(() => invalid(coreIdentity({ upstream: upstreamIdentity({ repo: 'https://github.com/Project-Shinkirou/rfvp' }) })), /original project/);
+  assert.throws(() => invalid(coreIdentity({ adapter: adapterIdentity({ repo: 'https://github.com/other/rfvp' }) })), /organization fork/);
+  assert.throws(() => invalid(coreIdentity({ release_sequence: 0 })), /release_sequence/);
+});
+
+test('external core slugs stay inside the 32-byte release tag budget', () => {
+  const pluginId = 'a'.repeat(33);
+  assert.throws(
+    () => parseCores(catalogV2([externalEntry(pluginId, coreIdentity())]), new Set([pluginId])),
+    /external core slug exceeds 32 characters/,
+  );
+});
+
+test('one release_sequence may span platforms but not versions', () => {
+  const identity = coreIdentity();
+  const releases = parseCores(
+    catalogV2([
+      externalEntry('rfvp', identity, { platform: 'windows-x86_64' }),
+      externalEntry('rfvp', identity, { platform: 'linux-x86_64' }),
+    ]),
+    new Set(['rfvp']),
+  );
+  assert.equal(releases.length, 2);
+  assert.equal(new Set(releases.map((release) => release.version)).size, 1);
+  const another = coreIdentity({
+    upstream: upstreamIdentity({ ref_name: 'v0.3.0', commit: '3'.repeat(40) }),
+  });
+  assert.throws(
+    () => parseCores(catalogV2([externalEntry('rfvp', identity), externalEntry('rfvp', another)]), new Set(['rfvp'])),
+    /is reused with a different version/,
+  );
+});
+
+test('release order uses release_sequence and SemVer, never branch text', () => {
+  const sequence2 = coreIdentity({
+    upstream: upstreamIdentity({ ref_name: 'release/9', commit: '4'.repeat(40) }),
+    release_sequence: 2,
+  });
+  const sequence10 = coreIdentity({
+    upstream: upstreamIdentity({ ref_name: 'release/10', commit: '5'.repeat(40) }),
+    release_sequence: 10,
+  });
+  const releases = parseCores(
+    catalogV2([
+      legacyEntry({ version: '0.1.0-beta.9', platform: 'windows-x86_64', release_tag: 'core-rfvp-v0.1.0-beta.9', url: `${RELEASE_DOWNLOAD_PREFIX}core-rfvp-v0.1.0-beta.9/a.zip` }),
+      legacyEntry({ version: '0.1.0-beta.10', platform: 'linux-x86_64', release_tag: 'core-rfvp-v0.1.0-beta.10', url: `${RELEASE_DOWNLOAD_PREFIX}core-rfvp-v0.1.0-beta.10/b.zip` }),
+      legacyEntry({ version: '9.9.9', platform: 'macos-aarch64', release_tag: 'core-rfvp-v9.9.9', url: `${RELEASE_DOWNLOAD_PREFIX}core-rfvp-v9.9.9/c.zip` }),
+      externalEntry('rfvp', sequence2, { platform: 'windows-x86_64' }),
+      externalEntry('rfvp', sequence10, { platform: 'windows-x86_64' }),
+    ]),
+    new Set(['rfvp']),
+  );
+  const sorted = sortCoreReleases(releases);
+  assert.deepEqual(
+    sorted.map((release) => release.identity?.release_sequence ?? release.version),
+    [10, 2, '9.9.9', '0.1.0-beta.10', '0.1.0-beta.9'],
+  );
+  assert.equal(latestCoreRelease(releases)?.identity?.release_sequence, 10);
+});
+
+test('legacy-only cores pick the highest SemVer, including prerelease numbers', () => {
+  const releases = parseCores(
+    catalogV2([
+      legacyEntry({ version: '0.1.0-beta.9', platform: 'windows-x86_64', release_tag: 'core-rfvp-v0.1.0-beta.9', url: `${RELEASE_DOWNLOAD_PREFIX}core-rfvp-v0.1.0-beta.9/a.zip` }),
+      legacyEntry({ version: '0.1.0-beta.10', platform: 'linux-x86_64', release_tag: 'core-rfvp-v0.1.0-beta.10', url: `${RELEASE_DOWNLOAD_PREFIX}core-rfvp-v0.1.0-beta.10/b.zip` }),
+      legacyEntry({ version: '0.1.0', platform: 'macos-aarch64', release_tag: 'core-rfvp-v0.1.0', url: `${RELEASE_DOWNLOAD_PREFIX}core-rfvp-v0.1.0/c.zip` }),
+    ]),
+    new Set(['rfvp']),
+  );
+  assert.equal(latestCoreRelease(releases)?.version, '0.1.0');
+  assert.deepEqual(sortCoreReleases(releases).map((release) => release.version), ['0.1.0', '0.1.0-beta.10', '0.1.0-beta.9']);
+});
+
+test('build inventory carries the adapter branch and validates the readable label', () => {
+  const inventory = cores([]) as {
+    schema: string;
+    cores: { source?: Record<string, unknown> }[];
+  };
+  inventory.cores[0].source = {
+    repo: 'https://github.com/Project-Shinkirou/forked',
+    branch: 'shinki',
+    rev: FORK_REV,
+    upstream: 'https://github.com/original/forked',
+    upstream_identity: {
+      repo: 'https://github.com/original/forked',
+      ref_kind: 'tag',
+      ref_name: 'v0.2.0',
+      commit: UPSTREAM_COMMIT,
+    },
+    release_sequence: 2,
+  };
+  const versionsFile = versions(FORK_REV) as {
+    schema: string;
+    cores: Record<string, { version: string; rev: string }>;
+  };
+  versionsFile.cores.forked.version = 'v0.2.0@111111111111 (adapter aaaaaaaaaaaa)';
+  const [forked] = parseBuildInventory(targets, inventory, versionsFile).cores;
+  assert.equal(forked.adapter_branch, 'shinki');
+  assert.equal(forked.identity?.upstream.ref_name, 'v0.2.0');
+  assert.equal(forked.version, 'v0.2.0@111111111111 (adapter aaaaaaaaaaaa)');
+  versionsFile.cores.forked.version = '0.2.0';
+  assert.throws(
+    () => parseBuildInventory(targets, inventory, versionsFile),
+    /core-versions\.json\.cores\.forked\.version: must be v0\.2\.0@111111111111 \(adapter aaaaaaaaaaaa\)/,
+  );
+});
+
+test('the synthetic v2 snapshot keeps every legacy entry and adds typed history', () => {
+  const data = (name: string) => JSON.parse(readFileSync(new URL(`../fixtures/synthetic/data/${name}`, import.meta.url), 'utf8'));
+  const known = new Set(Object.keys(data('core-versions.json').cores));
+  const legacy = parseCores(data('cores.json'), known);
+  const catalog = parseCores(data('cores-v2.json'), known);
+  assert.equal(catalog.length, legacy.length + 2);
+  for (let i = 0; i < legacy.length; i += 1) {
+    const { identity: catalogIdentity, ...fields } = catalog[i];
+    const { identity: legacyIdentity, ...legacyFields } = legacy[i];
+    assert.equal(catalogIdentity, null);
+    assert.equal(legacyIdentity, null);
+    assert.deepEqual(fields, legacyFields);
+  }
+  const rfvp = sortCoreReleases(catalog.filter((release) => release.plugin_id === 'rfvp'));
+  assert.equal(rfvp[0].identity?.upstream.ref_name, 'v0.2.0');
+  assert.equal(rfvp[1].version, '0.1.0-beta.1');
+  const siglus = catalog.find((release) => release.plugin_id === 'siglus_rs');
+  assert.equal(siglus?.identity?.upstream.ref_name, 'feature/save-load');
+  assert.equal(coreReleaseLabel(siglus!), 'feature/save-load@222222222222 (adapter 2436c25fc966)');
 });
 
 test('Japanese text falls back to English, then Chinese', () => {

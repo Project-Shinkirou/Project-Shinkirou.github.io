@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 // Data contract for the portal build. The prebuild script validates the
 // ShinkiEMU metadata snapshot against these rules and writes a normalized
 // `src/generated/site-data.json`; pages only read that validated file.
@@ -11,6 +13,7 @@
 export const INDEX_SCHEMA = 'shinki.emu.metadata.index.v1';
 export const COMPATIBILITY_SCHEMA = 'shinki.emu.compatibility.v4';
 export const CORES_SCHEMA = 'shinki.emu.cores.v1';
+export const CORES_V2_SCHEMA = 'shinki.emu.cores.v2';
 export const PATCHES_SCHEMA = 'shinki.emu.patches.v1';
 
 export const RELEASE_DOWNLOAD_PREFIX =
@@ -64,6 +67,34 @@ export interface CompatibilityEntry {
   updated_at_unix_ms: number;
 }
 
+/** Upstream repository and ref a third-party core release is based on. */
+export interface CoreUpstreamIdentity {
+  repo: string;
+  ref_kind: 'tag' | 'branch';
+  /** Raw upstream ref name, kept verbatim for display. */
+  ref_name: string;
+  commit: string;
+}
+
+/** Organization fork branch and commit that adapt the upstream ref. */
+export interface CoreAdapterIdentity {
+  repo: string;
+  branch: string;
+  commit: string;
+}
+
+/**
+ * Provenance of a third-party release in `cores-v2.json`. Its `version` is a
+ * deterministic digest of these fields; the release order is the monotonic
+ * `release_sequence`, never the text of a tag, branch or hash.
+ */
+export interface CoreIdentity {
+  upstream: CoreUpstreamIdentity;
+  adapter: CoreAdapterIdentity;
+  release_sequence: number;
+}
+
+/** One downloadable core package. */
 export interface CoreRelease {
   plugin_id: string;
   display_name: string;
@@ -76,6 +107,8 @@ export interface CoreRelease {
   size: number;
   license: string;
   release_tag: string;
+  /** Present on new third-party releases; null for legacy and self-owned SemVer entries. */
+  identity: CoreIdentity | null;
 }
 
 export interface LocalizedText {
@@ -131,7 +164,11 @@ export interface MatrixCore {
   plugin_id: string;
   family: string;
   license: string;
-  /** `[package].version` of the core's manifest at `revision` (from `core-versions.json`). */
+  /**
+   * Upstream ref at the adapter revision for new third-party releases, or the
+   * manifest version for legacy/self-owned cores. `core-versions.json` renders
+   * the readable label from the same identity.
+   */
   version: string;
   /** Commit the core is built from: the fork pin, or the ShinkiEMU commit for owned cores. */
   revision: string;
@@ -139,6 +176,10 @@ export interface MatrixCore {
   repo: string;
   /** Original upstream project of a third-party core (`[cores.source].upstream`); null for owned cores. */
   upstream: string | null;
+  /** Adapter branch of the organization fork; null for owned cores. */
+  adapter_branch: string | null;
+  /** Provenance of the current external release from `build/cores.toml`; null for legacy/owned cores. */
+  identity: CoreIdentity | null;
   /** Non-empty when binaries are withheld until distribution review closes. */
   publish_blocked: string | null;
   /** Targets where the core ships statically inside the Manager rather than as a package. */
@@ -336,6 +377,94 @@ const TRIPLE = /^[a-z0-9_]+(-[a-z0-9_]+){1,4}$/;
 const ASSET = /^[A-Za-z0-9._-]{1,256}$/;
 const SEMVER =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
+const ORG_REPO_PREFIX = 'https://github.com/Project-Shinkirou/';
+const GITHUB_REPO = /^https:\/\/github\.com\/[A-Za-z0-9._-]{1,100}\/[A-Za-z0-9._-]{1,100}$/;
+const CORE_COMMIT = /^[0-9a-f]{40}$/;
+/** A raw Git ref: printable ASCII without spaces, length bounded for display. */
+const CORE_REF_NAME = /^[\x21-\x7e]{1,255}$/;
+const CORE_RELEASE_SEQUENCE_MAX = 9007199254740991;
+const CORE_REF_KINDS = ['tag', 'branch'] as const;
+
+function coreRepo(value: Json, where: string, role: 'upstream' | 'adapter'): string {
+  const repo = pattern(value, where, GITHUB_REPO);
+  if (repo.endsWith('.git')) throw new DataError(where, 'must not end with .git');
+  if (role === 'adapter' && !repo.startsWith(ORG_REPO_PREFIX)) {
+    throw new DataError(where, 'must be an organization fork');
+  }
+  if (role === 'upstream' && repo.startsWith(ORG_REPO_PREFIX)) {
+    throw new DataError(where, 'must be the original project, not the fork');
+  }
+  return repo;
+}
+
+function coreRefName(value: Json, where: string): string {
+  const name = text(value, where, 1, 255);
+  if (!CORE_REF_NAME.test(name)) throw new DataError(where, 'must be a printable ASCII Git ref');
+  return name;
+}
+
+function parseCoreUpstream(value: Json, where: string): CoreUpstreamIdentity {
+  const upstream = record(value, where);
+  only(upstream, where, ['repo', 'ref_kind', 'ref_name', 'commit']);
+  return {
+    repo: coreRepo(upstream.repo, `${where}.repo`, 'upstream'),
+    ref_kind: oneOf(upstream.ref_kind, `${where}.ref_kind`, CORE_REF_KINDS),
+    ref_name: coreRefName(upstream.ref_name, `${where}.ref_name`),
+    commit: pattern(upstream.commit, `${where}.commit`, CORE_COMMIT),
+  };
+}
+
+function parseCoreIdentity(value: Json, where: string): CoreIdentity {
+  const identity = record(value, where);
+  only(identity, where, ['upstream', 'adapter', 'release_sequence']);
+  const adapter = record(identity.adapter, `${where}.adapter`);
+  only(adapter, `${where}.adapter`, ['repo', 'branch', 'commit']);
+  return {
+    upstream: parseCoreUpstream(identity.upstream, `${where}.upstream`),
+    adapter: {
+      repo: coreRepo(adapter.repo, `${where}.adapter.repo`, 'adapter'),
+      branch: coreRefName(adapter.branch, `${where}.adapter.branch`),
+      commit: pattern(adapter.commit, `${where}.adapter.commit`, CORE_COMMIT),
+    },
+    release_sequence: integer(identity.release_sequence, `${where}.release_sequence`, 1, CORE_RELEASE_SEQUENCE_MAX),
+  };
+}
+
+/** First 16 ASCII bytes of the raw upstream ref, each non-alphanumeric replaced by `-`. */
+function coreRefSlug(refName: string): string {
+  return refName.slice(0, 16).replace(/[^A-Za-z0-9]/g, '-').toLowerCase();
+}
+
+/**
+ * SHA-256 over the canonical provenance lines in the order fixed by the
+ * metadata contract, each field followed by LF. The digest, not a rendered
+ * tag or branch name, identifies a third-party release.
+ */
+function coreIdentityDigest(identity: CoreIdentity): string {
+  const canonical = [
+    identity.upstream.repo,
+    identity.upstream.ref_kind,
+    identity.upstream.ref_name,
+    identity.upstream.commit,
+    identity.adapter.repo,
+    identity.adapter.branch,
+    identity.adapter.commit,
+    String(identity.release_sequence),
+  ]
+    .map((field) => `${field}\n`)
+    .join('');
+  return createHash('sha256').update(canonical, 'utf8').digest('hex');
+}
+
+/** Full readable provenance label for a third-party release. */
+export function coreIdentityLabel(identity: CoreIdentity): string {
+  return `${identity.upstream.ref_name}@${identity.upstream.commit.slice(0, 12)} (adapter ${identity.adapter.commit.slice(0, 12)})`;
+}
+
+/** The readable version a page shows: upstream ref + both short commits, or a manifest version. */
+export function coreReleaseLabel(release: Pick<CoreRelease, 'identity' | 'version'>): string {
+  return release.identity === null ? release.version : coreIdentityLabel(release.identity);
+}
 
 /**
  * Relative `/`-separated path without traversal, drive letters, alternate
@@ -431,21 +560,60 @@ function releaseAsset(url: string): { tag: string; asset: string } | null {
   return { tag, asset };
 }
 
+/**
+ * Validates the legacy `cores.json` or the additive `cores-v2.json`. Version 2
+ * keeps every legacy entry and adds typed provenance to new third-party
+ * releases; the portal prefers it when the metadata index publishes it and
+ * falls back to version 1, which stays downloadable for older Managers.
+ */
 export function parseCores(value: Json, cores: ReadonlySet<string>): CoreRelease[] {
   const object = record(value, 'cores.json');
-  only(object, 'cores.json', ['schema', 'entries']);
-  if (object.schema !== CORES_SCHEMA) throw new DataError('cores.json.schema', `expected ${CORES_SCHEMA}`);
+  const v2 = object.schema === CORES_V2_SCHEMA;
+  const name = v2 ? 'cores-v2.json' : 'cores.json';
+  only(object, name, ['schema', 'entries']);
+  if (!v2 && object.schema !== CORES_SCHEMA) {
+    throw new DataError(`${name}.schema`, `expected ${CORES_SCHEMA} or ${CORES_V2_SCHEMA}`);
+  }
   const keys = new Set<string>();
-  return array(object.entries, 'cores.json.entries').map((raw, i) => {
-    const where = `cores.json.entries[${i}]`;
+  /** plugin id + release_sequence -> version; one release can span platforms. */
+  const sequences = new Map<string, string>();
+  return array(object.entries, `${name}.entries`).map((raw, i) => {
+    const where = `${name}.entries[${i}]`;
     const entry = record(raw, where);
     only(entry, where, [
       'plugin_id', 'display_name', 'family_name', 'version', 'abi', 'platform', 'url', 'sha256', 'size',
-      'license', 'release_tag',
+      'license', 'release_tag', 'identity',
     ]);
     const plugin_id = pattern(entry.plugin_id, `${where}.plugin_id`, PLUGIN_ID);
     if (!cores.has(plugin_id)) throw new DataError(`${where}.plugin_id`, `core "${plugin_id}" is not in build-cores.toml`);
+    let identity: CoreIdentity | null = null;
+    if (entry.identity === null) throw new DataError(`${where}.identity`, 'must be omitted, not null');
+    if (entry.identity !== undefined) {
+      if (!v2) throw new DataError(`${where}.identity`, `only ${CORES_V2_SCHEMA} entries carry identity`);
+      identity = parseCoreIdentity(entry.identity, `${where}.identity`);
+    }
+    const versionText = text(entry.version, `${where}.version`, 1, 512);
+    let version: string;
+    if (identity === null) {
+      version = pattern(versionText, `${where}.version`, SEMVER);
+    } else {
+      const expected = `${identity.upstream.ref_kind}-${coreRefSlug(identity.upstream.ref_name)}-${coreIdentityDigest(identity)}`;
+      if (versionText !== expected) {
+        throw new DataError(`${where}.version`, `does not match the provenance digest (expected ${expected})`);
+      }
+      version = versionText;
+    }
+    const pluginSlug = plugin_id.toLowerCase().replace(/[._]/g, '-');
+    if (identity !== null && pluginSlug.length > 32) {
+      throw new DataError(`${where}.plugin_id`, 'external core slug exceeds 32 characters');
+    }
     const release_tag = pattern(entry.release_tag, `${where}.release_tag`, /^[A-Za-z0-9._-]{1,128}$/);
+    if (identity !== null) {
+      const expected = `core-${pluginSlug}-${version}`;
+      if (release_tag !== expected) {
+        throw new DataError(`${where}.release_tag`, `must be ${expected}`);
+      }
+    }
     const url = https(entry.url, `${where}.url`);
     const asset = releaseAsset(url);
     if (!asset || asset.tag !== release_tag) {
@@ -455,7 +623,7 @@ export function parseCores(value: Json, cores: ReadonlySet<string>): CoreRelease
       plugin_id,
       display_name: text(entry.display_name, `${where}.display_name`, 1, 64),
       family_name: text(entry.family_name, `${where}.family_name`, 1, 64),
-      version: pattern(entry.version, `${where}.version`, SEMVER),
+      version,
       abi: text(entry.abi, `${where}.abi`, 1, 128),
       platform: pattern(entry.platform, `${where}.platform`, /^[a-z0-9_]{1,32}-[a-z0-9_]{1,32}$/),
       url,
@@ -463,12 +631,92 @@ export function parseCores(value: Json, cores: ReadonlySet<string>): CoreRelease
       size: integer(entry.size, `${where}.size`, 1, MAX_CORE_PACKAGE_BYTES),
       license: text(entry.license, `${where}.license`, 1, 128),
       release_tag,
+      identity,
     };
     const key = `${parsed.plugin_id}/${parsed.platform}/${parsed.version}`;
     if (keys.has(key)) throw new DataError(where, `duplicate release ${key}`);
     keys.add(key);
+    if (identity !== null) {
+      const sequenceKey = `${parsed.plugin_id}/${identity.release_sequence}`;
+      const known = sequences.get(sequenceKey);
+      if (known !== undefined && known !== version) {
+        throw new DataError(`${where}.identity.release_sequence`, 'is reused with a different version');
+      }
+      sequences.set(sequenceKey, version);
+    }
     return parsed;
   });
+}
+
+function compareNumericText(a: string, b: string): number {
+  const x = a.replace(/^0+/, '') || '0';
+  const y = b.replace(/^0+/, '') || '0';
+  if (x.length !== y.length) return x.length - y.length;
+  return x < y ? -1 : x > y ? 1 : 0;
+}
+
+/**
+ * SemVer precedence for identity-free core versions. Build metadata is
+ * ignored; prerelease identifiers follow the SemVer numeric/lexical rule.
+ */
+function compareCoreSemVer(a: string, b: string): number {
+  const left = SEMVER.exec(a);
+  const right = SEMVER.exec(b);
+  if (!left || !right) return 0;
+  for (let i = 1; i <= 3; i += 1) {
+    const order = compareNumericText(left[i], right[i]);
+    if (order !== 0) return order;
+  }
+  const leftPre = left[4];
+  const rightPre = right[4];
+  if (leftPre === undefined && rightPre === undefined) return 0;
+  if (leftPre === undefined) return 1;
+  if (rightPre === undefined) return -1;
+  const leftParts = leftPre.split('.');
+  const rightParts = rightPre.split('.');
+  for (let i = 0; i < Math.max(leftParts.length, rightParts.length); i += 1) {
+    const x = leftParts[i];
+    const y = rightParts[i];
+    if (x === undefined) return -1;
+    if (y === undefined) return 1;
+    const xNumeric = /^[0-9]+$/.test(x);
+    const yNumeric = /^[0-9]+$/.test(y);
+    if (xNumeric && yNumeric) {
+      const order = compareNumericText(x, y);
+      if (order !== 0) return order;
+    } else if (xNumeric !== yNumeric) {
+      return xNumeric ? -1 : 1;
+    } else if (x !== y) {
+      return x < y ? -1 : 1;
+    }
+  }
+  return 0;
+}
+
+/**
+ * Newest first for one core: typed identity releases use their monotonic
+ * `release_sequence` (never the text of a tag, branch or hash) and supersede
+ * legacy SemVer entries, which stay listed for download.
+ */
+export function sortCoreReleases(releases: readonly CoreRelease[]): CoreRelease[] {
+  return [...releases].sort((a, b) => {
+    const left = a.identity;
+    const right = b.identity;
+    if (left !== null && right === null) return -1;
+    if (left === null && right !== null) return 1;
+    const order =
+      left !== null && right !== null
+        ? right.release_sequence - left.release_sequence
+        : left === null && right === null
+          ? compareCoreSemVer(b.version, a.version)
+          : 0;
+    return order !== 0 ? order : a.platform < b.platform ? -1 : a.platform > b.platform ? 1 : 0;
+  });
+}
+
+/** The release the core management page marks as newest under the same rule. */
+export function latestCoreRelease(releases: readonly CoreRelease[]): CoreRelease | null {
+  return sortCoreReleases(releases)[0] ?? null;
 }
 
 function localized(value: Json, where: string, max: number): LocalizedText {
@@ -571,13 +819,13 @@ export const BUILD_CORES_SCHEMA = 'shinki.emu.build_cores.v1';
 export const BUILD_TARGETS_SCHEMA = 'shinki.emu.build_targets.v1';
 /** Written by `xtask site prepare` (`xtask/src/versions.rs`). */
 export const CORE_VERSIONS_SCHEMA = 'shinki.portal.core_versions.v1';
-const ORG_REPO_PREFIX = 'https://github.com/Project-Shinkirou/';
-const GITHUB_REPO = /^https:\/\/github\.com\/[A-Za-z0-9._-]{1,100}\/[A-Za-z0-9._-]{1,100}$/;
 
 /**
  * Reads the parsed ShinkiEMU `build/targets.toml` and `build/cores.toml`, the
  * single build/release inventory, together with `core-versions.json` (each
- * core's manifest version at the revision it is built from). Fields the site
+ * core's readable version label at the revision it is built from). External
+ * cores with `[cores.source].upstream_identity` carry the upstream ref and
+ * both commits; legacy/owned cores keep their manifest SemVer. Fields the site
  * does not render (manifests, features, tools, runners) are ignored so
  * build-only additions do not break the portal; every rendered field is
  * validated.
@@ -667,13 +915,34 @@ export function parseBuildInventory(targetsValue: Json, coresValue: Json, versio
     let repo = SHINKIEMU_REPO;
     let upstream: string | null = null;
     let pinned: string | null = null;
+    let adapterBranch: string | null = null;
+    let identity: CoreIdentity | null = null;
     if (core.source !== undefined) {
       const source = record(core.source, `${where}.source`);
       repo = pattern(source.repo, `${where}.source.repo`, GITHUB_REPO);
       if (!repo.startsWith(ORG_REPO_PREFIX)) throw new DataError(`${where}.source.repo`, 'must be an organization fork');
-      pinned = pattern(source.rev, `${where}.source.rev`, COMMIT);
+      const pin = pattern(source.rev, `${where}.source.rev`, COMMIT);
+      pinned = pin;
       upstream = pattern(source.upstream, `${where}.source.upstream`, GITHUB_REPO);
       if (upstream.startsWith(ORG_REPO_PREFIX)) throw new DataError(`${where}.source.upstream`, 'must be the original project, not the fork');
+      adapterBranch =
+        source.branch === undefined || source.branch === null ? null : coreRefName(source.branch, `${where}.source.branch`);
+      if ((source.upstream_identity === undefined) !== (source.release_sequence === undefined)) {
+        throw new DataError(where, 'source.upstream_identity and source.release_sequence must be set together');
+      }
+      if (source.upstream_identity !== undefined) {
+        if (adapterBranch === null) throw new DataError(`${where}.source.branch`, 'an external release needs an adapter branch');
+        identity = {
+          upstream: parseCoreUpstream(source.upstream_identity, `${where}.source.upstream_identity`),
+          adapter: { repo, branch: adapterBranch, commit: pattern(pin, `${where}.source.rev`, CORE_COMMIT) },
+          release_sequence: integer(
+            source.release_sequence,
+            `${where}.source.release_sequence`,
+            1,
+            CORE_RELEASE_SEQUENCE_MAX,
+          ),
+        };
+      }
     }
     const versionWhere = `core-versions.json.cores.${plugin_id}`;
     const version = record(versions[plugin_id], versionWhere);
@@ -682,15 +951,23 @@ export function parseBuildInventory(targetsValue: Json, coresValue: Json, versio
     if (pinned !== null && revision !== pinned) {
       throw new DataError(`${versionWhere}.rev`, 'does not match the pinned [cores.source].rev');
     }
+    const versionText = text(version.version, `${versionWhere}.version`, 1, 512);
+    if (identity === null) {
+      pattern(versionText, `${versionWhere}.version`, SEMVER);
+    } else if (versionText !== coreIdentityLabel(identity)) {
+      throw new DataError(`${versionWhere}.version`, `must be ${coreIdentityLabel(identity)}`);
+    }
     return {
       core: text(core.display_name, `${where}.display_name`, 1, 128),
       plugin_id,
       family: text(core.family_name, `${where}.family_name`, 1, 128),
       license: text(core.license, `${where}.license`, 1, 256),
-      version: text(version.version, `${versionWhere}.version`, 1, 64),
+      version: versionText,
       revision,
       repo,
       upstream,
+      adapter_branch: adapterBranch,
+      identity,
       publish_blocked: publishBlocked === '' ? null : publishBlocked,
       static_manager_targets: staticTargets,
       targets: triples.map((triple) => status[triple]),

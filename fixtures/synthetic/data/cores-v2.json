@@ -1,0 +1,85 @@
+{
+  "schema": "shinki.emu.cores.v2",
+  "entries": [
+    {
+      "plugin_id": "rfvp",
+      "display_name": "RFVP",
+      "family_name": "FVP",
+      "version": "0.1.0-beta.1",
+      "abi": "shinki.emu.native.c.v3",
+      "platform": "windows-x86_64",
+      "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/core-rfvp-v0.1.0-beta.1/shinki-emu-core-rfvp-0.1.0-beta.1-windows-x86_64.zip",
+      "sha256": "f76b2995f09016fb8410a516e53fcea3c39021ff6ce7ba3cdeb52baa362f4be7",
+      "size": 4194304,
+      "license": "MPL-2.0",
+      "release_tag": "core-rfvp-v0.1.0-beta.1"
+    },
+    {
+      "plugin_id": "shinki.emu.musica",
+      "display_name": "Shinki Musica",
+      "family_name": "Musica",
+      "version": "0.1.0-beta.1",
+      "abi": "shinki.emu.native.c.v3",
+      "platform": "windows-x86_64",
+      "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/core-shinki-emu-musica-v0.1.0-beta.1/shinki-emu-core-shinki-emu-musica-0.1.0-beta.1-windows-x86_64.zip",
+      "sha256": "19ecb7cf9569cb269548c3fc564080d2643d19df7e6b42f28166c7e33b85977c",
+      "size": 4194304,
+      "license": "MIT OR Apache-2.0",
+      "release_tag": "core-shinki-emu-musica-v0.1.0-beta.1"
+    },
+    {
+      "plugin_id": "rfvp",
+      "display_name": "RFVP",
+      "family_name": "FVP",
+      "version": "tag-v0-2-0-c905156a27f88c96c23ed0e2b4248dc9d6edbaaa8cc2c525a7d6844422e1d3b8",
+      "abi": "shinki.emu.native.c.v3",
+      "platform": "windows-x86_64",
+      "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/core-rfvp-tag-v0-2-0-c905156a27f88c96c23ed0e2b4248dc9d6edbaaa8cc2c525a7d6844422e1d3b8/shinki-emu-core-rfvp-tag-v0-2-0-c905156a27f88c96c23ed0e2b4248dc9d6edbaaa8cc2c525a7d6844422e1d3b8-windows-x86_64.zip",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "size": 5242880,
+      "license": "MPL-2.0",
+      "release_tag": "core-rfvp-tag-v0-2-0-c905156a27f88c96c23ed0e2b4248dc9d6edbaaa8cc2c525a7d6844422e1d3b8",
+      "identity": {
+        "upstream": {
+          "repo": "https://github.com/xmoezzz/rfvp",
+          "ref_kind": "tag",
+          "ref_name": "v0.2.0",
+          "commit": "1111111111111111111111111111111111111111"
+        },
+        "adapter": {
+          "repo": "https://github.com/Project-Shinkirou/rfvp",
+          "branch": "shinki",
+          "commit": "7c241b477fb10efd981b20af67b1fb9745ec97fe"
+        },
+        "release_sequence": 2
+      }
+    },
+    {
+      "plugin_id": "siglus_rs",
+      "display_name": "siglus-rs",
+      "family_name": "SiglusEngine",
+      "version": "branch-feature-save-loa-1715e37361d3c2c4159eaa2ac4ac70a8e20e695944e48d1776a81d9e23e62a40",
+      "abi": "shinki.emu.native.c.v3",
+      "platform": "linux-x86_64",
+      "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/core-siglus-rs-branch-feature-save-loa-1715e37361d3c2c4159eaa2ac4ac70a8e20e695944e48d1776a81d9e23e62a40/shinki-emu-core-siglus-rs-branch-feature-save-loa-1715e37361d3c2c4159eaa2ac4ac70a8e20e695944e48d1776a81d9e23e62a40-linux-x86_64.zip",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "size": 6291456,
+      "license": "MPL-2.0",
+      "release_tag": "core-siglus-rs-branch-feature-save-loa-1715e37361d3c2c4159eaa2ac4ac70a8e20e695944e48d1776a81d9e23e62a40",
+      "identity": {
+        "upstream": {
+          "repo": "https://github.com/xmoezzz/siglus_rs",
+          "ref_kind": "branch",
+          "ref_name": "feature/save-load",
+          "commit": "2222222222222222222222222222222222222222"
+        },
+        "adapter": {
+          "repo": "https://github.com/Project-Shinkirou/siglus_rs",
+          "branch": "shinki",
+          "commit": "2436c25fc966306e03cdada833b507eec97b51c4"
+        },
+        "release_sequence": 7
+      }
+    }
+  ]
+}

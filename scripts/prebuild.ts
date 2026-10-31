@@ -10,7 +10,7 @@
 // Environment:
 //   SHINKI_DATA_DIR     metadata snapshot, plus site-sources.json, vndb.json,
 //                       vndb-coverage.json, manager-release.json,
-//                       core-versions.json (from
+//                       core-versions.json (readable core version labels from
 //                       `xtask site prepare`) and verbatim copies of ShinkiEMU
 //                       build/targets.toml and build/cores.toml as
 //                       build-targets.toml and build-cores.toml
@@ -172,7 +172,9 @@ function loadData(dataDir: string): LoadedSnapshot {
     coverage,
     manager_release: parseManagerRelease(json('manager-release.json'), sources.manager_release_tag),
     compatibility,
-    cores: parseCores(json('cores.json'), known),
+    // New consumers prefer the indexed v2 catalog; v1 stays published for
+    // older Managers and as the fallback before a v2 catalog exists.
+    cores: parseCores(json(files.has('cores-v2.json') ? 'cores-v2.json' : 'cores.json'), known),
     patches,
     targets: inventory.targets,
     matrix: inventory.cores,
