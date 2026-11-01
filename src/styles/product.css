@@ -45,6 +45,11 @@ body.product [tabindex='-1']:focus {
   letter-spacing: -0.01em;
 }
 
+/* Japanese headings and hero copy break between phrases, not inside a word. */
+:where(body.product) :is(h1, h2, h3, h4, .hero-pitch, .button):lang(ja) {
+  word-break: auto-phrase;
+}
+
 :where(body.product) p,
 :where(body.product) ul,
 :where(body.product) ol,
@@ -642,8 +647,6 @@ body.product [tabindex='-1']:focus {
   color: var(--mn-text-strong);
   font-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
   font-variant-numeric: tabular-nums;
-  /* Break Japanese headings between phrases, not inside a katakana word. */
-  word-break: auto-phrase;
 }
 .fact-card p {
   color: var(--mn-text-soft);
@@ -1049,6 +1052,63 @@ body.product [tabindex='-1']:focus {
   font-size: 0.9375rem;
 }
 
+/* ---------- FAQ and project status ---------- */
+
+.section-tail {
+  padding-bottom: clamp(2.5rem, 6vw, 4.5rem);
+}
+.faq-list {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 56rem;
+}
+.faq-item summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  cursor: pointer;
+  list-style: none;
+}
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+.faq-item summary::before {
+  content: '+';
+  flex: none;
+  width: 1rem;
+  color: var(--mn-accent);
+  font-weight: 700;
+}
+.faq-item[open] summary::before {
+  content: '−';
+}
+.faq-item summary h2 {
+  font-size: 1.0625rem;
+}
+.faq-item p {
+  padding-inline-start: 1.75rem;
+  color: var(--mn-text-soft);
+}
+.faq-link a::after {
+  content: ' →';
+}
+
+.status-grid .product-card {
+  gap: 0.75rem;
+}
+.status-grid .product-card h2 {
+  font-size: clamp(1.375rem, 1.2rem + 0.6vw, 1.75rem);
+}
+.status-grid .note-list {
+  margin-top: 0;
+}
+.status-links {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0;
+  list-style: none;
+}
+
 /* ---------- Compatibility ---------- */
 
 .compat-summary {
@@ -1320,17 +1380,6 @@ button.legend-item[aria-pressed='true'] {
   gap: 0.5rem;
   padding-inline-start: 1.4rem;
   color: var(--mn-text-soft);
-}
-.empty-zero {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  color: var(--mn-text-muted);
-}
-.empty-zero strong {
-  color: var(--mn-text-strong);
-  font-size: 2.5rem;
-  line-height: 1;
 }
 .no-match {
   margin-top: 1rem;

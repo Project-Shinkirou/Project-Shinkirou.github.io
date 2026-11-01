@@ -3,6 +3,13 @@
 
 import type { Architecture, LocalizedText, PatchKind, Platform, Status, Variant } from './site-data.ts';
 
+/** One FAQ entry; `link.to` is a path below the locale root or an absolute URL. */
+export interface FaqItem {
+  q: string;
+  a: string;
+  link?: { to: string; label: string };
+}
+
 export const LOCALES = ['zh-cn', 'en', 'ja'] as const;
 export type Locale = (typeof LOCALES)[number];
 
@@ -26,6 +33,8 @@ const zh = {
     patches: '补丁',
     roukaku: 'RoukakuEngine',
     docs: '文档',
+    faq: '常见问题',
+    projectStatus: '项目状态',
     shinkiemuDocs: 'ShinkiEMU 文档',
     roukakuDocs: 'RoukakuEngine 文档',
     menu: '菜单',
@@ -48,13 +57,14 @@ const zh = {
     synthetic: '合成测试数据',
   },
   home: {
-    title: 'Project-Shinkirou',
-    description: 'ShinkiEMU 与 RoukakuEngine 的组织门户',
+    title: '运行老视觉小说，创作新作品',
+    description:
+      'Project-Shinkirou 的两个开源项目：ShinkiEMU 用原生核心在多个平台运行老视觉小说，RoukakuEngine 用来创作 2D 作品与视觉小说。',
     eyebrow: '开源视觉小说项目',
-    tagline: '让老作品在新平台上继续运行，也为新作品准备一套创作引擎。',
+    tagline: '在新平台上运行老视觉小说，也用开源引擎创作新作品。',
     intro: 'ShinkiEMU 用原生核心运行老视觉小说引擎的作品，RoukakuEngine 用来创作新的视觉小说。两个项目都是开源的。',
     downloadTitle: '下载 ShinkiEMU',
-    downloadLead: '各平台 Manager 的最新安装包。哈希值、构建目标和测试包见 ShinkiEMU 页面。',
+    downloadLead: '各平台 Manager 的最新安装包。校验值和测试包见 ShinkiEMU 页面。',
     productsTitle: '两个项目',
     shinkiemu: {
       kicker: '运行老作品',
@@ -82,7 +92,7 @@ const zh = {
       { title: '开始游玩', body: '确认选中的核心和游戏配置，启动会话。' },
     ],
     downloadTitle: '下载',
-    downloadLead: 'Manager 最新版本在各平台的安装包和构建状态。',
+    downloadLead: '选择你的平台下载 Manager 最新版本。校验值和构建状态在每张卡片的详情里。',
   },
   facts: {
     title: 'ShinkiEMU 概览',
@@ -210,9 +220,8 @@ const zh = {
     allPlatforms: '全部平台',
     choose: '选择安装包',
     testOnly: '仅有测试包',
-    details: '版本、哈希与测试包',
-    componentNote:
-      'Manager 与各核心分别发布，标签为 manager-v… 和 core-<slug>-…。核心在 Manager 的核心管理页按平台安装和更新。',
+    details: '校验值与构建状态',
+    componentNote: '核心不随桌面版 Manager 打包，安装后在 Manager 的核心管理页按需安装和更新。',
   },
   compatibility: {
     title: '兼容性',
@@ -434,6 +443,79 @@ const zh = {
     device: '设备',
     simulator: '模拟器',
   } satisfies Record<Variant, string>,
+  faq: {
+    title: '常见问题',
+    description: 'ShinkiEMU 常见问题：收费、游戏来源、兼容性、各平台核心、存档、测试包、补丁与反馈渠道',
+    lead: '这里的回答都来自 ShinkiEMU 的用户指南和发布说明。细节以文档为准。',
+    more: '详细说明',
+    items: [
+      {
+        q: 'ShinkiEMU 收费吗？',
+        a: 'ShinkiEMU 是免费的开源软件，请从本站或 GitHub Releases 下载。如果你为它付了钱，请申请退款并举报卖家。',
+        link: { to: 'shinkiemu/#download', label: '下载 ShinkiEMU' },
+      },
+      {
+        q: '需要自己准备游戏吗？',
+        a: '需要。Manager 运行的是你合法取得的原版游戏文件，本站和 Manager 都不提供游戏。商店下载只能下载账号已购买的 PC 版本，Manager 不移除或绕过 DRM。',
+        link: { to: 'shinkiemu/docs/user-guide/', label: '用户指南' },
+      },
+      {
+        q: '某个游戏能不能玩，看哪里？',
+        a: '看兼容性报告。每条报告对应一个发行版、一个核心和一个具体平台，不同平台的结论互不替代。“可构建”或探测命中只说明格式得到识别，不代表能玩；没有报告就是尚未验证。',
+        link: { to: 'shinkiemu/compatibility/', label: '兼容性报告' },
+      },
+      {
+        q: '为什么各平台能用的核心不一样？',
+        a: '桌面版 Manager 从核心目录下载并加载核心。Android 和 iOS 版把支持的核心静态集成进 Manager，iOS 不支持单独安装核心。所以各平台能用哪些核心，取决于构建清单和 Manager 版本。',
+        link: { to: 'shinkiemu/docs/platforms/', label: '平台与构建矩阵' },
+      },
+      {
+        q: '存档放在哪里？',
+        a: '存档规则由各核心决定。外部核心沿用原引擎的存档位置和格式，例如 siglus-rs 写入 <game>/savedata。ShinkiEMU 自己写进游戏目录的文件都放在 <game>/.shinki/ 下。备份存档前，先结束正在运行的会话。',
+        link: { to: 'shinkiemu/docs/user-guide/', label: '用户指南' },
+      },
+      {
+        q: 'iOS 和 HarmonyOS 的安装包为什么标着“测试包”？',
+        a: 'iOS 包分真机和模拟器两类，标着“测试包”的是测试用构建。HarmonyOS / OpenHarmony 的 HAP 使用 OpenHarmony SDK 测试证书签名，尚未在真机或模拟器上验证启动，在零售设备上安装可能需要重新签名。',
+        link: { to: 'status/', label: '项目状态' },
+      },
+      {
+        q: '补丁会改动我的游戏吗？',
+        a: '默认不会。经过审查的 Luau 配方只在你明确选择后执行，默认输出到新目录，原游戏保持不变。选择原位覆盖时，被修改或删除的原文件会先备份；还原时不会覆盖你改过的文件。本站不执行任何补丁。',
+        link: { to: 'shinkiemu/patches/', label: '补丁' },
+      },
+      {
+        q: 'Manager 有哪些界面语言？',
+        a: '简体中文、英文和日文。在“设置 → 外观 → 语言”中切换，也可以跟随系统语言。Manager 自带中日文字体，系统没有 CJK 字体也能正常显示。',
+      },
+      {
+        q: '遇到问题或想提交报告，去哪里？',
+        a: '使用 ShinkiEMU 仓库的 GitHub issue 表单提交 Bug、兼容性报告或补丁。外部引擎本身的问题也可以报给上游项目，核心页列出了每个核心的上游。',
+        link: { to: 'https://github.com/Project-Shinkirou/ShinkiEMU/issues/new/choose', label: 'GitHub issue 表单' },
+      },
+    ] as FaqItem[],
+  },
+  projectStatus: {
+    title: '项目状态',
+    description: 'Project-Shinkirou 的发布与开发状态：ShinkiEMU 已发布的内容、进行中的工作，以及 RoukakuEngine 的现状',
+    lead: '这里只列出已经发布的内容和已确认在进行中的工作，不给出日期。发布细节以 GitHub Releases 和发布说明为准。',
+    releasedTitle: '已发布',
+    released: (version: string, date: string) => `ShinkiEMU Manager 最新版本是 ${version}，${date} 发布。`,
+    prerelease: '目前所有版本都是预发布（beta）。',
+    notReleased: 'ShinkiEMU Manager 还没有发布版本。',
+    reports: (n: number) =>
+      n === 0 ? '兼容性数据库还没有报告，所有作品与平台的组合都尚未验证。' : `兼容性数据库共有 ${n} 条报告。`,
+    inProgressTitle: '进行中',
+    inProgress: [
+      'Android 版 Manager 内置 KiriKiri 核心的工作仍在开发，计划随后续 Manager 版本交付。',
+      'KiriKiri 与 Ren’Py 的 iOS 移植仍在开发，当前版本不包含。',
+      'HarmonyOS / OpenHarmony 版 Manager 仍是实验性测试签名包，零售设备上的可安装性尚未验证。',
+    ],
+    inProgressSource: '来源：Manager 0.1.0-beta.6 发布说明',
+    roukakuBody:
+      'RoukakuEngine 目前暂停开发，没有发布二进制版本。源码和文档保持公开，可以按快速开始从源码构建。',
+    roukakuTitle: '暂停开发',
+  },
 };
 
 export type Strings = typeof zh;
@@ -451,6 +533,8 @@ const en: Strings = {
     patches: 'Patches',
     roukaku: 'RoukakuEngine',
     docs: 'Docs',
+    faq: 'FAQ',
+    projectStatus: 'Project status',
     shinkiemuDocs: 'ShinkiEMU docs',
     roukakuDocs: 'RoukakuEngine docs',
     languageName: 'English',
@@ -472,15 +556,15 @@ const en: Strings = {
     synthetic: 'synthetic test data',
   },
   home: {
-    title: 'Project-Shinkirou',
-    description: 'Organization portal for ShinkiEMU and RoukakuEngine',
+    title: 'Run classic visual novels, make new ones',
+    description:
+      'Two open-source projects: ShinkiEMU runs classic visual novels through native cores on several platforms, and RoukakuEngine is an engine for making 2D works and visual novels.',
     eyebrow: 'Open-source visual novel projects',
-    tagline: 'Keep classic works running on new platforms, and give new works an engine to be made with.',
+    tagline: 'Run classic visual novels on new platforms, and make new ones with an open-source engine.',
     intro:
       'ShinkiEMU runs works made with original visual novel engines through native cores. RoukakuEngine is for making new visual novels. Both are open source.',
     downloadTitle: 'Download ShinkiEMU',
-    downloadLead:
-      'The latest Manager package for each platform. Checksums, build targets and test packages are on the ShinkiEMU page.',
+    downloadLead: 'The latest Manager package for each platform. Checksums and test packages are on the ShinkiEMU page.',
     productsTitle: 'Two projects',
     shinkiemu: {
       kicker: 'Run existing works',
@@ -509,7 +593,7 @@ const en: Strings = {
       { title: 'Play', body: 'Check the selected core and game configuration, then start the session.' },
     ],
     downloadTitle: 'Download',
-    downloadLead: 'The latest Manager packages and build status for each platform.',
+    downloadLead: 'Pick your platform to download the latest Manager. Checksums and build status are in each card’s details.',
   },
   facts: {
     title: 'ShinkiEMU at a glance',
@@ -638,9 +722,8 @@ const en: Strings = {
     allPlatforms: 'All platforms',
     choose: 'Choose a package',
     testOnly: 'Test packages only',
-    details: 'Versions, checksums and test packages',
-    componentNote:
-      'The Manager and each core are released separately, tagged manager-v… and core-<slug>-…. Cores are installed and updated per platform from the Manager’s core management page.',
+    details: 'Checksums and build status',
+    componentNote: 'Desktop Manager packages do not bundle cores. After installing, add and update cores from the Manager’s core management page.',
   },
   compatibility: {
     title: 'Compatibility',
@@ -866,6 +949,83 @@ const en: Strings = {
     device: 'Device',
     simulator: 'Simulator',
   },
+  faq: {
+    title: 'FAQ',
+    description:
+      'ShinkiEMU FAQ: cost, where games come from, compatibility, cores per platform, saves, test packages, patches and where to get help',
+    lead: 'Every answer here comes from the ShinkiEMU user guide and release notes. The docs have the details.',
+    more: 'Details',
+    items: [
+      {
+        q: 'Does ShinkiEMU cost money?',
+        a: 'No. ShinkiEMU is free, open-source software; download it from this site or GitHub Releases. If you paid for it, request a refund and report the seller.',
+        link: { to: 'shinkiemu/#download', label: 'Download ShinkiEMU' },
+      },
+      {
+        q: 'Do I need my own copy of the game?',
+        a: 'Yes. The Manager runs original game files you obtained legally; neither this site nor the Manager provides games. Store downloads only cover PC versions your account owns, and the Manager does not remove or bypass DRM.',
+        link: { to: 'shinkiemu/docs/user-guide/', label: 'User guide' },
+      },
+      {
+        q: 'How do I know whether a game runs?',
+        a: 'Check the compatibility reports. Each report covers one release, one core and one concrete platform, and results on one platform never stand in for another. “Buildable” or a detection match only means the format is recognized, not that the game is playable; no report means not verified yet.',
+        link: { to: 'shinkiemu/compatibility/', label: 'Compatibility reports' },
+      },
+      {
+        q: 'Why do platforms have different cores?',
+        a: 'The desktop Manager downloads and loads cores from the core directory. The Android and iOS Managers embed their supported cores statically, and iOS cannot install standalone cores. Which cores you get on a platform therefore depends on the build manifest and the Manager version.',
+        link: { to: 'shinkiemu/docs/platforms/', label: 'Platform and build matrix' },
+      },
+      {
+        q: 'Where are my saves?',
+        a: 'Each core decides. External cores keep the original engine’s save location and format; siglus-rs, for example, writes to <game>/savedata. Files ShinkiEMU itself writes into a game directory go under <game>/.shinki/. End any running session before backing up saves.',
+        link: { to: 'shinkiemu/docs/user-guide/', label: 'User guide' },
+      },
+      {
+        q: 'Why are the iOS and HarmonyOS packages marked as test packages?',
+        a: 'iOS packages come in device and simulator builds, and the ones marked “Test package” are test builds. The HarmonyOS / OpenHarmony HAP is signed with the OpenHarmony SDK test certificate, has not been launch-tested on a device or emulator, and may need re-signing to install on retail devices.',
+        link: { to: 'status/', label: 'Project status' },
+      },
+      {
+        q: 'Will a patch change my game?',
+        a: 'Not by default. A reviewed Luau recipe runs only when you choose it, and by default writes to a new directory, leaving the original game untouched. If you choose in-place mode, changed or deleted original files are backed up first, and restoring never overwrites files you have edited. This site never runs a patch.',
+        link: { to: 'shinkiemu/patches/', label: 'Patches' },
+      },
+      {
+        q: 'Which interface languages does the Manager have?',
+        a: 'Simplified Chinese, English and Japanese. Switch under Settings → Appearance → Language, or follow the system language. The Manager ships its own Chinese and Japanese fonts, so it displays correctly without system CJK fonts.',
+      },
+      {
+        q: 'Where do I report a problem or submit a report?',
+        a: 'Use the GitHub issue forms in the ShinkiEMU repository for bugs, compatibility reports and patches. Problems in an external engine itself can also go to its upstream project; the cores page links each core’s upstream.',
+        link: { to: 'https://github.com/Project-Shinkirou/ShinkiEMU/issues/new/choose', label: 'GitHub issue forms' },
+      },
+    ],
+  },
+  projectStatus: {
+    title: 'Project status',
+    description:
+      'Release and development status of Project-Shinkirou: what ShinkiEMU has shipped, work in progress, and where RoukakuEngine stands',
+    lead: 'This page lists only what has shipped and work confirmed to be in progress. It gives no dates. GitHub Releases and the release notes have the details.',
+    releasedTitle: 'Released',
+    released: (version: string, date: string) => `The latest ShinkiEMU Manager is ${version}, released ${date}.`,
+    prerelease: 'All releases so far are prereleases (beta).',
+    notReleased: 'ShinkiEMU Manager has no release yet.',
+    reports: (n: number) =>
+      n === 0
+        ? 'The compatibility database has no reports yet, so no combination of work and platform has been verified.'
+        : `The compatibility database has ${n} ${n === 1 ? 'report' : 'reports'}.`,
+    inProgressTitle: 'In progress',
+    inProgress: [
+      'Embedding the KiriKiri core in the Android Manager is still in development, planned for a later Manager release.',
+      'The KiriKiri and Ren’Py iOS ports are still in development and are not in the current release.',
+      'The HarmonyOS / OpenHarmony Manager is still an experimental test-signed package; installability on retail devices is unverified.',
+    ],
+    inProgressSource: 'Source: Manager 0.1.0-beta.6 release notes',
+    roukakuBody:
+      'RoukakuEngine development is currently paused, and there are no binary releases. The source and docs stay public, and you can build from source with the quick start.',
+    roukakuTitle: 'Development paused',
+  },
 };
 
 const ja: Strings = {
@@ -881,6 +1041,8 @@ const ja: Strings = {
     patches: 'パッチ',
     roukaku: 'RoukakuEngine',
     docs: 'ドキュメント',
+    faq: 'よくある質問',
+    projectStatus: 'プロジェクトの状況',
     shinkiemuDocs: 'ShinkiEMU ドキュメント',
     roukakuDocs: 'RoukakuEngine ドキュメント',
     languageName: '日本語',
@@ -902,15 +1064,15 @@ const ja: Strings = {
     synthetic: '合成テストデータ',
   },
   home: {
-    title: 'Project-Shinkirou',
-    description: 'ShinkiEMU と RoukakuEngine の組織ポータル',
+    title: '既存のビジュアルノベルを動かし、新しい作品を作る',
+    description:
+      'Project-Shinkirou の 2 つのオープンソースプロジェクト。ShinkiEMU はネイティブコアで既存のビジュアルノベルを複数のプラットフォームで動かし、RoukakuEngine は 2D 作品とビジュアルノベルを制作するエンジンです。',
     eyebrow: 'オープンソースのビジュアルノベルプロジェクト',
-    tagline: '過去の作品を新しいプラットフォームで動かし続け、新しい作品のためのエンジンも用意します。',
+    tagline: '既存のビジュアルノベルを新しいプラットフォームで動かし、新しい作品はオープンソースのエンジンで作る。',
     intro:
       'ShinkiEMU はネイティブコアで既存のビジュアルノベルエンジンの作品を動かし、RoukakuEngine は新しいビジュアルノベルの制作に使います。どちらもオープンソースです。',
     downloadTitle: 'ShinkiEMU をダウンロード',
-    downloadLead:
-      'プラットフォームごとの Manager 最新パッケージです。チェックサム、ビルドターゲット、テストパッケージは ShinkiEMU のページにあります。',
+    downloadLead: 'プラットフォームごとの Manager 最新パッケージです。チェックサムとテストパッケージは ShinkiEMU のページにあります。',
     productsTitle: '2 つのプロジェクト',
     shinkiemu: {
       kicker: '既存の作品を動かす',
@@ -939,7 +1101,7 @@ const ja: Strings = {
       { title: 'プレイ', body: '選択されたコアとゲームの設定を確認してから、セッションを開始します。' },
     ],
     downloadTitle: 'ダウンロード',
-    downloadLead: 'プラットフォームごとの Manager 最新パッケージとビルド状況です。',
+    downloadLead: 'プラットフォームを選んで最新の Manager をダウンロードします。チェックサムとビルド状況は各カードの詳細にあります。',
   },
   facts: {
     title: 'ShinkiEMU の概要',
@@ -1067,9 +1229,8 @@ const ja: Strings = {
     allPlatforms: 'すべてのプラットフォーム',
     choose: 'パッケージを選ぶ',
     testOnly: 'テストパッケージのみ',
-    details: 'バージョン、チェックサム、テストパッケージ',
-    componentNote:
-      'Manager と各コアは別々に公開され、タグは manager-v… と core-<slug>-… です。コアは Manager のコア管理ページからプラットフォームごとにインストール・更新します。',
+    details: 'チェックサムとビルド状況',
+    componentNote: 'デスクトップ版 Manager のパッケージにコアは含まれません。インストール後、Manager のコア管理ページでコアを追加・更新します。',
   },
   compatibility: {
     title: '互換性',
@@ -1290,6 +1451,83 @@ const ja: Strings = {
     desktop: 'デスクトップ',
     device: 'デバイス',
     simulator: 'シミュレーター',
+  },
+  faq: {
+    title: 'よくある質問',
+    description:
+      'ShinkiEMU のよくある質問：料金、ゲームの入手、互換性、プラットフォームごとのコア、セーブ、テストパッケージ、パッチ、問い合わせ先',
+    lead: 'ここの回答はすべて ShinkiEMU のユーザーガイドとリリースノートに基づいています。詳細はドキュメントを参照してください。',
+    more: '詳しい説明',
+    items: [
+      {
+        q: 'ShinkiEMU は有料ですか？',
+        a: 'いいえ。ShinkiEMU は無料のオープンソースソフトウェアです。このサイトか GitHub Releases からダウンロードしてください。お金を払って入手した場合は、返金を申請し、販売者を通報してください。',
+        link: { to: 'shinkiemu/#download', label: 'ShinkiEMU をダウンロード' },
+      },
+      {
+        q: 'ゲームは自分で用意する必要がありますか？',
+        a: 'はい。Manager が動かすのは、正規に入手した元のゲームファイルです。このサイトも Manager もゲームを提供しません。ストアからのダウンロードはアカウントが購入済みの PC 版に限られ、Manager は DRM を削除・回避しません。',
+        link: { to: 'shinkiemu/docs/user-guide/', label: 'ユーザーガイド' },
+      },
+      {
+        q: 'ゲームが動くかどうかはどこで分かりますか？',
+        a: '互換性レポートを見てください。各レポートは 1 つのリリース、1 つのコア、1 つの具体的なプラットフォームに対応し、別のプラットフォームの結果では代用できません。「ビルド可能」や検出の一致は形式が認識されたことを示すだけで、遊べることは意味しません。レポートがなければ未検証です。',
+        link: { to: 'shinkiemu/compatibility/', label: '互換性レポート' },
+      },
+      {
+        q: 'プラットフォームによって使えるコアが違うのはなぜですか？',
+        a: 'デスクトップ版 Manager はコアディレクトリからコアをダウンロードして読み込みます。Android 版と iOS 版は対応コアを Manager に静的に組み込んでおり、iOS では単独のコアをインストールできません。そのため、使えるコアはビルドマニフェストと Manager のバージョンで決まります。',
+        link: { to: 'shinkiemu/docs/platforms/', label: 'プラットフォームとビルドマトリクス' },
+      },
+      {
+        q: 'セーブデータはどこに保存されますか？',
+        a: 'コアごとに決まります。外部コアは元のエンジンの保存場所と形式をそのまま使い、たとえば siglus-rs は <game>/savedata に書き込みます。ShinkiEMU 自身がゲームディレクトリに書き込むファイルは <game>/.shinki/ の下に置かれます。セーブをバックアップする前に、実行中のセッションを終了してください。',
+        link: { to: 'shinkiemu/docs/user-guide/', label: 'ユーザーガイド' },
+      },
+      {
+        q: 'iOS と HarmonyOS のパッケージに「テストパッケージ」と表示されるのはなぜですか？',
+        a: 'iOS のパッケージには実機向けとシミュレーター向けがあり、「テストパッケージ」と表示されたものはテスト用ビルドです。HarmonyOS / OpenHarmony の HAP は OpenHarmony SDK のテスト証明書で署名されており、実機やエミュレーターでの起動は未確認です。市販デバイスにインストールするには再署名が必要な場合があります。',
+        link: { to: 'status/', label: 'プロジェクトの状況' },
+      },
+      {
+        q: 'パッチでゲームが書き換えられますか？',
+        a: '既定では書き換えません。審査済みの Luau レシピは選んだときだけ実行され、既定では新しいディレクトリに出力するので、元のゲームはそのまま残ります。上書きモードを選ぶと、変更・削除される元のファイルは先にバックアップされ、復元時に自分で編集したファイルが上書きされることはありません。このサイトがパッチを実行することはありません。',
+        link: { to: 'shinkiemu/patches/', label: 'パッチ' },
+      },
+      {
+        q: 'Manager の表示言語は？',
+        a: '簡体字中国語、英語、日本語です。「設定 → 外観 → 言語」で切り替えるか、システムの言語に合わせられます。中国語と日本語のフォントを同梱しているため、CJK フォントのないシステムでも正しく表示されます。',
+      },
+      {
+        q: '問題の報告やレポートの投稿はどこで行いますか？',
+        a: 'ShinkiEMU リポジトリの GitHub issue フォームから、バグ、互換性レポート、パッチを送ってください。外部エンジン自体の問題は上流プロジェクトにも報告できます。コアページに各コアの上流へのリンクがあります。',
+        link: { to: 'https://github.com/Project-Shinkirou/ShinkiEMU/issues/new/choose', label: 'GitHub issue フォーム' },
+      },
+    ],
+  },
+  projectStatus: {
+    title: 'プロジェクトの状況',
+    description:
+      'Project-Shinkirou のリリースと開発の状況：ShinkiEMU で公開済みの内容、進行中の作業、RoukakuEngine の現状',
+    lead: 'このページには公開済みの内容と、進行中であることが確認できた作業だけを載せています。日付は示しません。詳細は GitHub Releases とリリースノートを参照してください。',
+    releasedTitle: '公開済み',
+    released: (version: string, date: string) => `ShinkiEMU Manager の最新版は ${version} で、${date} に公開されました。`,
+    prerelease: 'これまでのリリースはすべてプレリリース（beta）です。',
+    notReleased: 'ShinkiEMU Manager はまだリリースされていません。',
+    reports: (n: number) =>
+      n === 0
+        ? '互換性データベースにはまだレポートがなく、どの作品とプラットフォームの組み合わせも検証されていません。'
+        : `互換性データベースには ${n} 件のレポートがあります。`,
+    inProgressTitle: '進行中',
+    inProgress: [
+      'Android 版 Manager への KiriKiri コアの組み込みは開発中で、後続の Manager リリースで提供する予定です。',
+      'KiriKiri と Ren’Py の iOS 移植は開発中で、現在のリリースには含まれていません。',
+      'HarmonyOS / OpenHarmony 版 Manager は引き続き実験的なテスト署名パッケージで、市販デバイスへのインストール可否は未確認です。',
+    ],
+    inProgressSource: '出典：Manager 0.1.0-beta.6 リリースノート',
+    roukakuBody:
+      'RoukakuEngine の開発は現在休止中で、バイナリのリリースはありません。ソースとドキュメントは公開したままで、クイックスタートに沿ってソースからビルドできます。',
+    roukakuTitle: '開発休止中',
   },
 };
 
