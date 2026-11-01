@@ -536,6 +536,18 @@ export function isSafeRelativePath(path: string): boolean {
     .every((segment) => segment !== '' && segment !== '.' && !segment.endsWith('.') && /^[A-Za-z0-9._-]+$/.test(segment));
 }
 
+/**
+ * A game file path in a patches.v2 fingerprint: the player's own file name,
+ * so any Unicode is allowed (same rule as the ShinkiEMU producer DTO): at most
+ * 1024 UTF-8 bytes, `/`-separated, no absolute or drive path, backslash,
+ * colon (drive or alternate stream), control character, `.`/`..` segment, or
+ * segment ending in a dot or space.
+ */
+export function isSafeFingerprintPath(path: string): boolean {
+  if (path === '' || Buffer.byteLength(path, 'utf8') > 1024 || /[\\:\u0000-\u001f\u007f]/.test(path)) return false;
+  return path.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..' && !/[. ]$/.test(segment));
+}
+
 export function parseIndex(value: Json): MetadataIndex {
   const object = record(value, 'index.json');
   only(object, 'index.json', ['schema', 'generated_at_unix_ms', 'source_commit', 'files']);
@@ -915,8 +927,8 @@ function patchRelease(value: Json, where: string): PatchRelease {
     const at = `${where}.fingerprints[${i}]`;
     const f = record(raw, at);
     only(f, at, ['path', 'size', 'sha256']);
-    const path = text(f.path, `${at}.path`, 1, 256);
-    if (!isSafeRelativePath(path)) throw new DataError(`${at}.path`, 'must be a safe relative path');
+    const path = text(f.path, `${at}.path`, 1, 1024);
+    if (!isSafeFingerprintPath(path)) throw new DataError(`${at}.path`, 'must be a safe relative path');
     return { path, size: integer(f.size, `${at}.size`, 0), sha256: pattern(f.sha256, `${at}.sha256`, SHA256) };
   });
   if (fingerprints.length === 0) throw new DataError(`${where}.fingerprints`, 'needs at least one file');
