@@ -600,6 +600,27 @@ test('patches.v2 rejects kind, empty bindings, unsafe paths and conflicting rele
   assert.equal(parse([v2Entry('p', [v2Release('r2', 'v1')]), v2Entry('q', [v2Release('r2', 'v1')])]).length, 2);
 });
 
+test('fingerprint paths accept the player\'s Unicode file names and reject unsafe forms', () => {
+  const cores = new Set(['renpy']);
+  const withPath = (path: string) =>
+    parsePatchesV2(
+      {
+        schema: PATCHES_V2_SCHEMA,
+        entries: [v2Entry('p', [{ ...v2Release('r2', 'v1'), fingerprints: [{ path, size: 1, sha256: 'a'.repeat(64) }] }])],
+      },
+      cores,
+    )[0].releases[0].fingerprints[0].path;
+  for (const path of ['夏空的英仙座.exe', 'game/code.rpa', 'データ/セーブ 01.dat', `${'あ'.repeat(341)}`]) {
+    assert.equal(withPath(path), path);
+  }
+  for (const path of [
+    '/abs.exe', 'C:/game.exe', 'game\\code.rpa', 'game.exe:stream', 'a/../b', './a', 'a//b', 'game.', 'game ',
+    'a\u0000b', `${'あ'.repeat(342)}`,
+  ]) {
+    assert.throws(() => withPath(path), /safe relative path|length must be|control characters/, path);
+  }
+});
+
 test('the synthetic v2 patches keep every legacy id and v1 entries list without releases', () => {
   const data = (name: string) => JSON.parse(readFileSync(new URL(`../fixtures/synthetic/data/${name}`, import.meta.url), 'utf8'));
   const known = new Set(Object.keys(data('core-versions.json').cores));
