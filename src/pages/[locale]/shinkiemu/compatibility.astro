@@ -60,48 +60,35 @@ const submitUrl = `${ISSUES_URL}/new/choose`;
 
   <div class="container">
     <compat-filter data-count={t.count} data-total={total}>
-      <section class="card compat-summary" aria-labelledby="summary-title">
-        <div class="summary-head">
-          <h2 id="summary-title">{t.summaryTitle}</h2>
-          <p class="summary-total">{t.total(total)}</p>
-        </div>
-        <div class="status-bar" aria-hidden="true">
-          {
-            summary
-              .filter((item) => item.count > 0)
-              .map((item) => <span class={`seg status-${item.status}`} style={`flex-grow: ${item.count}`} />)
-          }
-        </div>
-        <ul class="status-legend" aria-label={total > 0 ? t.statusFilter : undefined}>
-          {
-            summary.map((item) => {
-              const content = (
-                <>
-                  <span class="legend-swatch" aria-hidden="true" />
-                  <span class="legend-label">{strings.status[item.status]}</span>
-                  <span class="legend-numbers">
-                    <span class="legend-count">{item.count}</span>
-                    <span>{item.percent ?? '—'}</span>
-                  </span>
-                </>
-              );
-              return (
+      {
+        total > 0 && (
+          <section class="card compat-summary" aria-labelledby="summary-title">
+            <div class="summary-head">
+              <h2 id="summary-title">{t.summaryTitle}</h2>
+              <p class="summary-total">{t.total(total)}</p>
+            </div>
+            <div class="status-bar" aria-hidden="true">
+              {summary
+                .filter((item) => item.count > 0)
+                .map((item) => (
+                  <span class={`seg status-${item.status}`} style={`flex-grow: ${item.count}`} />
+                ))}
+            </div>
+            <ul class="status-legend" aria-label={t.statusFilter}>
+              {summary.map((item) => (
                 <li>
-                  {total > 0 ? (
-                    <button type="button" class={`legend-item status-${item.status}`} data-status={item.status} aria-pressed="false">
-                      {content}
-                    </button>
-                  ) : (
-                    <span class={`legend-item status-${item.status}`}>{content}</span>
-                  )}
+                  <button type="button" class={`legend-item status-${item.status}`} data-status={item.status} aria-pressed="false">
+                    <span class="legend-swatch" aria-hidden="true" />
+                    <span class="legend-label">{strings.status[item.status]}</span>
+                    <span class="legend-numbers">
+                      <span class="legend-count">{item.count}</span>
+                      <span>{item.percent ?? '—'}</span>
+                    </span>
+                  </button>
                 </li>
-              );
-            })
-          }
-        </ul>
+              ))}
+            </ul>
 
-        {
-          total > 0 && (
             <form class="filter-panel" role="search" aria-label={t.search}>
               <div class="filter-fields">
                 <label class="field field-search">
@@ -145,17 +132,13 @@ const submitUrl = `${ISSUES_URL}/new/choose`;
                 </button>
               </div>
             </form>
-          )
-        }
-      </section>
+          </section>
+        )
+      }
 
       {
         total === 0 ? (
-          <section class="card empty-state" aria-labelledby="empty-title" style="margin-top: 1rem">
-            <p class="empty-zero">
-              <strong>0</strong>
-              <span>{t.total(0)}</span>
-            </p>
+          <section class="card empty-state" aria-labelledby="empty-title">
             <h2 id="empty-title">{t.empty}</h2>
             <p>{t.emptyBody}</p>
             <h3>{t.emptyHow}</h3>

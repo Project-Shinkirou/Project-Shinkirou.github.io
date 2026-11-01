@@ -65,15 +65,11 @@ const assetBadge = (asset: ManagerAsset) =>
           </span>
         </div>
 
-        <p class="download-build-summary">
-          {t.targetState(card.supported, card.targets.length)}
-          {card.state === 'test' && (
-            <>
-              {' '}
-              <span class="chip chip-warning">{t.testOnly}</span>
-            </>
-          )}
-        </p>
+        {card.state === 'test' && (
+          <p class="download-build-summary">
+            <span class="chip chip-warning">{t.testOnly}</span>
+          </p>
+        )}
 
         {card.assets.length > 0 ? (
           <>
@@ -117,7 +113,9 @@ const assetBadge = (asset: ManagerAsset) =>
             <summary>{t.details}</summary>
             {card.targets.length > 0 && (
               <>
-                <p class="download-more-title">{t.buildStatus}</p>
+                <p class="download-more-title">
+                  {t.buildStatus} · {t.targetState(card.supported, card.targets.length)}
+                </p>
                 <ul class="target-list">
                   {card.targets.map((target) => (
                     <li>

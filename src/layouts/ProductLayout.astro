@@ -13,7 +13,7 @@ import { ROUKAKU_REPO, SHINKIEMU_REPO } from '../lib/site-data.ts';
 import '../styles/theme.css';
 import '../styles/product.css';
 
-type Section = 'home' | 'shinkiemu' | 'compatibility' | 'cores' | 'patches' | 'roukaku';
+type Section = 'home' | 'shinkiemu' | 'compatibility' | 'cores' | 'patches' | 'roukaku' | 'faq' | 'status';
 
 interface Props {
   locale: Locale;
@@ -30,7 +30,9 @@ const base = `/${locale}`;
 const footer = STRINGS[locale].footer;
 // Path below the locale segment, e.g. `shinkiemu/compatibility/`.
 const rest = Astro.url.pathname.replace(new RegExp(`^/(${LOCALES.join('|')})/`), '');
-const pageTitle = current === 'home' ? title : `${title} · Project-Shinkirou`;
+const pageTitle = current === 'home' ? `Project-Shinkirou · ${title}` : `${title} · Project-Shinkirou`;
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const ogImage = new URL('/og.png', Astro.site).href;
 
 const links: { section: Section; href: string; label: string }[] = [
   { section: 'shinkiemu', href: `${base}/shinkiemu/`, label: t.shinkiemu },
@@ -39,9 +41,11 @@ const links: { section: Section; href: string; label: string }[] = [
   { section: 'patches', href: `${base}/shinkiemu/patches/`, label: t.patches },
   { section: 'roukaku', href: `${base}/roukaku/`, label: t.roukaku },
 ];
-const docs = [
+const docs: { section?: Section; href: string; label: string }[] = [
   { href: `${base}/shinkiemu/docs/`, label: t.shinkiemuDocs },
   { href: `${base}/roukaku/docs/`, label: t.roukakuDocs },
+  { section: 'faq', href: `${base}/shinkiemu/faq/`, label: t.faq },
+  { section: 'status', href: `${base}/status/`, label: t.projectStatus },
 ];
 ---
 
@@ -53,6 +57,19 @@ const docs = [
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    {!multilingual && <link rel="canonical" href={canonical} />}
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:type" content="website" />
+    {!multilingual && <meta property="og:url" content={canonical} />}
+    <meta property="og:locale" content={LANG[locale]} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content="Project-Shinkirou" />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Project-Shinkirou" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImage} />
     {
       !multilingual &&
         LOCALES.map((l) => <link rel="alternate" hreflang={LANG[l]} href={new URL(`/${l}/${rest}`, Astro.site)} />)
@@ -87,7 +104,9 @@ const docs = [
                   {
                     docs.map((link) => (
                       <li>
-                        <a href={link.href}>{link.label}</a>
+                        <a href={link.href} aria-current={link.section && current === link.section ? 'page' : undefined}>
+                          {link.label}
+                        </a>
                       </li>
                     ))
                   }
@@ -162,7 +181,9 @@ const docs = [
                 {
                   docs.map((link) => (
                     <li>
-                      <a href={link.href}>{link.label}</a>
+                      <a href={link.href} aria-current={link.section && current === link.section ? 'page' : undefined}>
+                        {link.label}
+                      </a>
                     </li>
                   ))
                 }
