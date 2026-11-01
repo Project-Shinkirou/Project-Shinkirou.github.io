@@ -1750,8 +1750,24 @@ button.legend-item[aria-pressed='true'] {
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.fingerprint-list .hash {
+.fingerprint-list .hash,
+.patch-downloads .fingerprint-path {
   word-break: break-all;
+}
+.patch-downloads {
+  display: grid;
+  gap: 0.5rem;
+}
+.patch-downloads > * {
+  margin: 0;
+}
+.patch-downloads .fingerprint-list {
+  margin-top: 0;
+}
+.patch-downloads-title {
+  color: var(--mn-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
 }
 @media (max-width: 56rem) {
   .patch-list-head {

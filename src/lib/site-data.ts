@@ -26,6 +26,7 @@ export const ROUKAKU_REPO = 'https://github.com/Project-Shinkirou/RoukakuEngine'
 export const MAX_INDEXED_FILE_BYTES = 8 * 1024 * 1024;
 export const MAX_INDEXED_TOTAL_BYTES = 64 * 1024 * 1024;
 export const MAX_INDEXED_FILES = 4096;
+/** Upper bound for a hosted v1 attachment and for each file a v2 script declares it downloads. */
 export const MAX_HOSTED_PATCH_BYTES = 1024 * 1024 * 1024;
 export const MAX_CORE_PACKAGE_BYTES = 512 * 1024 * 1024;
 
@@ -169,6 +170,13 @@ export interface PatchRelease {
   fingerprints: PatchFingerprint[];
 }
 
+/** A file a catalog script may download; the runtime only fetches an exact match of all three fields. */
+export interface PatchDownload {
+  url: string;
+  sha256: string;
+  size: number;
+}
+
 /**
  * A patch as the portal lists it: a patches.v2 entry, or a legacy v1 entry
  * (with no releases) while a snapshot has no `patches-v2.json` yet.
@@ -187,6 +195,8 @@ export interface PatchEntry {
   summary: LocalizedText;
   issue_url: string | null;
   recipe: { script: string } | null;
+  /** Files the script declares it downloads; empty means it may not download anything. */
+  downloads: PatchDownload[];
 }
 
 export interface MatrixTarget {
@@ -907,6 +917,7 @@ export function legacyPatchView(entry: LegacyPatchEntry): PatchEntry {
     summary: entry.summary,
     issue_url: entry.issue_url,
     recipe: entry.recipe,
+    downloads: [],
   };
 }
 
@@ -918,6 +929,23 @@ function recipeScript(value: Json, where: string): { script: string } {
     throw new DataError(`${where}.script`, 'must be a safe relative .luau path');
   }
   return { script };
+}
+
+/** Declared downloads of a v2 script: absent or empty means none; each is an HTTPS URL with digest and size. */
+function patchDownloads(value: Json, where: string): PatchDownload[] {
+  if (value === undefined) return [];
+  const downloads = array(value, where).map((raw, i) => {
+    const at = `${where}[${i}]`;
+    const d = record(raw, at);
+    only(d, at, ['url', 'sha256', 'size']);
+    return {
+      url: https(d.url, `${at}.url`),
+      sha256: pattern(d.sha256, `${at}.sha256`, SHA256),
+      size: integer(d.size, `${at}.size`, 1, MAX_HOSTED_PATCH_BYTES),
+    };
+  });
+  if (new Set(downloads.map((d) => d.url)).size !== downloads.length) throw new DataError(where, 'repeats a url');
+  return downloads;
 }
 
 function patchRelease(value: Json, where: string): PatchRelease {
@@ -964,7 +992,7 @@ export function parsePatchesV2(value: Json, cores: ReadonlySet<string>): PatchEn
     const entry = record(raw, where);
     only(entry, where, [
       'id', 'title', 'version', 'emulators', 'source_url', 'license', 'authorization_url', 'summary', 'issue_url',
-      'recipe', 'releases',
+      'recipe', 'releases', 'downloads',
     ]);
     const id = pattern(entry.id, `${where}.id`, PLUGIN_ID);
     if (id === '.') throw new DataError(`${where}.id`, 'invalid patch id');
@@ -1001,6 +1029,7 @@ export function parsePatchesV2(value: Json, cores: ReadonlySet<string>): PatchEn
       summary: localized(entry.summary, `${where}.summary`, 2048),
       issue_url: optionalHttps(entry.issue_url, `${where}.issue_url`),
       recipe: recipeScript(entry.recipe, `${where}.recipe`),
+      downloads: patchDownloads(entry.downloads, `${where}.downloads`),
     };
   });
 }

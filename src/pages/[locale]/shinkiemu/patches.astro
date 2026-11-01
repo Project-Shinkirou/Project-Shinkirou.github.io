@@ -348,6 +348,25 @@ const otherLang = (value: 'zh-CN' | 'en' | 'ja') => (value === lang ? undefined 
                           </div>
                         )}
                       </dl>
+                      {patch.downloads.length > 0 && (
+                        <div class="patch-downloads">
+                          <p class="patch-downloads-title">{t.downloads(patch.downloads.length)}</p>
+                          <ul class="fingerprint-list">
+                            {patch.downloads.map((file) => (
+                              <li>
+                                <code class="fingerprint-path">{file.url}</code>
+                                <span class="cell-sub">
+                                  {t.size} {formatBytes(file.size, locale)}
+                                </span>
+                                <span class="cell-sub">
+                                  {t.sha256} <code class="hash">{file.sha256}</code>
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                          <p class="cell-sub">{t.downloadsNote}</p>
+                        </div>
+                      )}
                       <p class="cell-sub">{t.recipeNote}</p>
                     </div>
                   </details>
