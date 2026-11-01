@@ -1,0 +1,43 @@
+---
+// ShinkiEMU FAQ. Every answer restates the product docs (user guide, release
+// notes); links point to the page with the full explanation.
+import ProductLayout from '../../../layouts/ProductLayout.astro';
+import { LOCALES, STRINGS, type Locale } from '../../../lib/i18n.ts';
+
+export function getStaticPaths() {
+  return LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const t = STRINGS[locale].faq;
+const base = `/${locale}`;
+const href = (to: string) => (/^https?:\/\//.test(to) ? to : `${base}/${to}`);
+---
+
+<ProductLayout locale={locale} title={t.title} description={t.description} current="faq">
+  <div class="container page-head">
+    <p class="breadcrumb"><a href={`${base}/shinkiemu/`}>ShinkiEMU</a></p>
+    <h1>{t.title}</h1>
+    <p class="lead">{t.lead}</p>
+  </div>
+
+  <div class="container section-tail">
+    <div class="faq-list">
+      {
+        t.items.map((item, i) => (
+          <details class="card faq-item" id={`faq-${i + 1}`} open={i === 0}>
+            <summary>
+              <h2>{item.q}</h2>
+            </summary>
+            <p>{item.a}</p>
+            {item.link && (
+              <p class="faq-link">
+                <a href={href(item.link.to)}>{item.link.label}</a>
+              </p>
+            )}
+          </details>
+        ))
+      }
+    </div>
+  </div>
+</ProductLayout>

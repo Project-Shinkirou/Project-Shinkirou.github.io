@@ -250,16 +250,72 @@ function docSlug(relative: string): string {
     .replace(/(^|\/)index$/, '');
 }
 
-/** Adds a `title` from the first H1 when frontmatter lacks one; Starlight requires it. */
-function withTitle(source: string, where: string): string {
+/** First paragraph of `body` as plain text, cut at a sentence end near 160 characters. */
+function summary(body: string): string | undefined {
+  let fenced = false;
+  const lines: string[] = [];
+  for (const line of body.split(/\r?\n/)) {
+    if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
+    if (fenced || /^\s*(```|~~~)/.test(line)) {
+      if (lines.length) break;
+      continue;
+    }
+    if (!line.trim()) {
+      if (lines.length) break;
+      continue;
+    }
+    // Headings, lists, tables, quotes, HTML and imports are not prose.
+    if (/^\s*([#>|<*+-]|\d+\.\s|import\s)/.test(line)) {
+      if (lines.length) break;
+      continue;
+    }
+    lines.push(line.trim());
+  }
+  if (!lines.length) return undefined;
+  const text = lines
+    .join(' ')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[`*_]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.length <= 160) return text;
+  const cut = text.slice(0, 160);
+  const end = Math.max(...['。', '. ', '！', '？'].map((mark) => cut.lastIndexOf(mark)));
+  return end >= 40 ? cut.slice(0, end + 1).trim() : `${cut.trimEnd()}…`;
+}
+
+/**
+ * Normalizes frontmatter for Starlight. Starlight renders `title` as the page
+ * H1, so a leading "# " heading in the body is dropped (and becomes the title
+ * when frontmatter has none). A missing `description` is taken from the first
+ * paragraph so every page has its own meta description. `order` sets the
+ * sidebar position when the page does not choose one.
+ */
+function withFrontmatter(source: string, where: string, order?: number): string {
   const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/.exec(source);
-  if (frontmatter && /^title\s*:/m.test(frontmatter[1])) return source;
-  const body = frontmatter ? source.slice(frontmatter[0].length) : source;
-  const heading = /^#[ \t]+(.+?)[ \t#]*$/m.exec(body);
-  if (!heading) fail(`docs: ${where} needs a title frontmatter field or a "# " heading`);
-  const title = JSON.stringify(heading[1]);
-  const rest = body.slice(0, heading.index) + body.slice(heading.index + heading[0].length).replace(/^\r?\n/, '');
-  return `---\ntitle: ${title}\n${frontmatter ? frontmatter[1] + '\n' : ''}---\n${rest}`;
+  const fields = frontmatter ? frontmatter[1] : '';
+  let body = frontmatter ? source.slice(frontmatter[0].length) : source;
+  const heading = /^(?:[ \t]*\r?\n)*#[ \t]+(.+?)[ \t#]*\r?\n/.exec(body);
+  if (heading) body = body.slice(heading[0].length).replace(/^(?:[ \t]*\r?\n)+/, '');
+  const extra: string[] = [];
+  if (!/^title\s*:/m.test(fields)) {
+    if (!heading) fail(`docs: ${where} needs a title frontmatter field or a leading "# " heading`);
+    extra.push(`title: ${JSON.stringify(heading[1])}`);
+  }
+  if (!/^description\s*:/m.test(fields)) {
+    const description = summary(body);
+    if (description) extra.push(`description: ${JSON.stringify(description)}`);
+  }
+  if (order !== undefined && !/^sidebar\s*:/m.test(fields)) extra.push(`sidebar: { order: ${order} }`);
+  return `---\n${[...extra, ...(fields ? [fields] : [])].join('\n')}\n---\n${body}`;
+}
+
+/** Sidebar order for release notes: newest version first. */
+function releaseOrder(files: string[]): Map<string, number> {
+  const releases = files
+    .filter((file) => MARKDOWN.test(file) && file.startsWith('releases/'))
+    .sort((a, b) => b.localeCompare(a, 'en', { numeric: true }));
+  return new Map(releases.map((file, i) => [file, i + 1]));
 }
 
 /**
@@ -332,13 +388,15 @@ function importDocs(docs: DocsSource, contentRoot: string): number {
   for (const locale of LOCALES) {
     const files = perLocale.get(locale) ?? [];
     const pages = new Set(files.filter((f) => MARKDOWN.test(f)));
+    const order = releaseOrder(files);
     for (const file of files) {
       const source = path.join(dir, locale, ...file.split('/'));
       const target = path.join(contentRoot, locale, ...docs.route.split('/'), ...file.split('/'));
       mkdirSync(path.dirname(target), { recursive: true });
       if (MARKDOWN.test(file)) {
         const text = readFileSync(source, 'utf8').replace(/^\uFEFF/, '');
-        writeFileSync(target, rewriteLinks(withTitle(text, `${locale}/${file}`), { locale, file, pages }, docs));
+        const page = withFrontmatter(text, `${locale}/${file}`, order.get(file));
+        writeFileSync(target, rewriteLinks(page, { locale, file, pages }, docs));
         count += 1;
       } else {
         writeFileSync(target, readFileSync(source));

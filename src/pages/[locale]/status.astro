@@ -1,0 +1,79 @@
+---
+// Project status: what has shipped (from the latest Manager release and the
+// metadata snapshot) and work confirmed in progress by the release notes. No
+// dates or promises; RoukakuEngine is paused.
+import { getCollection } from 'astro:content';
+import ProductLayout from '../../layouts/ProductLayout.astro';
+import { formatUtc, LOCALES, STRINGS, type Locale } from '../../lib/i18n.ts';
+import { ROUKAKU_REPO } from '../../lib/site-data.ts';
+import { RELEASES_URL, site } from '../../lib/site.ts';
+
+export function getStaticPaths() {
+  return LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const strings = STRINGS[locale];
+const t = strings.projectStatus;
+const base = `/${locale}`;
+const release = site.manager_release;
+// Release notes page imported from ShinkiEMU docs/<locale>/releases/manager-<version>.md, if present.
+const notesSlug = release ? `releases/manager-${release.version.replace(/\./g, '')}` : null;
+const notes =
+  notesSlug &&
+  (await getCollection('docs', (entry) => entry.id === `${locale}/shinkiemu/docs/${notesSlug}`)).length > 0
+    ? `${base}/shinkiemu/docs/${notesSlug}/`
+    : null;
+---
+
+<ProductLayout locale={locale} title={t.title} description={t.description} current="status">
+  <div class="container page-head">
+    <h1>{t.title}</h1>
+    <p class="lead">{t.lead}</p>
+  </div>
+
+  <div class="container section-tail">
+    <div class="grid grid-3 status-grid">
+    <section class="card product-card tone-cyan" aria-labelledby="status-shinkiemu">
+      <p class="product-kicker">ShinkiEMU</p>
+      <h2 id="status-shinkiemu">{t.releasedTitle}</h2>
+      {
+        release ? (
+          <>
+            <p>{t.released(release.version, formatUtc(release.published_at, locale, false))}</p>
+            {release.prerelease && <p>{t.prerelease}</p>}
+          </>
+        ) : (
+          <p>{t.notReleased}</p>
+        )
+      }
+      <p>{t.reports(site.compatibility.length)}</p>
+      <ul class="status-links">
+        <li><a href={`${base}/shinkiemu/#download`}>{strings.download.cta}</a></li>
+        {notes && <li><a href={notes}>{strings.download.releaseNotes}</a></li>}
+        <li><a href={RELEASES_URL}>{strings.download.releases}</a></li>
+        <li><a href={`${base}/shinkiemu/docs/platforms/`}>{strings.resources.platforms}</a></li>
+      </ul>
+    </section>
+
+    <section class="card product-card tone-cyan" aria-labelledby="status-progress">
+      <p class="product-kicker">ShinkiEMU</p>
+      <h2 id="status-progress">{t.inProgressTitle}</h2>
+      <ul class="note-list">
+        {t.inProgress.map((item) => <li>{item}</li>)}
+      </ul>
+      <p class="muted">{notes ? <a href={notes}>{t.inProgressSource}</a> : t.inProgressSource}</p>
+    </section>
+
+    <section class="card product-card tone-gold" aria-labelledby="status-roukaku">
+      <p class="product-kicker">RoukakuEngine</p>
+      <h2 id="status-roukaku">{t.roukakuTitle}</h2>
+      <p>{t.roukakuBody}</p>
+      <ul class="status-links">
+        <li><a href={`${base}/roukaku/docs/quick-start/`}>{strings.roukaku.quickStart}</a></li>
+        <li><a href={ROUKAKU_REPO}>{strings.resources.roukakuRepo}</a></li>
+      </ul>
+    </section>
+    </div>
+  </div>
+</ProductLayout>

@@ -7,9 +7,6 @@ import starlight from '@astrojs/starlight';
 export default defineConfig({
   site: 'https://project-shinkirou.github.io',
   trailingSlash: 'always',
-  redirects: {
-    '/': '/zh-cn/',
-  },
   integrations: [
     starlight({
       title: 'Project-Shinkirou',
@@ -23,6 +20,12 @@ export default defineConfig({
         en: { label: 'English', lang: 'en' },
         ja: { label: '日本語', lang: 'ja' },
       },
+      head: [
+        { tag: 'meta', attrs: { property: 'og:image', content: 'https://project-shinkirou.github.io/og.png' } },
+        { tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
+        { tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
+        { tag: 'meta', attrs: { name: 'twitter:image', content: 'https://project-shinkirou.github.io/og.png' } },
+      ],
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/Project-Shinkirou' }],
       sidebar: [
         {
@@ -32,6 +35,8 @@ export default defineConfig({
             { label: '兼容性', translations: { en: 'Compatibility', ja: '互換性' }, link: '/shinkiemu/compatibility/' },
             { label: '核心', translations: { en: 'Cores', ja: 'コア' }, link: '/shinkiemu/cores/' },
             { label: '补丁', translations: { en: 'Patches', ja: 'パッチ' }, link: '/shinkiemu/patches/' },
+            { label: '常见问题', translations: { en: 'FAQ', ja: 'よくある質問' }, link: '/shinkiemu/faq/' },
+            { label: '项目状态', translations: { en: 'Project status', ja: 'プロジェクトの状況' }, link: '/status/' },
             {
               label: '文档',
               translations: { en: 'Documentation', ja: 'ドキュメント' },
@@ -47,6 +52,12 @@ export default defineConfig({
                 },
                 'shinkiemu/docs/core-abi',
                 'shinkiemu/docs/metadata',
+                {
+                  label: '发布说明',
+                  translations: { en: 'Release notes', ja: 'リリースノート' },
+                  collapsed: true,
+                  items: [{ autogenerate: { directory: 'shinkiemu/docs/releases' } }],
+                },
                 {
                   label: '各核心说明',
                   translations: { en: 'Core notes', ja: 'コア別の説明' },
