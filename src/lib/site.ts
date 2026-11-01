@@ -7,4 +7,6 @@ export const site = generated as SiteData;
 
 export const ORG_URL = 'https://github.com/Project-Shinkirou';
 export const ISSUES_URL = 'https://github.com/Project-Shinkirou/ShinkiEMU/issues';
+/** Luau patch submissions: the ShinkiEMU `patch.yml` issue form. */
+export const PATCH_ISSUE_URL = `${ISSUES_URL}/new?template=patch.yml`;
 export const RELEASES_URL = 'https://github.com/Project-Shinkirou/ShinkiEMU/releases';
