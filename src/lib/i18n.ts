@@ -10,6 +10,14 @@ export interface FaqItem {
   link?: { to: string; label: string };
 }
 
+/** One Manager screenshot on the ShinkiEMU page; `id` names the files under public/shots/<theme>/. */
+export interface ShotItem {
+  id: 'library' | 'cores' | 'patches' | 'settings';
+  title: string;
+  caption: string;
+  alt: string;
+}
+
 export const LOCALES = ['zh-cn', 'en', 'ja'] as const;
 export type Locale = (typeof LOCALES)[number];
 
@@ -93,6 +101,34 @@ const zh = {
     ],
     downloadTitle: '下载',
     downloadLead: '选择你的平台下载 Manager 最新版本。校验值和构建状态在每张卡片的详情里。',
+    shotsTitle: '界面一览',
+    shotsLead: 'Manager 0.1.0-beta.6 的实际界面。图中的游戏条目和核心目录是自制的演示数据，不含任何游戏素材。',
+    shots: [
+      {
+        id: 'library',
+        title: '游戏库',
+        caption: '按标题、别名或开发商搜索，按兼容性状态筛选，在网格和列表视图之间切换。',
+        alt: 'Manager 游戏库页面：搜索框、排序选项、兼容性状态筛选按钮，以及三个演示条目的网格视图',
+      },
+      {
+        id: 'cores',
+        title: '核心管理',
+        caption: '允许联网后在线安装和更新核心，也可以从文件安装。',
+        alt: 'Manager 核心管理页面：可用核心列表、每个核心的安装按钮和“从文件安装”按钮',
+      },
+      {
+        id: 'patches',
+        title: '补丁',
+        caption: '按步骤选择游戏、补丁和目录，然后运行。',
+        alt: 'Manager 补丁页面：选择游戏、选择补丁、目录、运行、完成五个步骤，以及游戏搜索列表',
+      },
+      {
+        id: 'settings',
+        title: '设置',
+        caption: '切换主题和界面语言，调整密度、封面尺寸和游戏库视图。',
+        alt: 'Manager 设置的外观页面：主题、语言、密度、封面尺寸和游戏库视图选项',
+      },
+    ] as ShotItem[],
   },
   facts: {
     title: 'ShinkiEMU 概览',
@@ -117,7 +153,7 @@ const zh = {
       items: [
         {
           name: '补丁库',
-          body: '经过审查的 Luau 配方默认输出到新目录。选择原地覆盖时会先备份原文件，还原时不会覆盖你改过的文件。',
+          body: '经过审核的 Luau 补丁默认输出到新目录。选择原地覆盖时会先备份原文件，还原时不会覆盖你改过的文件。',
         },
         {
           name: '存档位置',
@@ -484,7 +520,7 @@ const zh = {
       },
       {
         q: '补丁会改动我的游戏吗？',
-        a: '默认不会。经过审查的 Luau 配方只在你明确选择后执行，默认输出到新目录，原游戏保持不变。选择原位覆盖时，被修改或删除的原文件会先备份；还原时不会覆盖你改过的文件。本站不执行任何补丁。',
+        a: '默认不会。经过审核的 Luau 补丁只在你明确选择后执行，默认输出到新目录，原游戏保持不变。选择原位覆盖时，被修改或删除的原文件会先备份；还原时不会覆盖你改过的文件。本站不执行任何补丁。',
         link: { to: 'shinkiemu/patches/', label: '补丁' },
       },
       {
@@ -597,6 +633,35 @@ const en: Strings = {
     ],
     downloadTitle: 'Download',
     downloadLead: 'Pick your platform to download the latest Manager. Checksums and build status are in each card’s details.',
+    shotsTitle: 'A look at the Manager',
+    shotsLead:
+      'The actual Manager 0.1.0-beta.6 interface. The library entries and core catalog shown are self-authored demo data with no game assets.',
+    shots: [
+      {
+        id: 'library',
+        title: 'Library',
+        caption: 'Search by title, alias or developer, filter by compatibility status, and switch between grid and list views.',
+        alt: 'Manager library page: search box, sort option, compatibility status filters and a grid of three demo entries',
+      },
+      {
+        id: 'cores',
+        title: 'Cores',
+        caption: 'With network access enabled, install and update cores online, or install one from a file.',
+        alt: 'Manager core management page: list of available cores, an Install button for each, and an Install from file button',
+      },
+      {
+        id: 'patches',
+        title: 'Patches',
+        caption: 'Choose a game, a patch and directories step by step, then run it.',
+        alt: 'Manager patches page: five steps (choose game, choose patch, directories, run, finish) above a game search list',
+      },
+      {
+        id: 'settings',
+        title: 'Settings',
+        caption: 'Switch the theme and interface language, and adjust density, cover size and library view.',
+        alt: 'Manager appearance settings: theme, language, density, cover size and library view options',
+      },
+    ],
   },
   facts: {
     title: 'ShinkiEMU at a glance',
@@ -621,7 +686,7 @@ const en: Strings = {
       items: [
         {
           name: 'Patch library',
-          body: 'Reviewed Luau recipes write to a new directory by default. In-place mode backs up the originals first, and restoring never overwrites a file you edited.',
+          body: 'Reviewed Luau patches write to a new directory by default. In-place mode backs up the originals first, and restoring never overwrites a file you edited.',
         },
         {
           name: 'Save locations',
@@ -994,7 +1059,7 @@ const en: Strings = {
       },
       {
         q: 'Will a patch change my game?',
-        a: 'Not by default. A reviewed Luau recipe runs only when you choose it, and by default writes to a new directory, leaving the original game untouched. If you choose in-place mode, changed or deleted original files are backed up first, and restoring never overwrites files you have edited. This site never runs a patch.',
+        a: 'Not by default. A reviewed Luau patch runs only when you choose it, and by default writes to a new directory, leaving the original game untouched. If you choose in-place mode, changed or deleted original files are backed up first, and restoring never overwrites files you have edited. This site never runs a patch.',
         link: { to: 'shinkiemu/patches/', label: 'Patches' },
       },
       {
@@ -1108,6 +1173,35 @@ const ja: Strings = {
     ],
     downloadTitle: 'ダウンロード',
     downloadLead: 'プラットフォームを選んで最新の Manager をダウンロードします。チェックサムとビルド状況は各カードの詳細にあります。',
+    shotsTitle: '画面の紹介',
+    shotsLead:
+      'Manager 0.1.0-beta.6 の実際の画面です。ゲームの項目とコアカタログは自作のデモデータで、ゲームの素材は含みません。',
+    shots: [
+      {
+        id: 'library',
+        title: 'ライブラリ',
+        caption: 'タイトル、別名、開発元で検索し、互換性の状態で絞り込み、グリッド表示とリスト表示を切り替えます。',
+        alt: 'Manager のライブラリ画面：検索欄、並べ替え、互換性の状態のフィルター、3 件のデモ項目のグリッド表示',
+      },
+      {
+        id: 'cores',
+        title: 'コア管理',
+        caption: 'ネットワーク接続を許可すると、コアをオンラインでインストール・更新できます。ファイルからのインストールもできます。',
+        alt: 'Manager のコア管理画面：利用できるコアの一覧、各コアのインストールボタン、ファイルからインストールするボタン',
+      },
+      {
+        id: 'patches',
+        title: 'パッチ',
+        caption: 'ゲーム、パッチ、ディレクトリを順に選んで実行します。',
+        alt: 'Manager のパッチ画面：ゲームの選択、パッチの選択、ディレクトリ、実行、完了の 5 ステップとゲームの検索一覧',
+      },
+      {
+        id: 'settings',
+        title: '設定',
+        caption: 'テーマと表示言語を切り替え、密度、カバーの大きさ、ライブラリの表示を調整します。',
+        alt: 'Manager の外観設定画面：テーマ、言語、密度、カバーの大きさ、ライブラリの表示の選択肢',
+      },
+    ],
   },
   facts: {
     title: 'ShinkiEMU の概要',
@@ -1132,7 +1226,7 @@ const ja: Strings = {
       items: [
         {
           name: 'パッチライブラリ',
-          body: '審査済みの Luau レシピは、標準では新しいディレクトリに書き出します。上書きモードでは先に元のファイルをバックアップし、復元時に編集済みのファイルは上書きしません。',
+          body: '審査済みの Luau パッチは、標準では新しいディレクトリに書き出します。上書きモードでは先に元のファイルをバックアップし、復元時に編集済みのファイルは上書きしません。',
         },
         {
           name: 'セーブの場所',
@@ -1500,7 +1594,7 @@ const ja: Strings = {
       },
       {
         q: 'パッチでゲームが書き換えられますか？',
-        a: '既定では書き換えません。審査済みの Luau レシピは選んだときだけ実行され、既定では新しいディレクトリに出力するので、元のゲームはそのまま残ります。上書きモードを選ぶと、変更・削除される元のファイルは先にバックアップされ、復元時に自分で編集したファイルが上書きされることはありません。このサイトがパッチを実行することはありません。',
+        a: '既定では書き換えません。審査済みの Luau パッチは選んだときだけ実行され、既定では新しいディレクトリに出力するので、元のゲームはそのまま残ります。上書きモードを選ぶと、変更・削除される元のファイルは先にバックアップされ、復元時に自分で編集したファイルが上書きされることはありません。このサイトがパッチを実行することはありません。',
         link: { to: 'shinkiemu/patches/', label: 'パッチ' },
       },
       {

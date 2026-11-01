@@ -2,6 +2,7 @@
 import DownloadButton from '../../../components/DownloadButton.astro';
 import DownloadCards from '../../../components/DownloadCards.astro';
 import EngineGrid from '../../../components/EngineGrid.astro';
+import ManagerShots from '../../../components/ManagerShots.astro';
 import PageHero from '../../../components/PageHero.astro';
 import ResourceLinks from '../../../components/ResourceLinks.astro';
 import ShinkiFacts from '../../../components/ShinkiFacts.astro';
@@ -27,6 +28,14 @@ const families = engineFamilies(site.matrix, site.targets).length;
     <a class="button button-secondary" href="#download">{strings.download.allPlatforms}</a>
     <a class="button button-ghost" href={`${base}/shinkiemu/compatibility/`}>{t.compatibility}</a>
   </PageHero>
+
+  <section class="section container" aria-labelledby="shots-title">
+    <div class="section-head">
+      <h2 id="shots-title">{t.shotsTitle}</h2>
+      <p>{t.shotsLead}</p>
+    </div>
+    <ManagerShots locale={locale} />
+  </section>
 
   <section class="section container" aria-labelledby="facts-title">
     <div class="section-head">
