@@ -1509,14 +1509,9 @@ button.legend-item[aria-pressed='true'] {
   font-size: 1rem;
   line-height: 1.4;
 }
-.patch-tags {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.3rem 0.5rem;
-  margin-top: 0.3rem;
-}
 .patch-id {
+  display: block;
+  margin-top: 0.2rem;
   color: var(--mn-text-muted);
   font-size: 0.8125rem;
 }
@@ -1585,14 +1580,105 @@ button.legend-item[aria-pressed='true'] {
 .patch-summary {
   color: var(--mn-text-soft);
 }
-.work-list {
+.patch-release-links {
   display: grid;
-  gap: 0.6rem;
+  gap: 0.3rem;
+  margin: 0.35rem 0 0;
+  padding-inline-start: 0.75rem;
+  border-inline-start: 2px solid var(--mn-border);
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.release-section h2 {
+  margin-bottom: 0.5rem;
+}
+.release-grid {
+  margin-top: 1rem;
+}
+.release-card {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+  min-width: 0;
+  scroll-margin-top: 5rem;
+}
+.release-card > * {
+  margin: 0;
+}
+.release-card:target {
+  border-color: var(--mn-accent);
+  box-shadow: 0 0 0 1px var(--mn-accent);
+}
+.release-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+}
+.release-card-head h3 {
+  font-size: 1.0625rem;
+  line-height: 1.4;
+}
+.release-card-head .chip {
+  white-space: normal;
+}
+.release-vndb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.6rem;
+  font-size: 0.875rem;
+}
+.release-vndb a {
+  font-family: var(--mn-font-mono);
+  font-size: 0.8125rem;
+}
+.release-card .facts-compact {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+}
+.release-card .vndb {
+  min-width: 0;
+}
+.release-patches,
+.fingerprint-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
-.work-list .vndb {
+.release-patches li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.6rem;
+}
+.release-files summary {
+  width: fit-content;
+  color: var(--mn-accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.release-files summary:focus-visible {
+  outline: 2px solid var(--mn-accent);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+.fingerprint-list {
+  margin-top: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.6rem;
+  background: var(--mn-bg-inset);
+}
+.fingerprint-list li {
   min-width: 0;
+  overflow-wrap: anywhere;
+}
+.fingerprint-list .hash {
+  word-break: break-all;
 }
 @media (max-width: 56rem) {
   .patch-list-head {

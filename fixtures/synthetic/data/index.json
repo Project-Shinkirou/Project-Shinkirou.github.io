@@ -22,6 +22,11 @@
       "path": "patches.json",
       "sha256": "da3eae38ab57d5e67853090d6bf35073cf92a0eb0c648cd5aa6cb51437e6747b",
       "size": 3792
+    },
+    {
+      "path": "patches-v2.json",
+      "sha256": "f90018b8a6724c6f29def29220202f53de6b4ea2d6fd28fc385c2d2d0de25bb7",
+      "size": 5798
     }
   ]
 }

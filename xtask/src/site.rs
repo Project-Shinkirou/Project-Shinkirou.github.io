@@ -199,8 +199,17 @@ pub fn prepare(roukaku: &Path, shinkiemu: &Path, out: &Path) -> Result<()> {
                 &fs::read(data.join(name)).with_context(|| format!("reading {name}"))?,
             )?)
         };
-        let (vn_ids, release_ids) =
-            crate::external::referenced_ids(&read("compatibility.json")?, &read("patches.json")?)?;
+        // patches-v2.json is additive; older snapshots only have patches.json.
+        let patches_v2 = data
+            .join("patches-v2.json")
+            .is_file()
+            .then(|| read("patches-v2.json"))
+            .transpose()?;
+        let (vn_ids, release_ids) = crate::external::referenced_ids(
+            &read("compatibility.json")?,
+            &read("patches.json")?,
+            patches_v2.as_ref(),
+        )?;
         write_json(
             &data.join("vndb.json"),
             &crate::external::vndb_titles(&client, &vn_ids, &release_ids)?,

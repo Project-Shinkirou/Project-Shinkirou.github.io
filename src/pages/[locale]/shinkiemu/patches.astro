@@ -3,7 +3,7 @@ import ProductLayout from '../../../layouts/ProductLayout.astro';
 import VndbTitle from '../../../components/VndbTitle.astro';
 import { formatBytes, LANG, localizedText, LOCALES, STRINGS, type Locale } from '../../../lib/i18n.ts';
 import { corePlatformStates, PLATFORM_ORDER } from '../../../lib/platforms.ts';
-import { PATCH_KINDS, type Platform } from '../../../lib/site-data.ts';
+import type { Platform } from '../../../lib/site-data.ts';
 import { ISSUES_URL, site } from '../../../lib/site.ts';
 
 export function getStaticPaths() {
@@ -18,7 +18,7 @@ const base = `/${locale}`;
 const coreName: Record<string, string> = Object.fromEntries(site.matrix.map((core) => [core.plugin_id, core.core]));
 const total = site.patches.length;
 
-// patches.v1 has no platform field. A patch is usable where one of the cores it
+// Patch data has no platform field. A patch is usable where one of the cores it
 // lists is available (buildable or embedded in the Manager) in the build matrix.
 const corePlatforms = new Map(
   site.matrix.map((core) => [
@@ -30,57 +30,97 @@ const corePlatforms = new Map(
     ),
   ]),
 );
-const platformsOf = (emulators: readonly string[]): Platform[] =>
-  PLATFORM_ORDER.filter((platform) => emulators.some((id) => corePlatforms.get(id)?.has(platform)));
 
 const searchText = (parts: (string | null | undefined)[]) =>
   parts.filter(Boolean).join('\n').normalize('NFKC').toLowerCase();
+const workTitle = (id: string) => site.titles.vn[id].title;
+const releaseAnchor = (id: string) => `release-${id}`;
+
+// One card per release. patches-v2 validation guarantees that a release shared
+// by several patches carries the same description in each of them.
+const releaseCards = new Map<
+  string,
+  { release: (typeof site.patches)[number]['releases'][number]; patchIds: string[] }
+>();
+for (const patch of site.patches) {
+  for (const release of patch.releases) {
+    const card = releaseCards.get(release.release_id);
+    if (card) card.patchIds.push(patch.id);
+    else releaseCards.set(release.release_id, { release, patchIds: [patch.id] });
+  }
+}
 
 // Title and summary in the page language when the entry has it, otherwise the
 // next language in the locale's fallback order (ja → en → zh-CN).
 const patches = site.patches
-  .map((patch) => {
-    const platforms = platformsOf(patch.emulators);
-    return {
-      ...patch,
-      platforms,
-      shownTitle: localizedText(patch.title, locale),
-      shownSummary: localizedText(patch.summary, locale),
-      search: searchText([
-        patch.id,
-        patch.title['zh-CN'],
-        patch.title.en,
-        patch.title.ja,
-        patch.summary['zh-CN'],
-        patch.summary.en,
-        patch.summary.ja,
-        patch.version,
-        patch.recipe?.script,
-        patch.artifact?.file_name,
-        t.kinds[patch.kind],
-        ...patch.vn_ids.flatMap((id) => [id, site.titles.vn[id].title, site.titles.vn[id].alttitle]),
-        ...patch.release_ids.flatMap((id) => [id, site.titles.release[id].title, site.titles.release[id].alttitle]),
-        ...patch.emulators.flatMap((id) => [id, coreName[id]]),
+  .map((patch) => ({
+    ...patch,
+    platforms: PLATFORM_ORDER.filter((platform) => patch.emulators.some((id) => corePlatforms.get(id)?.has(platform))),
+    shownTitle: localizedText(patch.title, locale),
+    shownSummary: localizedText(patch.summary, locale),
+    search: searchText([
+      patch.id,
+      patch.title['zh-CN'],
+      patch.title.en,
+      patch.title.ja,
+      patch.summary['zh-CN'],
+      patch.summary.en,
+      patch.summary.ja,
+      patch.version,
+      patch.recipe?.script,
+      ...patch.vn_ids.flatMap((id) => [id, site.titles.vn[id].title, site.titles.vn[id].alttitle]),
+      ...patch.releases.flatMap((release) => [
+        release.release_id,
+        release.title['zh-CN'],
+        release.title.en,
+        release.title.ja,
+        release.edition,
+        release.game_version,
+        site.titles.release[release.release_id].title,
+        site.titles.release[release.release_id].alttitle,
       ]),
-    };
-  })
+      ...patch.emulators.flatMap((id) => [id, coreName[id]]),
+    ]),
+  }))
   .sort((a, b) => a.shownTitle.text.localeCompare(b.shownTitle.text, lang) || a.id.localeCompare(b.id));
+const patchById = new Map(patches.map((patch) => [patch.id, patch]));
 
-const workTitle = (id: string) => site.titles.vn[id].title;
 const works = [...new Set(patches.flatMap((patch) => patch.vn_ids))].sort(
   (a, b) => workTitle(a).localeCompare(workTitle(b), 'en') || a.localeCompare(b, 'en', { numeric: true }),
+);
+// Release cards and release options follow the work order, then the release id.
+const releases = [...releaseCards.values()].sort(
+  (a, b) =>
+    works.indexOf(a.release.vn_id) - works.indexOf(b.release.vn_id) ||
+    a.release.release_id.localeCompare(b.release.release_id, 'en', { numeric: true }),
 );
 const countWhere = (test: (patch: (typeof patches)[number]) => boolean) => patches.filter(test).length;
 const withCount = (label: string, n: number) => `${label} (${n})`;
 
-// Only values that occur in the data are offered; every option matches at least one patch.
+// Only values that occur in the data are offered; every option matches at least
+// one patch. Release options carry their work so the client can narrow them.
 const filters = [
   {
     name: 'work',
     label: t.work,
     options: works.map((id) => ({
       value: id,
+      work: undefined as string | undefined,
       label: withCount(`${workTitle(id)} · ${id}`, countWhere((patch) => patch.vn_ids.includes(id))),
+    })),
+  },
+  {
+    name: 'release',
+    label: t.release,
+    options: releases.map(({ release, patchIds }) => ({
+      value: release.release_id,
+      work: release.vn_id as string | undefined,
+      label: withCount(
+        [localizedText(release.title, locale).text, release.edition, release.game_version, release.release_id]
+          .filter(Boolean)
+          .join(' · '),
+        patchIds.length,
+      ),
     })),
   },
   {
@@ -89,23 +129,16 @@ const filters = [
     options: site.matrix
       .map((core) => ({ core, n: countWhere((patch) => patch.emulators.includes(core.plugin_id)) }))
       .filter((item) => item.n > 0)
-      .map((item) => ({ value: item.core.plugin_id, label: withCount(item.core.core, item.n) })),
+      .map((item) => ({ value: item.core.plugin_id, work: undefined, label: withCount(item.core.core, item.n) })),
   },
   {
     name: 'platform',
     label: t.platform,
-    options: PLATFORM_ORDER.map((platform) => ({ platform, n: countWhere((patch) => patch.platforms.includes(platform)) }))
+    options: PLATFORM_ORDER.map((platform: Platform) => ({ platform, n: countWhere((patch) => patch.platforms.includes(platform)) }))
       .filter((item) => item.n > 0)
-      .map((item) => ({ value: item.platform, label: withCount(strings.platform[item.platform], item.n) })),
+      .map((item) => ({ value: item.platform, work: undefined, label: withCount(strings.platform[item.platform], item.n) })),
   },
-  {
-    name: 'kind',
-    label: t.kind,
-    options: PATCH_KINDS.map((kind) => ({ kind, n: countWhere((patch) => patch.kind === kind) }))
-      .filter((item) => item.n > 0)
-      .map((item) => ({ value: item.kind, label: withCount(t.kindTitles[item.kind], item.n) })),
-  },
-];
+].filter((filter) => filter.options.length > 0);
 const shownText = (shown: number) => t.shown.replace('{shown}', String(shown)).replace('{total}', String(total));
 const otherLang = (value: 'zh-CN' | 'en' | 'ja') => (value === lang ? undefined : value);
 ---
@@ -139,7 +172,9 @@ const otherLang = (value: 'zh-CN' | 'en' | 'ja') => (value === lang ? undefined 
                   <select name={filter.name}>
                     <option value="">{t.all}</option>
                     {filter.options.map((option) => (
-                      <option value={option.value}>{option.label}</option>
+                      <option value={option.value} data-work={option.work}>
+                        {option.label}
+                      </option>
                     ))}
                   </select>
                 </label>
@@ -163,7 +198,7 @@ const otherLang = (value: 'zh-CN' | 'en' | 'ja') => (value === lang ? undefined 
             </h2>
             <div class="patch-list-head" aria-hidden="true">
               <span>{t.columns.patch}</span>
-              <span>{t.columns.work}</span>
+              <span>{t.columns.releases}</span>
               <span>{t.columns.core}</span>
               <span>{t.columns.platforms}</span>
               <span>{t.columns.version}</span>
@@ -175,25 +210,44 @@ const otherLang = (value: 'zh-CN' | 'en' | 'ja') => (value === lang ? undefined 
                   id={`patch-${patch.id}`}
                   data-search={patch.search}
                   data-work={patch.vn_ids.join(' ')}
+                  data-release={patch.releases.map((release) => release.release_id).join(' ')}
                   data-core={patch.emulators.join(' ')}
                   data-platform={patch.platforms.join(' ')}
-                  data-kind={patch.kind}
                 >
                   <div class="patch-cell patch-name">
                     <h3 lang={otherLang(patch.shownTitle.lang)}>{patch.shownTitle.text}</h3>
-                    <span class="patch-tags">
-                      <span class={`chip chip-kind-${patch.kind}`}>{t.kinds[patch.kind]}</span>
-                      <code class="patch-id">{patch.id}</code>
-                    </span>
+                    <code class="patch-id">{patch.id}</code>
                   </div>
                   <div class="patch-cell">
-                    <span class="patch-label">{t.columns.work}</span>
+                    <span class="patch-label">{t.columns.releases}</span>
                     <ul class="patch-values">
-                      {patch.vn_ids.map((id) => (
-                        <li>
-                          <VndbTitle id={id} kind="vn" />
-                        </li>
-                      ))}
+                      {patch.vn_ids.map((id) => {
+                        const bound = patch.releases.filter((release) => release.vn_id === id);
+                        return (
+                          <li>
+                            <VndbTitle id={id} kind="vn" />
+                            {bound.length === 0 ? (
+                              <span class="cell-sub">{t.unbound}</span>
+                            ) : (
+                              <ul class="patch-release-links">
+                                {bound.map((release) => {
+                                  const title = localizedText(release.title, locale);
+                                  return (
+                                    <li>
+                                      <a href={`#${releaseAnchor(release.release_id)}`} lang={otherLang(title.lang)}>
+                                        {title.text}
+                                      </a>
+                                      <span class="cell-sub">
+                                        {[release.edition, release.game_version, release.release_id].filter(Boolean).join(' · ')}
+                                      </span>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                   <div class="patch-cell">
@@ -230,22 +284,6 @@ const otherLang = (value: 'zh-CN' | 'en' | 'ja') => (value === lang ? undefined 
                         {patch.shownSummary.text}
                       </p>
                       <dl class="facts">
-                        <div class="facts-wide">
-                          <dt>{t.releases}</dt>
-                          <dd>
-                            {patch.release_ids.length === 0 ? (
-                              <span class="chip chip-warning chip-wrap">{t.releasesUnrestricted}</span>
-                            ) : (
-                              <ul class="work-list">
-                                {patch.release_ids.map((id) => (
-                                  <li>
-                                    <VndbTitle id={id} kind="release" />
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </dd>
-                        </div>
                         <div>
                           <dt>{t.license}</dt>
                           <dd>{patch.license}</dd>
@@ -284,38 +322,8 @@ const otherLang = (value: 'zh-CN' | 'en' | 'ja') => (value === lang ? undefined 
                             </dd>
                           </div>
                         )}
-                        {patch.artifact && (
-                          <>
-                            <div class="facts-wide">
-                              <dt>{t.artifact}</dt>
-                              <dd>
-                                <code>{patch.artifact.file_name}</code> · {formatBytes(patch.artifact.size, locale)}
-                              </dd>
-                            </div>
-                            <div class="facts-wide">
-                              <dt>{t.sha256}</dt>
-                              <dd>
-                                <code class="hash">{patch.artifact.sha256}</code>
-                              </dd>
-                            </div>
-                          </>
-                        )}
                       </dl>
-                      {patch.recipe && <p class="cell-sub">{t.recipeNote}</p>}
-                      {patch.kind === 'hosted' && patch.artifact && (
-                        <p>
-                          <a class="button button-primary" href={patch.artifact.url} aria-label={t.downloadLabel(patch.artifact.file_name)}>
-                            {t.download}
-                          </a>
-                        </p>
-                      )}
-                      {patch.kind === 'external' && patch.artifact && (
-                        <p>
-                          <a href={patch.artifact.url} rel="nofollow noopener">
-                            {t.externalArtifact}
-                          </a>
-                        </p>
-                      )}
+                      <p class="cell-sub">{t.recipeNote}</p>
                     </div>
                   </details>
                 </li>
@@ -329,13 +337,101 @@ const otherLang = (value: 'zh-CN' | 'en' | 'ja') => (value === lang ? undefined 
       )
     }
   </div>
+
+  {
+    total > 0 && (
+      <section class="section container release-section" aria-labelledby="releases-title">
+        <h2 id="releases-title">{t.releasesTitle}</h2>
+        {releases.length === 0 ? (
+          <p class="muted">{t.noReleases}</p>
+        ) : (
+          <>
+            <p class="patch-note">{t.releasesLead}</p>
+            <div class="grid grid-2 release-grid">
+              {releases.map(({ release, patchIds }) => {
+                const title = localizedText(release.title, locale);
+                const vndb = site.titles.release[release.release_id];
+                return (
+                  <article
+                    class="card release-card"
+                    id={releaseAnchor(release.release_id)}
+                    aria-labelledby={`${releaseAnchor(release.release_id)}-title`}
+                  >
+                    <header class="release-card-head">
+                      <h3 id={`${releaseAnchor(release.release_id)}-title`} lang={otherLang(title.lang)}>
+                        {title.text}
+                      </h3>
+                      <span class="chip">{release.edition}</span>
+                    </header>
+                    <p class="release-vndb">
+                      <span class="vndb-title">{vndb.title}</span>
+                      {vndb.alttitle && <span class="vndb-alt">{vndb.alttitle}</span>}
+                      <a href={`https://vndb.org/${release.release_id}`} aria-label={t.vndbLink(release.release_id)}>
+                        {release.release_id}
+                      </a>
+                    </p>
+                    <dl class="facts facts-compact">
+                      <div>
+                        <dt>{t.work}</dt>
+                        <dd>
+                          <VndbTitle id={release.vn_id} kind="vn" />
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>{t.gameVersion}</dt>
+                        <dd>{release.game_version ?? <span class="muted">{t.noGameVersion}</span>}</dd>
+                      </div>
+                      <div class="facts-wide">
+                        <dt>{t.patchesFor}</dt>
+                        <dd>
+                          <ul class="release-patches">
+                            {patchIds.map((id) => {
+                              const patch = patchById.get(id)!;
+                              return (
+                                <li>
+                                  <a href={`#patch-${id}`} lang={otherLang(patch.shownTitle.lang)}>
+                                    {patch.shownTitle.text}
+                                  </a>
+                                  <span class="patch-version">{patch.version}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </dd>
+                      </div>
+                    </dl>
+                    <details class="release-files">
+                      <summary>{t.fingerprints(release.fingerprints.length)}</summary>
+                      <ul class="fingerprint-list">
+                        {release.fingerprints.map((file) => (
+                          <li>
+                            <code class="fingerprint-path">{file.path}</code>
+                            <span class="cell-sub">
+                              {t.size} {formatBytes(file.size, locale)}
+                            </span>
+                            <span class="cell-sub">
+                              {t.sha256} <code class="hash">{file.sha256}</code>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  </article>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </section>
+    )
+  }
 </ProductLayout>
 
 <script>
   // Client-side search and filtering, mirrored in the URL query so a filtered
   // view can be linked. Without JavaScript the form stays hidden and every
   // patch stays listed.
-  const SELECTS = ['work', 'core', 'platform', 'kind'] as const;
+  const SELECTS = ['work', 'release', 'core', 'platform'] as const;
   type Select = (typeof SELECTS)[number];
 
   const normalize = (value: string) => value.normalize('NFKC').toLowerCase().trim();
@@ -350,17 +446,44 @@ const otherLang = (value: 'zh-CN' | 'en' | 'ja') => (value === lang ? undefined 
       const list = this.querySelector<HTMLElement>('.patch-list');
       const template = (this.dataset.shown ?? '').replace('{total}', this.dataset.total ?? '');
       const search = form.elements.namedItem('q') as HTMLInputElement;
+      // A filter with no options in the data is not rendered.
       const selects = Object.fromEntries(
-        SELECTS.map((name) => [name, form.elements.namedItem(name) as HTMLSelectElement]),
-      ) as Record<Select, HTMLSelectElement>;
+        SELECTS.flatMap((name) => {
+          const select = form.elements.namedItem(name);
+          return select instanceof HTMLSelectElement ? [[name, select]] : [];
+        }),
+      ) as Partial<Record<Select, HTMLSelectElement>>;
+      const active = SELECTS.filter((name) => selects[name]);
+      const valueOf = (name: Select) => selects[name]?.value ?? '';
+
+      // The release list only offers releases of the chosen work; a release
+      // of another work is cleared when the work changes.
+      const narrowReleases = () => {
+        const release = selects.release;
+        if (!release) return;
+        const work = valueOf('work');
+        for (const option of release.options) {
+          if (option.value === '') continue;
+          const hidden = work !== '' && option.dataset.work !== work;
+          option.hidden = hidden;
+          option.disabled = hidden;
+        }
+        if (release.selectedOptions[0]?.disabled) release.value = '';
+      };
 
       // Unknown values (stale links) fall back to "all" instead of hiding everything.
       const params = new URLSearchParams(window.location.search);
       search.value = params.get('q') ?? '';
-      for (const name of SELECTS) {
+      for (const name of active) {
+        const select = selects[name]!;
         const wanted = params.get(name) ?? '';
-        selects[name].value = [...selects[name].options].some((option) => option.value === wanted) ? wanted : '';
+        select.value = [...select.options].some((option) => option.value === wanted) ? wanted : '';
       }
+      // A shared release link without its work still selects the release's work.
+      if (selects.release && selects.work && valueOf('work') === '' && valueOf('release') !== '') {
+        selects.work.value = selects.release.selectedOptions[0]?.dataset.work ?? '';
+      }
+      narrowReleases();
 
       const apply = (updateUrl: boolean) => {
         // Every whitespace-separated term must match somewhere in the row.
@@ -370,8 +493,8 @@ const otherLang = (value: 'zh-CN' | 'en' | 'ja') => (value === lang ? undefined 
           const haystack = row.dataset.search ?? '';
           const visible =
             terms.every((term) => haystack.includes(term)) &&
-            SELECTS.every((name) => {
-              const value = selects[name].value;
+            active.every((name) => {
+              const value = valueOf(name);
               return value === '' || (row.dataset[name] ?? '').split(' ').includes(value);
             });
           row.hidden = !visible;
@@ -384,7 +507,7 @@ const otherLang = (value: 'zh-CN' | 'en' | 'ja') => (value === lang ? undefined 
         const next = new URLSearchParams();
         const query = search.value.trim();
         if (query !== '') next.set('q', query);
-        for (const name of SELECTS) if (selects[name].value !== '') next.set(name, selects[name].value);
+        for (const name of active) if (valueOf(name) !== '') next.set(name, valueOf(name));
         const suffix = next.toString();
         history.replaceState(null, '', `${window.location.pathname}${suffix ? `?${suffix}` : ''}${window.location.hash}`);
       };
@@ -398,10 +521,18 @@ const otherLang = (value: 'zh-CN' | 'en' | 'ja') => (value === lang ? undefined 
         if (details) details.open = true;
       };
 
-      form.addEventListener('input', () => apply(true));
+      form.addEventListener('input', (event) => {
+        if (event.target === selects.work) narrowReleases();
+        apply(true);
+      });
       form.addEventListener('submit', (event) => event.preventDefault());
       // `reset` fires before the controls are cleared.
-      form.addEventListener('reset', () => setTimeout(() => apply(true)));
+      form.addEventListener('reset', () =>
+        setTimeout(() => {
+          narrowReleases();
+          apply(true);
+        }),
+      );
       window.addEventListener('hashchange', openTarget);
 
       form.hidden = false;

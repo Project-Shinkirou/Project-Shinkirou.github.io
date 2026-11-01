@@ -37,7 +37,9 @@ import {
   parseManagerRelease,
   parseVndbCoverage,
   parseVndbTitles,
+  legacyPatchView,
   parsePatches,
+  parsePatchesV2,
   parseSources,
   type SiteData,
   type SiteSources,
@@ -152,12 +154,20 @@ function loadData(dataDir: string): LoadedSnapshot {
     json(files.has('compatibility-v5.json') ? 'compatibility-v5.json' : 'compatibility.json'),
     known,
   );
-  const patches = parsePatches(json('patches.json'), known);
+  // Legacy patches.json stays published and validated for older Managers; the
+  // page lists the additive v2 catalog, or the v1 entries until a snapshot has one.
+  const legacyPatches = parsePatches(json('patches.json'), known);
+  const patches = files.has('patches-v2.json')
+    ? parsePatchesV2(json('patches-v2.json'), known)
+    : legacyPatches.map(legacyPatchView);
   // Fetched by `xtask site prepare`; not part of the indexed metadata snapshot.
   const titles = parseVndbTitles(
     json('vndb.json'),
     new Set([...compatibility.map((entry) => entry.vn_id), ...patches.flatMap((patch) => patch.vn_ids)]),
-    new Set([...compatibility.map((entry) => entry.release_id), ...patches.flatMap((patch) => patch.release_ids)]),
+    new Set([
+      ...compatibility.map((entry) => entry.release_id),
+      ...patches.flatMap((patch) => patch.releases.map((release) => release.release_id)),
+    ]),
   );
   const coverage = parseVndbCoverage(
     json('vndb-coverage.json'),

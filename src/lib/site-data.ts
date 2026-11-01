@@ -16,6 +16,7 @@ export const COMPATIBILITY_V5_SCHEMA = 'shinki.emu.compatibility.v5';
 export const CORES_SCHEMA = 'shinki.emu.cores.v1';
 export const CORES_V2_SCHEMA = 'shinki.emu.cores.v2';
 export const PATCHES_SCHEMA = 'shinki.emu.patches.v1';
+export const PATCHES_V2_SCHEMA = 'shinki.emu.patches.v2';
 
 export const RELEASE_DOWNLOAD_PREFIX =
   'https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/';
@@ -32,6 +33,7 @@ export const PLATFORMS = ['windows', 'linux', 'macos', 'android', 'ios', 'ohos']
 export const ARCHITECTURES = ['x86_64', 'aarch64'] as const;
 export const VARIANTS = ['desktop', 'device', 'simulator'] as const;
 export const STATUSES = ['perfect', 'completable', 'flawed', 'boot_only', 'unplayable'] as const;
+/** patches.v1 kinds; v2 lists reviewed recipes only. */
 export const PATCH_KINDS = ['recipe', 'external', 'hosted'] as const;
 
 export type Platform = (typeof PLATFORMS)[number];
@@ -130,7 +132,8 @@ export interface PatchArtifact {
   file_name: string;
 }
 
-export interface PatchEntry {
+/** One entry of the legacy `patches.json` (patches.v1), still published for older Managers. */
+export interface LegacyPatchEntry {
   id: string;
   title: LocalizedText;
   version: string;
@@ -144,6 +147,45 @@ export interface PatchEntry {
   summary: LocalizedText;
   issue_url: string | null;
   artifact: PatchArtifact | null;
+  recipe: { script: string } | null;
+}
+
+/** A file that identifies a release: the recipe accepts only inputs with this size and digest. */
+export interface PatchFingerprint {
+  path: string;
+  size: number;
+  sha256: string;
+}
+
+/** A concrete release a patches.v2 recipe applies to. */
+export interface PatchRelease {
+  release_id: string;
+  vn_id: string;
+  title: LocalizedText;
+  /** Distribution channel or medium as published (DL, boxed, Steam, …). */
+  edition: string;
+  /** The release's own version number; null when the source material has none. */
+  game_version: string | null;
+  fingerprints: PatchFingerprint[];
+}
+
+/**
+ * A patch as the portal lists it: a patches.v2 entry, or a legacy v1 entry
+ * (with no releases) while a snapshot has no `patches-v2.json` yet.
+ */
+export interface PatchEntry {
+  id: string;
+  title: LocalizedText;
+  version: string;
+  /** Works the patch applies to, in first-seen order. */
+  vn_ids: string[];
+  releases: PatchRelease[];
+  emulators: string[];
+  source_url: string | null;
+  license: string;
+  authorization_url: string | null;
+  summary: LocalizedText;
+  issue_url: string | null;
   recipe: { script: string } | null;
 }
 
@@ -747,7 +789,7 @@ function localized(value: Json, where: string, max: number): LocalizedText {
   return result;
 }
 
-export function parsePatches(value: Json, cores: ReadonlySet<string>): PatchEntry[] {
+export function parsePatches(value: Json, cores: ReadonlySet<string>): LegacyPatchEntry[] {
   const object = record(value, 'patches.json');
   only(object, 'patches.json', ['schema', 'entries']);
   if (object.schema !== PATCHES_SCHEMA) throw new DataError('patches.json.schema', `expected ${PATCHES_SCHEMA}`);
@@ -790,7 +832,7 @@ export function parsePatches(value: Json, cores: ReadonlySet<string>): PatchEntr
       }
       recipe = { script };
     }
-    const parsed: PatchEntry = {
+    const parsed: LegacyPatchEntry = {
       id,
       title: localized(entry.title, `${where}.title`, 256),
       version,
@@ -832,6 +874,122 @@ export function parsePatches(value: Json, cores: ReadonlySet<string>): PatchEntr
         break;
     }
     return parsed;
+  });
+}
+
+/**
+ * Legacy entries name works but no concrete releases (v1 `release_ids` carry
+ * no work binding), so they list as work-level patches without releases.
+ */
+export function legacyPatchView(entry: LegacyPatchEntry): PatchEntry {
+  return {
+    id: entry.id,
+    title: entry.title,
+    version: entry.version,
+    vn_ids: entry.vn_ids,
+    releases: [],
+    emulators: entry.emulators,
+    source_url: entry.source_url,
+    license: entry.license,
+    authorization_url: entry.authorization_url,
+    summary: entry.summary,
+    issue_url: entry.issue_url,
+    recipe: entry.recipe,
+  };
+}
+
+function recipeScript(value: Json, where: string): { script: string } {
+  const r = record(value, where);
+  only(r, where, ['script']);
+  const script = text(r.script, `${where}.script`, 1, 256);
+  if (!isSafeRelativePath(script) || !script.endsWith('.luau')) {
+    throw new DataError(`${where}.script`, 'must be a safe relative .luau path');
+  }
+  return { script };
+}
+
+function patchRelease(value: Json, where: string): PatchRelease {
+  const object = record(value, where);
+  only(object, where, ['release_id', 'vn_id', 'title', 'edition', 'game_version', 'fingerprints']);
+  const fingerprints = array(object.fingerprints, `${where}.fingerprints`).map((raw, i) => {
+    const at = `${where}.fingerprints[${i}]`;
+    const f = record(raw, at);
+    only(f, at, ['path', 'size', 'sha256']);
+    const path = text(f.path, `${at}.path`, 1, 256);
+    if (!isSafeRelativePath(path)) throw new DataError(`${at}.path`, 'must be a safe relative path');
+    return { path, size: integer(f.size, `${at}.size`, 0), sha256: pattern(f.sha256, `${at}.sha256`, SHA256) };
+  });
+  if (fingerprints.length === 0) throw new DataError(`${where}.fingerprints`, 'needs at least one file');
+  if (new Set(fingerprints.map((f) => f.path)).size !== fingerprints.length) {
+    throw new DataError(`${where}.fingerprints`, 'repeats a path');
+  }
+  return {
+    release_id: pattern(object.release_id, `${where}.release_id`, RELEASE_ID),
+    vn_id: pattern(object.vn_id, `${where}.vn_id`, VN_ID),
+    title: localized(object.title, `${where}.title`, 256),
+    edition: text(object.edition, `${where}.edition`, 1, 128),
+    game_version:
+      object.game_version === undefined || object.game_version === null
+        ? null
+        : text(object.game_version, `${where}.game_version`, 1, 64),
+    fingerprints,
+  };
+}
+
+/**
+ * `patches-v2.json`: every patch is a reviewed recipe bound to concrete
+ * releases. A release shared by several patches must be described
+ * identically everywhere, since the portal shows one card per release.
+ */
+export function parsePatchesV2(value: Json, cores: ReadonlySet<string>): PatchEntry[] {
+  const object = record(value, 'patches-v2.json');
+  only(object, 'patches-v2.json', ['schema', 'entries']);
+  if (object.schema !== PATCHES_V2_SCHEMA) throw new DataError('patches-v2.json.schema', `expected ${PATCHES_V2_SCHEMA}`);
+  const ids = new Set<string>();
+  const releases = new Map<string, { where: string; json: string }>();
+  return array(object.entries, 'patches-v2.json.entries').map((raw, i) => {
+    const where = `patches-v2.json.entries[${i}]`;
+    const entry = record(raw, where);
+    only(entry, where, [
+      'id', 'title', 'version', 'emulators', 'source_url', 'license', 'authorization_url', 'summary', 'issue_url',
+      'recipe', 'releases',
+    ]);
+    const id = pattern(entry.id, `${where}.id`, PLUGIN_ID);
+    if (id === '.') throw new DataError(`${where}.id`, 'invalid patch id');
+    if (ids.has(id)) throw new DataError(`${where}.id`, `duplicate patch id "${id}"`);
+    ids.add(id);
+    const emulators = uniqueList(entry.emulators, `${where}.emulators`, (v, w) => pattern(v, w, PLUGIN_ID));
+    if (emulators.length === 0) throw new DataError(`${where}.emulators`, 'needs at least one core');
+    for (const emulator of emulators) {
+      if (!cores.has(emulator)) throw new DataError(`${where}.emulators`, `unknown core "${emulator}"`);
+    }
+    const bound = array(entry.releases, `${where}.releases`).map((r, j) => patchRelease(r, `${where}.releases[${j}]`));
+    if (bound.length === 0) throw new DataError(`${where}.releases`, 'needs at least one release');
+    if (new Set(bound.map((r) => r.release_id)).size !== bound.length) {
+      throw new DataError(`${where}.releases`, 'repeats a release_id');
+    }
+    bound.forEach((release, j) => {
+      const json = JSON.stringify(release);
+      const seen = releases.get(release.release_id);
+      if (seen && seen.json !== json) {
+        throw new DataError(`${where}.releases[${j}]`, `describes ${release.release_id} differently from ${seen.where}`);
+      }
+      if (!seen) releases.set(release.release_id, { where: `${where}.releases[${j}]`, json });
+    });
+    return {
+      id,
+      title: localized(entry.title, `${where}.title`, 256),
+      version: pattern(entry.version, `${where}.version`, SEMVER),
+      vn_ids: [...new Set(bound.map((r) => r.vn_id))],
+      releases: bound,
+      emulators,
+      source_url: optionalHttps(entry.source_url, `${where}.source_url`),
+      license: text(entry.license, `${where}.license`, 1, 256),
+      authorization_url: optionalHttps(entry.authorization_url, `${where}.authorization_url`),
+      summary: localized(entry.summary, `${where}.summary`, 2048),
+      issue_url: optionalHttps(entry.issue_url, `${where}.issue_url`),
+      recipe: recipeScript(entry.recipe, `${where}.recipe`),
+    };
   });
 }
 

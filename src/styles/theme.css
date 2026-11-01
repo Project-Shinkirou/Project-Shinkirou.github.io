@@ -213,19 +213,16 @@ td > .hash {
   color: var(--st-perfect-fg);
 }
 .chip-status-completable,
-.chip-static,
-.chip-kind-recipe {
+.chip-static {
   background: var(--st-completable-bg);
   color: var(--st-completable-fg);
 }
 .chip-status-flawed,
-.chip-warning,
-.chip-kind-external {
+.chip-warning {
   background: var(--st-flawed-bg);
   color: var(--st-flawed-fg);
 }
-.chip-status-boot_only,
-.chip-kind-hosted {
+.chip-status-boot_only {
   background: var(--st-boot_only-bg);
   color: var(--st-boot_only-fg);
 }

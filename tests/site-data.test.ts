@@ -15,6 +15,7 @@ import {
   CORES_SCHEMA,
   CORES_V2_SCHEMA,
   CORE_VERSIONS_SCHEMA,
+  PATCHES_V2_SCHEMA,
   RELEASE_DOWNLOAD_PREFIX,
   VNDB_COVERAGE_SCHEMA,
   coreReleaseLabel,
@@ -23,6 +24,9 @@ import {
   parseCompatibility,
   parseCores,
   parseManagerRelease,
+  parsePatches,
+  parsePatchesV2,
+  legacyPatchView,
   parseVndbCoverage,
   sortCoreReleases,
   type CoreIdentity,
@@ -544,6 +548,68 @@ test('the synthetic v2 snapshot keeps every legacy entry and adds typed history'
   const siglus = catalog.find((release) => release.plugin_id === 'siglus_rs');
   assert.equal(siglus?.identity?.upstream.ref_name, 'feature/save-load');
   assert.equal(coreReleaseLabel(siglus!), 'feature/save-load@222222222222 (adapter 2436c25fc966)');
+});
+
+const v2Release = (id: string, vn: string, edition = 'DL') => ({
+  release_id: id,
+  vn_id: vn,
+  title: { 'zh-CN': `${id} 版`, en: `${id} edition` },
+  edition,
+  game_version: null,
+  fingerprints: [{ path: 'game.exe', size: 10, sha256: 'a'.repeat(64) }],
+});
+const v2Entry = (id: string, releases: unknown[]) => ({
+  id,
+  title: { 'zh-CN': id, en: id },
+  version: '0.1.0',
+  emulators: ['renpy'],
+  source_url: null,
+  license: 'MIT',
+  authorization_url: null,
+  summary: { 'zh-CN': id, en: id },
+  issue_url: null,
+  recipe: { script: `${id}.luau` },
+  releases,
+});
+
+test('patches.v2 binds recipes to releases and derives works from them', () => {
+  const [patch] = parsePatchesV2(
+    { schema: PATCHES_V2_SCHEMA, entries: [v2Entry('p', [v2Release('r2', 'v1'), v2Release('r3', 'v1'), v2Release('r4', 'v9')])] },
+    new Set(['renpy']),
+  );
+  assert.deepEqual(patch.vn_ids, ['v1', 'v9']);
+  assert.deepEqual(patch.releases.map((release) => release.release_id), ['r2', 'r3', 'r4']);
+  assert.equal(patch.releases[0].game_version, null);
+});
+
+test('patches.v2 rejects kind, empty bindings, unsafe paths and conflicting release descriptions', () => {
+  const cores = new Set(['renpy']);
+  const parse = (entries: unknown[]) => parsePatchesV2({ schema: PATCHES_V2_SCHEMA, entries }, cores);
+  assert.throws(() => parse([{ ...v2Entry('p', [v2Release('r2', 'v1')]), kind: 'recipe' }]), /unknown field "kind"/);
+  assert.throws(() => parse([v2Entry('p', [])]), /needs at least one release/);
+  assert.throws(() => parse([v2Entry('p', [{ ...v2Release('r2', 'v1'), fingerprints: [] }])]), /needs at least one file/);
+  assert.throws(
+    () => parse([v2Entry('p', [{ ...v2Release('r2', 'v1'), fingerprints: [{ path: '../x', size: 1, sha256: 'a'.repeat(64) }] }])]),
+    /safe relative path/,
+  );
+  assert.throws(() => parse([v2Entry('p', [v2Release('r2', 'v1'), v2Release('r2', 'v1')])]), /repeats a release_id/);
+  assert.throws(
+    () => parse([v2Entry('p', [v2Release('r2', 'v1')]), v2Entry('q', [v2Release('r2', 'v1', 'Steam')])]),
+    /describes r2 differently/,
+  );
+  assert.equal(parse([v2Entry('p', [v2Release('r2', 'v1')]), v2Entry('q', [v2Release('r2', 'v1')])]).length, 2);
+});
+
+test('the synthetic v2 patches keep every legacy id and v1 entries list without releases', () => {
+  const data = (name: string) => JSON.parse(readFileSync(new URL(`../fixtures/synthetic/data/${name}`, import.meta.url), 'utf8'));
+  const known = new Set(Object.keys(data('core-versions.json').cores));
+  const legacy = parsePatches(data('patches.json'), known);
+  const v2 = parsePatchesV2(data('patches-v2.json'), known);
+  assert.ok(v2.every((patch) => patch.releases.length > 0 && patch.recipe !== null));
+  const view = legacyPatchView(legacy[0]);
+  assert.deepEqual(view.releases, []);
+  assert.deepEqual(view.vn_ids, legacy[0].vn_ids);
+  assert.equal('kind' in view, false);
 });
 
 test('Japanese text falls back to English, then Chinese', () => {

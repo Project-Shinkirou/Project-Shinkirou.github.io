@@ -1,0 +1,179 @@
+{
+  "schema": "shinki.emu.patches.v2",
+  "entries": [
+    {
+      "id": "synthetic-recipe",
+      "title": {
+        "zh-CN": "合成配方补丁",
+        "en": "Synthetic recipe patch",
+        "ja": "合成レシピパッチ"
+      },
+      "version": "1.0.0",
+      "emulators": [
+        "shinki.emu.musica"
+      ],
+      "source_url": "https://github.com/Project-Shinkirou/ShinkiEMU/blob/main/Metadata/patches/synthetic-recipe.luau",
+      "license": "MIT OR Apache-2.0",
+      "authorization_url": null,
+      "summary": {
+        "zh-CN": "合成测试数据：适用于两个发行版本的配方。",
+        "en": "Synthetic test data: a recipe bound to two releases.",
+        "ja": "合成テストデータ：2 つのリリースに対応するレシピ。"
+      },
+      "issue_url": null,
+      "recipe": {
+        "script": "synthetic-recipe.luau"
+      },
+      "releases": [
+        {
+          "release_id": "r900001",
+          "vn_id": "v900001",
+          "title": {
+            "zh-CN": "合成作品一 DL 版",
+            "en": "Synthetic Work One download edition"
+          },
+          "edition": "DL",
+          "game_version": "1.02",
+          "fingerprints": [
+            {
+              "path": "synthetic1.exe",
+              "size": 1024,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            {
+              "path": "data/script.dat",
+              "size": 2048,
+              "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          ]
+        },
+        {
+          "release_id": "r900002",
+          "vn_id": "v900002",
+          "title": {
+            "zh-CN": "合成作品二 盒装版",
+            "en": "Synthetic Work Two boxed edition",
+            "ja": "合成作品二 パッケージ版"
+          },
+          "edition": "Package",
+          "game_version": null,
+          "fingerprints": [
+            {
+              "path": "synthetic2.exe",
+              "size": 4096,
+              "sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "synthetic-shared-release",
+      "title": {
+        "zh-CN": "合成共用发行版本补丁",
+        "en": "Synthetic shared-release patch"
+      },
+      "version": "0.3.0",
+      "emulators": [
+        "shinki.emu.musica",
+        "ReMinori"
+      ],
+      "source_url": "https://github.com/Project-Shinkirou/ShinkiEMU/blob/main/Metadata/patches/synthetic-shared-release.luau",
+      "license": "MIT OR Apache-2.0",
+      "authorization_url": "https://github.com/Project-Shinkirou/ShinkiEMU/blob/main/Metadata/LICENSE",
+      "summary": {
+        "zh-CN": "合成测试数据：与上一个补丁共用 r900001，另适用于作品四的 Steam 版。",
+        "en": "Synthetic test data: shares r900001 with the recipe above and also applies to the Steam release of work four."
+      },
+      "issue_url": "https://github.com/Project-Shinkirou/ShinkiEMU/issues/5",
+      "recipe": {
+        "script": "synthetic-shared-release.luau"
+      },
+      "releases": [
+        {
+          "release_id": "r900001",
+          "vn_id": "v900001",
+          "title": {
+            "zh-CN": "合成作品一 DL 版",
+            "en": "Synthetic Work One download edition"
+          },
+          "edition": "DL",
+          "game_version": "1.02",
+          "fingerprints": [
+            {
+              "path": "synthetic1.exe",
+              "size": 1024,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            {
+              "path": "data/script.dat",
+              "size": 2048,
+              "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          ]
+        },
+        {
+          "release_id": "r900004",
+          "vn_id": "v900004",
+          "title": {
+            "zh-CN": "合成作品四 Steam 版",
+            "en": "Synthetic Work Four Steam edition"
+          },
+          "edition": "Steam",
+          "game_version": "2.0.1",
+          "fingerprints": [
+            {
+              "path": "SyntheticFour.exe",
+              "size": 8192,
+              "sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "synthetic-long-title",
+      "title": {
+        "zh-CN": "合成长标题作品补丁",
+        "en": "Synthetic long-title work patch",
+        "ja": "合成長題作品パッチ"
+      },
+      "version": "2.1.0",
+      "emulators": [
+        "renpy"
+      ],
+      "source_url": null,
+      "license": "CC0-1.0",
+      "authorization_url": null,
+      "summary": {
+        "zh-CN": "合成测试数据：长标题与带字母的版本号。",
+        "en": "Synthetic test data: a long title and a lettered version number.",
+        "ja": "合成テストデータ：長いタイトルと英字付きバージョン番号。"
+      },
+      "issue_url": null,
+      "recipe": {
+        "script": "synthetic-long-title.luau"
+      },
+      "releases": [
+        {
+          "release_id": "r900003",
+          "vn_id": "v900003",
+          "title": {
+            "zh-CN": "合成作品三 初回限定版",
+            "en": "Synthetic Work Three limited first-press edition",
+            "ja": "合成作品三 初回限定版"
+          },
+          "edition": "Package (limited)",
+          "game_version": "1.00a",
+          "fingerprints": [
+            {
+              "path": "game/archive.rpa",
+              "size": 65536,
+              "sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

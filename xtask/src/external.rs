@@ -238,10 +238,12 @@ fn vndb_query(
     Ok(titles)
 }
 
-/// Every `vn_id`/`release_id` referenced by compatibility reports and patches.
+/// Every `vn_id`/`release_id` referenced by compatibility reports and patches,
+/// including the releases bound by `patches-v2.json` when the snapshot has one.
 pub fn referenced_ids(
     compatibility: &Value,
     patches: &Value,
+    patches_v2: Option<&Value>,
 ) -> Result<(BTreeSet<String>, BTreeSet<String>)> {
     let mut vn = BTreeSet::new();
     let mut release = BTreeSet::new();
@@ -274,6 +276,24 @@ pub fn referenced_ids(
             .context("patch release_ids")?
         {
             release.insert(id.as_str().context("patch release_id")?.to_owned());
+        }
+    }
+    if let Some(patches_v2) = patches_v2 {
+        for entry in entries(patches_v2, "patches-v2.json")? {
+            for bound in entry["releases"].as_array().context("patch releases")? {
+                vn.insert(
+                    bound["vn_id"]
+                        .as_str()
+                        .context("patch release vn_id")?
+                        .to_owned(),
+                );
+                release.insert(
+                    bound["release_id"]
+                        .as_str()
+                        .context("patch release release_id")?
+                        .to_owned(),
+                );
+            }
         }
     }
     Ok((vn, release))
@@ -439,15 +459,32 @@ mod tests {
     fn referenced_ids_cover_reports_and_patch_scopes() {
         let compatibility = json!({"entries": [{"vn_id": "v2", "release_id": "r3"}]});
         let patches = json!({"entries": [{"vn_ids": ["v2", "v5"], "release_ids": []}]});
-        let (vn, release) = referenced_ids(&compatibility, &patches).unwrap();
+        let (vn, release) = referenced_ids(&compatibility, &patches, None).unwrap();
         assert_eq!(vn.into_iter().collect::<Vec<_>>(), ["v2", "v5"]);
         assert_eq!(release.into_iter().collect::<Vec<_>>(), ["r3"]);
     }
 
     #[test]
+    fn referenced_ids_add_patch_v2_release_bindings() {
+        let compatibility = json!({"entries": []});
+        let patches = json!({"entries": [{"vn_ids": ["v2"], "release_ids": []}]});
+        let v2 = json!({"entries": [{"releases": [
+            {"vn_id": "v2", "release_id": "r7"},
+            {"vn_id": "v9", "release_id": "r8"}
+        ]}]});
+        let (vn, release) = referenced_ids(&compatibility, &patches, Some(&v2)).unwrap();
+        assert_eq!(vn.into_iter().collect::<Vec<_>>(), ["v2", "v9"]);
+        assert_eq!(release.into_iter().collect::<Vec<_>>(), ["r7", "r8"]);
+    }
+
+    #[test]
     fn referenced_ids_reject_malformed_entries() {
         let compatibility = json!({"entries": [{"vn_id": 7, "release_id": "r3"}]});
-        assert!(referenced_ids(&compatibility, &json!({"entries": []})).is_err());
+        assert!(referenced_ids(&compatibility, &json!({"entries": []}), None).is_err());
+        let v2 = json!({"entries": [{"releases": [{"vn_id": "v1"}]}]});
+        assert!(
+            referenced_ids(&json!({"entries": []}), &json!({"entries": []}), Some(&v2)).is_err()
+        );
     }
 
     #[test]
