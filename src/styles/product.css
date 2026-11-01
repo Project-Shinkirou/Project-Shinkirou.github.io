@@ -1442,6 +1442,11 @@ button.legend-item[aria-pressed='true'] {
   min-width: 18rem;
 }
 
+/* The release table's narrow action column squeezed the label into a circle. */
+.data-table .button {
+  white-space: nowrap;
+}
+
 /* ---------- Patches ---------- */
 
 .kind-nav {
