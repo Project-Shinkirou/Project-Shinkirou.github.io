@@ -536,21 +536,19 @@ const zh = {
   },
   projectStatus: {
     title: '项目状态',
-    description: 'Project-Shinkirou 的发布与开发状态：ShinkiEMU 已发布的内容、进行中的工作，以及 RoukakuEngine 的现状',
-    lead: '这里只列出已经发布的内容和已确认在进行中的工作，不给出日期。发布细节以 GitHub Releases 和发布说明为准。',
+    description: 'Project-Shinkirou 的发布与开发状态：ShinkiEMU 已发布的内容、各移动平台的实际状态，以及 RoukakuEngine 的现状',
+    lead: '这里只列出已经发布的内容和当前的实际状态，不给出日期。发布细节以 GitHub Releases 和发布说明为准。',
     releasedTitle: '已发布',
     released: (version: string, date: string) => `ShinkiEMU Manager 最新版本是 ${version}，${date} 发布。`,
     prerelease: '目前所有版本都是预发布（beta）。',
     notReleased: 'ShinkiEMU Manager 还没有发布版本。',
     reports: (n: number) =>
       n === 0 ? '兼容性数据库还没有报告，所有作品与平台的组合都尚未验证。' : `兼容性数据库共有 ${n} 条报告。`,
-    inProgressTitle: '进行中',
-    inProgress: [
-      'Android 版 Manager 内置 KiriKiri 核心的工作仍在开发，计划随后续 Manager 版本交付。',
-      'KiriKiri 与 Ren’Py 的 iOS 移植仍在开发，当前版本不包含。',
-      'HarmonyOS / OpenHarmony 版 Manager 仍是实验性测试签名包，零售设备上的可安装性尚未验证。',
-    ],
-    inProgressSource: '来源：Manager 0.1.0-beta.6 发布说明',
+    mobileTitle: '移动端现状',
+    mobileEmbedded: (platform: string, names: string) => `${platform} 版 Manager 内置：${names}。`,
+    mobileBlocked: (platform: string, names: string) => `${platform} 版暂不包含：${names}（构建状态为阻塞）。`,
+    ohosNote: 'HarmonyOS / OpenHarmony 版 Manager 仍是实验性测试签名包，尚未在真机或模拟器上验证启动，零售设备上的可安装性也未验证。',
+    mobileSource: (version: string) => `来源：Manager ${version} 发布说明与构建矩阵`,
     roukakuBody:
       'RoukakuEngine 目前暂停开发，没有发布二进制版本。源码和文档保持公开，可以按快速开始从源码构建。',
     roukakuTitle: '暂停开发',
@@ -1076,8 +1074,8 @@ const en: Strings = {
   projectStatus: {
     title: 'Project status',
     description:
-      'Release and development status of Project-Shinkirou: what ShinkiEMU has shipped, work in progress, and where RoukakuEngine stands',
-    lead: 'This page lists only what has shipped and work confirmed to be in progress. It gives no dates. GitHub Releases and the release notes have the details.',
+      'Release and development status of Project-Shinkirou: what ShinkiEMU has shipped, where each mobile platform stands, and where RoukakuEngine stands',
+    lead: 'This page lists only what has shipped and where things currently stand. It gives no dates. GitHub Releases and the release notes have the details.',
     releasedTitle: 'Released',
     released: (version: string, date: string) => `The latest ShinkiEMU Manager is ${version}, released ${date}.`,
     prerelease: 'All releases so far are prereleases (beta).',
@@ -1086,13 +1084,12 @@ const en: Strings = {
       n === 0
         ? 'The compatibility database has no reports yet, so no combination of work and platform has been verified.'
         : `The compatibility database has ${n} ${n === 1 ? 'report' : 'reports'}.`,
-    inProgressTitle: 'In progress',
-    inProgress: [
-      'Embedding the KiriKiri core in the Android Manager is still in development, planned for a later Manager release.',
-      'The KiriKiri and Ren’Py iOS ports are still in development and are not in the current release.',
-      'The HarmonyOS / OpenHarmony Manager is still an experimental test-signed package; installability on retail devices is unverified.',
-    ],
-    inProgressSource: 'Source: Manager 0.1.0-beta.6 release notes',
+    mobileTitle: 'Mobile platforms',
+    mobileEmbedded: (platform: string, names: string) => `The ${platform} Manager has built in: ${names}.`,
+    mobileBlocked: (platform: string, names: string) => `Not yet on ${platform}: ${names} (build blocked).`,
+    ohosNote:
+      'The HarmonyOS / OpenHarmony Manager is still an experimental test-signed package. Device and emulator launch and retail installability have not been verified.',
+    mobileSource: (version: string) => `Source: Manager ${version} release notes and build matrix`,
     roukakuBody:
       'RoukakuEngine development is currently paused, and there are no binary releases. The source and docs stay public, and you can build from source with the quick start.',
     roukakuTitle: 'Development paused',
@@ -1611,8 +1608,8 @@ const ja: Strings = {
   projectStatus: {
     title: 'プロジェクトの状況',
     description:
-      'Project-Shinkirou のリリースと開発の状況：ShinkiEMU で公開済みの内容、進行中の作業、RoukakuEngine の現状',
-    lead: 'このページには公開済みの内容と、進行中であることが確認できた作業だけを載せています。日付は示しません。詳細は GitHub Releases とリリースノートを参照してください。',
+      'Project-Shinkirou のリリースと開発の状況：ShinkiEMU で公開済みの内容、モバイル各プラットフォームの現状、RoukakuEngine の現状',
+    lead: 'このページには公開済みの内容と現在の実際の状況だけを載せています。日付は示しません。詳細は GitHub Releases とリリースノートを参照してください。',
     releasedTitle: '公開済み',
     released: (version: string, date: string) => `ShinkiEMU Manager の最新版は ${version} で、${date} に公開されました。`,
     prerelease: 'これまでのリリースはすべてプレリリース（beta）です。',
@@ -1621,13 +1618,12 @@ const ja: Strings = {
       n === 0
         ? '互換性データベースにはまだレポートがなく、どの作品とプラットフォームの組み合わせも検証されていません。'
         : `互換性データベースには ${n} 件のレポートがあります。`,
-    inProgressTitle: '進行中',
-    inProgress: [
-      'Android 版 Manager への KiriKiri コアの組み込みは開発中で、後続の Manager リリースで提供する予定です。',
-      'KiriKiri と Ren’Py の iOS 移植は開発中で、現在のリリースには含まれていません。',
-      'HarmonyOS / OpenHarmony 版 Manager は引き続き実験的なテスト署名パッケージで、市販デバイスへのインストール可否は未確認です。',
-    ],
-    inProgressSource: '出典：Manager 0.1.0-beta.6 リリースノート',
+    mobileTitle: 'モバイルの現状',
+    mobileEmbedded: (platform: string, names: string) => `${platform} 版 Manager に組み込まれているコア：${names}。`,
+    mobileBlocked: (platform: string, names: string) => `${platform} 版にまだ含まれていないコア：${names}（ビルドはブロック中）。`,
+    ohosNote:
+      'HarmonyOS / OpenHarmony 版 Manager は引き続き実験的なテスト署名パッケージです。実機・エミュレーターでの起動も、市販デバイスへのインストール可否も検証されていません。',
+    mobileSource: (version: string) => `出典：Manager ${version} のリリースノートとビルドマトリクス`,
     roukakuBody:
       'RoukakuEngine の開発は現在休止中で、バイナリのリリースはありません。ソースとドキュメントは公開したままで、クイックスタートに沿ってソースからビルドできます。',
     roukakuTitle: '開発休止中',

@@ -1,10 +1,11 @@
 ---
 // Project status: what has shipped (from the latest Manager release and the
-// metadata snapshot) and work confirmed in progress by the release notes. No
-// dates or promises; RoukakuEngine is paused.
+// metadata snapshot) and where each mobile platform stands (from the build
+// matrix). No dates or promises; RoukakuEngine is paused.
 import { getCollection } from 'astro:content';
 import ProductLayout from '../../layouts/ProductLayout.astro';
-import { formatUtc, LOCALES, STRINGS, type Locale } from '../../lib/i18n.ts';
+import { formatList, formatUtc, LOCALES, STRINGS, type Locale } from '../../lib/i18n.ts';
+import { embeddedCoreStatus } from '../../lib/platforms.ts';
 import { ROUKAKU_REPO } from '../../lib/site-data.ts';
 import { RELEASES_URL, site } from '../../lib/site.ts';
 
@@ -24,6 +25,10 @@ const notes =
   (await getCollection('docs', (entry) => entry.id === `${locale}/shinkiemu/docs/${notesSlug}`)).length > 0
     ? `${base}/shinkiemu/docs/${notesSlug}/`
     : null;
+const mobile = embeddedCoreStatus(site.matrix, site.targets);
+const names = (cores: readonly { core: string }[]) => formatList(cores.map((core) => core.core), locale);
+const ohosShipped = release?.assets.some((asset) => asset.platform === 'ohos') ?? false;
+const source = notes ?? release?.html_url ?? null;
 ---
 
 <ProductLayout locale={locale} title={t.title} description={t.description} current="status">
@@ -56,14 +61,26 @@ const notes =
       </ul>
     </section>
 
-    <section class="card product-card tone-cyan" aria-labelledby="status-progress">
-      <p class="product-kicker">ShinkiEMU</p>
-      <h2 id="status-progress">{t.inProgressTitle}</h2>
-      <ul class="note-list">
-        {t.inProgress.map((item) => <li>{item}</li>)}
-      </ul>
-      <p class="muted">{notes ? <a href={notes}>{t.inProgressSource}</a> : t.inProgressSource}</p>
-    </section>
+    {
+      mobile.length > 0 && (
+        <section class="card product-card tone-cyan" aria-labelledby="status-mobile">
+          <p class="product-kicker">ShinkiEMU</p>
+          <h2 id="status-mobile">{t.mobileTitle}</h2>
+          <ul class="note-list">
+            {mobile.map((entry) => (
+              <li>
+                {t.mobileEmbedded(strings.platform[entry.platform], names(entry.embedded))}
+                {entry.blocked.length > 0 && <> {t.mobileBlocked(strings.platform[entry.platform], names(entry.blocked))}</>}
+              </li>
+            ))}
+            {ohosShipped && <li>{t.ohosNote}</li>}
+          </ul>
+          {release && (
+            <p class="muted">{source ? <a href={source}>{t.mobileSource(release.version)}</a> : t.mobileSource(release.version)}</p>
+          )}
+        </section>
+      )
+    }
 
     <section class="card product-card tone-gold" aria-labelledby="status-roukaku">
       <p class="product-kicker">RoukakuEngine</p>

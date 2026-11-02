@@ -85,6 +85,23 @@ export function embeddedCores(
   })).filter((entry) => entry.cores.length > 0);
 }
 
+/**
+ * Per platform where the Manager embeds cores: the embedded cores, and the
+ * cores that list targets there but none of them is buildable or embedded.
+ */
+export function embeddedCoreStatus(
+  matrix: readonly MatrixCore[],
+  targets: readonly BuildTarget[],
+): { platform: Platform; embedded: MatrixCore[]; blocked: MatrixCore[] }[] {
+  return embeddedCores(matrix, targets).map(({ platform, cores }) => ({
+    platform,
+    embedded: cores,
+    blocked: matrix.filter((core) =>
+      corePlatformStates(core, targets).some((entry) => entry.platform === platform && entry.state === 'blocked'),
+    ),
+  }));
+}
+
 export interface ManagerDownload {
   platform: Platform;
   /** Build targets of this platform in build/targets.toml order. */
