@@ -161,6 +161,14 @@ const otherLang = (value: 'zh-CN' | 'en' | 'ja') => (value === lang ? undefined 
         <li>{t.usageLocal}</li>
       </ul>
     </section>
+    <section class="card patch-intro-card" aria-labelledby="patch-req-title">
+      <h2 id="patch-req-title">{t.reqTitle}</h2>
+      <ul class="patch-intro-list">
+        {t.reqItems.map((item) => (
+          <li>{item}</li>
+        ))}
+      </ul>
+    </section>
     <section class="card patch-intro-card" aria-labelledby="patch-submit-title">
       <h2 id="patch-submit-title">{t.submitTitle}</h2>
       <p>{t.submitLead}</p>
