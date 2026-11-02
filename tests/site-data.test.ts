@@ -621,6 +621,31 @@ test('fingerprint paths accept the player\'s Unicode file names and reject unsaf
   }
 });
 
+test('patches.v2 downloads default to none and must be HTTPS with digest and size up to 1 GiB', () => {
+  const cores = new Set(['renpy']);
+  const withDownloads = (downloads: unknown) =>
+    parsePatchesV2(
+      { schema: PATCHES_V2_SCHEMA, entries: [{ ...v2Entry('p', [v2Release('r2', 'v1')]), downloads }] },
+      cores,
+    )[0].downloads;
+  const file = { url: 'https://example.org/a.bin', sha256: 'b'.repeat(64), size: 10 };
+  assert.deepEqual(
+    parsePatchesV2({ schema: PATCHES_V2_SCHEMA, entries: [v2Entry('p', [v2Release('r2', 'v1')])] }, cores)[0].downloads,
+    [],
+  );
+  assert.deepEqual(withDownloads([]), []);
+  assert.deepEqual(withDownloads([file]), [file]);
+  assert.equal(withDownloads([{ ...file, size: 1024 * 1024 * 1024 }])[0].size, 1024 * 1024 * 1024);
+  assert.throws(() => withDownloads([{ ...file, url: 'http://example.org/a.bin' }]), /https URL/);
+  assert.throws(() => withDownloads([{ ...file, url: 'https://u:p@example.org/a.bin' }]), /without credentials/);
+  assert.throws(() => withDownloads([{ ...file, sha256: 'B'.repeat(64) }]), /must match/);
+  assert.throws(() => withDownloads([{ ...file, size: 0 }]), /integer in 1\.\./);
+  assert.throws(() => withDownloads([{ ...file, size: 1024 * 1024 * 1024 + 1 }]), /integer in 1\.\./);
+  assert.throws(() => withDownloads([{ ...file, kind: 'hosted' }]), /unknown field "kind"/);
+  assert.throws(() => withDownloads([file, { ...file, size: 11 }]), /repeats a url/);
+  assert.throws(() => withDownloads({}), /expected an array/);
+});
+
 test('the synthetic v2 patches keep every legacy id and v1 entries list without releases', () => {
   const data = (name: string) => JSON.parse(readFileSync(new URL(`../fixtures/synthetic/data/${name}`, import.meta.url), 'utf8'));
   const known = new Set(Object.keys(data('core-versions.json').cores));

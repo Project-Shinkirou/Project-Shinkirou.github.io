@@ -89,6 +89,13 @@
       "recipe": {
         "script": "synthetic-shared-release.luau"
       },
+      "downloads": [
+        {
+          "url": "https://github.com/Project-Shinkirou/ShinkiEMU/releases/download/synthetic-assets-v1/synthetic-shared-release-font-subset-with-a-long-file-name.ttf",
+          "sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "size": 1048576
+        }
+      ],
       "releases": [
         {
           "release_id": "r900001",
