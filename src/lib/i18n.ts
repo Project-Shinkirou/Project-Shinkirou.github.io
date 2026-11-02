@@ -360,7 +360,7 @@ const zh = {
     usageLocal: '本地加载：也可以用 Manager 的“加载本地补丁…”打开本地的 Luau 补丁文件。本地补丁没有经过目录审核，Manager 会标为“本地 · 未经目录审核”。',
     reqTitle: '版本要求',
     reqItems: [
-      '这份目录里的补丁（patches.v2）需要 ShinkiEMU Manager 0.1.0-beta.8 及以上，Musica 核心需要 0.1.0-beta.5 及以上。',
+      '这份目录里的补丁（patches.v2）需要 ShinkiEMU Manager 0.1.0-beta.8 及以上；其中 Musica 补丁另需 Musica 核心 0.1.0-beta.5 及以上。',
       'Manager 会按补丁输出所需的核心能力核对已安装的核心。Musica 的资源型补丁需要“原生内嵌译文”（能力位 256）；Yorino 还需要“原生姓名资源”（512），合计 768。',
       '核心版本太旧、缺少所需能力时，Manager 会提示更新核心。',
       '旧版 Manager 继续读取原来的 v1 补丁目录，已有的补丁不受影响。',
@@ -915,7 +915,7 @@ const en: Strings = {
     usageLocal: 'Local: you can also open a Luau patch file of your own with “Load local patch…” in the Manager. Local patches have not been reviewed for the catalog, and the Manager marks them “Local · not reviewed by the catalog”.',
     reqTitle: 'Version requirements',
     reqItems: [
-      'Patches in this catalog (patches.v2) need ShinkiEMU Manager 0.1.0-beta.8 or later, and the Musica core 0.1.0-beta.5 or later.',
+      'Patches in this catalog (patches.v2) need ShinkiEMU Manager 0.1.0-beta.8 or later. Musica patches additionally need the Musica core 0.1.0-beta.5 or later.',
       'The Manager checks the installed core against the core capabilities a patch’s output needs. Musica resource patches need “Native embedded text” (capability bit 256); Yorino also needs “Native name resources” (512), 768 in total.',
       'If the core is too old to provide them, the Manager asks you to update it.',
       'Older Managers keep reading the v1 patch catalog, so existing patches are unaffected.',
@@ -1472,7 +1472,7 @@ const ja: Strings = {
     usageLocal: 'ローカル：Manager の「ローカルのパッチを読み込む…」で手元の Luau パッチファイルを開くこともできます。ローカルのパッチはカタログの審査を経ていないため、「ローカル · カタログ未審査」と表示されます。',
     reqTitle: '必要なバージョン',
     reqItems: [
-      'このカタログのパッチ（patches.v2）には ShinkiEMU Manager 0.1.0-beta.8 以降と、Musica コア 0.1.0-beta.5 以降が必要です。',
+      'このカタログのパッチ（patches.v2）には ShinkiEMU Manager 0.1.0-beta.8 以降が必要です。Musica のパッチには、さらに Musica コア 0.1.0-beta.5 以降が必要です。',
       'Manager は、パッチの出力に必要なコア機能をインストール済みのコアと照合します。Musica のリソース系パッチには「ネイティブ埋め込みテキスト」（機能ビット 256）が必要で、Yorino はさらに「ネイティブ姓名リソース」（512）も必要なので、合計 768 になります。',
       'コアが古く必要な機能がない場合は、Manager がコアの更新を促します。',
       '以前の Manager は引き続き v1 のパッチカタログを読み込むため、既存のパッチは影響を受けません。',
