@@ -361,7 +361,7 @@ const zh = {
     reqTitle: '版本要求',
     reqItems: [
       '这份目录里的补丁（patches.v2）需要 ShinkiEMU Manager 0.1.0-beta.8 及以上；其中 Musica 补丁另需 Musica 核心 0.1.0-beta.5 及以上。',
-      'Manager 会按补丁输出所需的核心能力核对已安装的核心。Musica 的资源型补丁需要“原生内嵌译文”（能力位 256）；Yorino 还需要“原生姓名资源”（512），合计 768。',
+      'Manager 会按补丁输出所需的核心能力核对已安装的核心。Musica 的译文嵌入补丁（eden、ef first、Yorino）需要“原生内嵌译文”（能力位 256）；Yorino 还需要“原生姓名资源”（512），合计 768。',
       'RFVP（樱花萌放）补丁需要“原生脚本存档隔离”（64）和“优先使用配置字体”（128），合计 192。最早提供这两项能力的 RFVP 核心是 0.7.0@99435f22e94e（adapter f86a19f5160b）。',
       '核心版本太旧、缺少所需能力时，Manager 会提示更新核心。',
       '旧版 Manager 继续读取原来的 v1 补丁目录，已有的补丁不受影响。',
@@ -917,7 +917,7 @@ const en: Strings = {
     reqTitle: 'Version requirements',
     reqItems: [
       'Patches in this catalog (patches.v2) need ShinkiEMU Manager 0.1.0-beta.8 or later. Musica patches additionally need the Musica core 0.1.0-beta.5 or later.',
-      'The Manager checks the installed core against the core capabilities a patch’s output needs. Musica resource patches need “Native embedded text” (capability bit 256); Yorino also needs “Native name resources” (512), 768 in total.',
+      'The Manager checks the installed core against the core capabilities a patch’s output needs. Musica patches that embed translations (eden, ef first, Yorino) need “Native embedded text” (capability bit 256); Yorino also needs “Native name resources” (512), 768 in total.',
       'The RFVP (Sakura Moyu) patch needs “Native script save isolation” (64) and “Prefer configured fonts” (128), 192 in total. The first RFVP core to provide both is 0.7.0@99435f22e94e (adapter f86a19f5160b).',
       'If the core is too old to provide them, the Manager asks you to update it.',
       'Older Managers keep reading the v1 patch catalog, so existing patches are unaffected.',
@@ -1475,8 +1475,8 @@ const ja: Strings = {
     reqTitle: '必要なバージョン',
     reqItems: [
       'このカタログのパッチ（patches.v2）には ShinkiEMU Manager 0.1.0-beta.8 以降が必要です。Musica のパッチには、さらに Musica コア 0.1.0-beta.5 以降が必要です。',
-      'Manager は、パッチの出力に必要なコア機能をインストール済みのコアと照合します。Musica のリソース系パッチには「ネイティブ埋め込みテキスト」（機能ビット 256）が必要で、Yorino はさらに「ネイティブ姓名リソース」（512）も必要なので、合計 768 になります。',
-      'RFVP のパッチ（fvp-sakura-cn）には「ネイティブスクリプトのセーブ分離」（64）と「設定したフォントを優先」（128）が必要で、合計 192 になります。この 2 つを最初に備えた RFVP コアは 0.7.0@99435f22e94e（adapter f86a19f5160b）です。',
+      'Manager は、パッチの出力に必要なコア機能をインストール済みのコアと照合します。Musica の訳文埋め込みパッチ（eden、ef first、Yorino）には「ネイティブ埋め込みテキスト」（機能ビット 256）が必要で、Yorino はさらに「ネイティブ姓名リソース」（512）も必要なので、合計 768 になります。',
+      'RFVP（さくら、もゆ。）のパッチには「ネイティブスクリプトのセーブ分離」（64）と「設定したフォントを優先」（128）が必要で、合計 192 になります。この 2 つを最初に備えた RFVP コアは 0.7.0@99435f22e94e（adapter f86a19f5160b）です。',
       'コアが古く必要な機能がない場合は、Manager がコアの更新を促します。',
       '以前の Manager は引き続き v1 のパッチカタログを読み込むため、既存のパッチは影響を受けません。',
     ],
