@@ -3,7 +3,7 @@
 // the links to one project's page.
 import { STRINGS, type Locale } from '../lib/i18n.ts';
 import { ROUKAKU_REPO, SHINKIEMU_REPO } from '../lib/site-data.ts';
-import { ISSUES_URL, ORG_URL, RELEASES_URL } from '../lib/site.ts';
+import { DISCUSSIONS_URL, ISSUES_URL, ORG_URL, RELEASES_URL } from '../lib/site.ts';
 
 interface Props {
   locale: Locale;
@@ -19,7 +19,9 @@ const groups = [
   {
     title: t.docs,
     links: [
+      { href: `${docs}/quick-start/`, label: t.shinkiQuickStart },
       { href: `${docs}/user-guide/`, label: t.userGuide },
+      { href: `${docs}/troubleshooting/`, label: t.troubleshooting },
       { href: `/${locale}/shinkiemu/faq/`, label: STRINGS[locale].nav.faq },
       { href: `/${locale}/status/`, label: STRINGS[locale].nav.projectStatus },
       { href: `${docs}/platforms/`, label: t.platforms },
@@ -31,6 +33,8 @@ const groups = [
   {
     title: t.community,
     links: [
+      { href: DISCUSSIONS_URL, label: t.discussions },
+      { href: `${docs}/contributing/`, label: t.contributingGuide },
       { href: `${ISSUES_URL}/new/choose`, label: t.submitReport },
       { href: `${docs}/metadata/`, label: t.contributing },
       { href: ISSUES_URL, label: t.issues },

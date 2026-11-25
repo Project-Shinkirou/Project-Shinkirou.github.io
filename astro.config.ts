@@ -43,7 +43,11 @@ export default defineConfig({
               collapsed: false,
               items: [
                 'shinkiemu/docs',
+                'shinkiemu/docs/quick-start',
                 'shinkiemu/docs/user-guide',
+                'shinkiemu/docs/troubleshooting',
+                'shinkiemu/docs/contributing',
+                'shinkiemu/docs/metadata',
                 'shinkiemu/docs/build-and-release',
                 {
                   label: '平台与构建矩阵',
@@ -51,7 +55,8 @@ export default defineConfig({
                   link: '/shinkiemu/docs/platforms/',
                 },
                 'shinkiemu/docs/core-abi',
-                'shinkiemu/docs/metadata',
+                'shinkiemu/docs/headless',
+                'shinkiemu/docs/release-runbook',
                 {
                   label: '发布说明',
                   translations: { en: 'Release notes', ja: 'リリースノート' },
